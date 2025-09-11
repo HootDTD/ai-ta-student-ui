@@ -4,10 +4,11 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Dropzone from 'react-dropzone';
 import { Send, X, ImagePlus, Paperclip } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
-type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[] };
+type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[]; created_at: string };
 
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -19,16 +20,53 @@ async function fileToDataUrl(file: File): Promise<string> {
 }
 
 export default function Page() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [chatId, setChatId] = useState<string>('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
+
+  // initialize or reuse chat id
+  useEffect(() => {
+    const existing = localStorage.getItem('hoot_chat_id');
+    if (existing) setChatId(existing);
+    else {
+      const id = 'chat-' + Math.random().toString(16).slice(2, 10);
+      localStorage.setItem('hoot_chat_id', id);
+      setChatId(id);
+    }
+  }, []);
+
+  const saveChat = async (turns: Message[]) => {
+    if (!chatId || !turns.length) return;
+    const payload = {
+      chat_id: chatId,
+      meta: {},
+      turns: turns.map((t, i) => ({
+        turn_id: String(i + 1),
+        role: t.role,
+        content: t.content,
+        created_at: t.created_at,
+        model: t.role === 'assistant' ? undefined : null,
+        tool_name: null,
+        attachments: t.attachments?.map(a => ({ name: a.name, mime: a.type, data_url: a.dataUrl })) || [],
+      })),
+    };
+    try {
+      await fetch(`/api/chats/${encodeURIComponent(chatId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch {}
+  };
 
   const addFiles = useCallback(async (files: File[]) => {
     const imgs = files.filter(f => f.type.startsWith('image/'));
@@ -61,14 +99,15 @@ export default function Page() {
     if (!q && attachments.length === 0) return;
 
     // push user message
-    setMessages(prev => [...prev, { role: 'user', content: q, attachments }]);
+    const now = new Date().toISOString();
+    setMessages(prev => [...prev, { role: 'user', content: q, attachments, created_at: now }]);
     setInput('');
     setAttachments([]);
     setLoading(true);
 
     // placeholder for streaming assistant message
     const aiIndex = messages.length + 1;
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+    setMessages(prev => [...prev, { role: 'assistant', content: '', created_at: now }]);
 
     try {
       const res = await fetch('/api/ask', {
@@ -103,6 +142,8 @@ export default function Page() {
         acc = text;
         setMessages(prev => prev.map((m, i) => i === aiIndex ? { ...m, content: acc } : m));
       }
+      // save after assistant reply
+      saveChat([...messages, { role: 'user', content: q, attachments, created_at: now }, { role: 'assistant', content: acc, created_at: now }]);
     } catch (err) {
       setMessages(prev => prev.map((m, i) => i === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m));
     } finally {
@@ -118,12 +159,36 @@ export default function Page() {
     }
   };
 
+  const generateReport = async () => {
+    if (!chatId) return;
+    try {
+      const resp = await fetch(`/api/reports/ai-use/${encodeURIComponent(chatId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style: 'none', length: 'brief' }),
+      });
+      if (!resp.ok) {
+        const msg = await resp.text();
+        alert(`Failed to create report: ${msg}`);
+        return;
+      }
+      const data = await resp.json();
+      const reportId = data.report_id;
+      if (reportId) router.push(`/report/${reportId}`);
+    } catch (e) {
+      alert('Error creating report');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
       <header className="border-b border-neutral-800 sticky top-0 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/70">
-        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between">
+        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between gap-3">
           <div className="font-semibold tracking-tight">Hoot</div>
-          <div className="text-sm text-neutral-400">Beta UI</div>
+          <div className="flex items-center gap-2">
+            <button onClick={generateReport} className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-700 text-sm">Generate report</button>
+            <div className="text-sm text-neutral-400 hidden sm:block">Beta UI</div>
+          </div>
         </div>
       </header>
 
