@@ -122,7 +122,7 @@ export default function Page() {
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
       <header className="border-b border-neutral-800 sticky top-0 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/70">
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between">
-          <div className="font-semibold tracking-tight">AI-TA</div>
+          <div className="font-semibold tracking-tight">Hoot</div>
           <div className="text-sm text-neutral-400">Beta UI</div>
         </div>
       </header>
@@ -216,4 +216,3 @@ export default function Page() {
     </div>
   );
 }
-
