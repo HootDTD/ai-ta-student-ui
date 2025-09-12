@@ -71,8 +71,24 @@ export default function ReportPage() {
     URL.revokeObjectURL(a.href);
   };
 
-  const exportPdf = () => {
-    window.open(`/api/reports/ai-use/${id}/pdf`, '_blank');
+  const exportPdf = async () => {
+    try {
+      const resp = await fetch(`/api/reports/ai-use/${id}/pdf`);
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        alert(`Export failed (HTTP ${resp.status})${txt ? `: ${txt}` : ''}`);
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ai-use-report-${id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Export failed');
+    }
   };
 
   return (
@@ -140,4 +156,3 @@ export default function ReportPage() {
     </div>
   );
 }
-
