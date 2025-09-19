@@ -9,6 +9,193 @@ import ReactMarkdown from 'react-markdown';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[]; created_at: string };
+type Textbook = { id: string; title: string; label: string | null; subject: string | null; created_at: string };
+
+const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const rawSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!rawSupabaseUrl || !rawSupabaseAnonKey) {
+  throw new Error('Supabase environment variables NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.');
+}
+
+const SUPABASE_URL: string = rawSupabaseUrl;
+const SUPABASE_ANON_KEY: string = rawSupabaseAnonKey;
+const SUPABASE_REST_URL = `${SUPABASE_URL}/rest/v1`;
+
+async function fetchTextbooks(): Promise<Textbook[]> {
+  const resp = await fetch(
+    `${SUPABASE_REST_URL}/textbooks?select=id,title,label,subject,created_at&order=title.asc`,
+    {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Accept: 'application/json',
+      },
+      cache: 'no-store',
+    },
+  );
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Failed to load textbooks (${resp.status})`);
+  }
+  const data = await resp.json();
+  if (!Array.isArray(data)) {
+    throw new Error('Unexpected textbooks response shape.');
+  }
+  return data as Textbook[];
+}
+
+type InsertQuestionPayload = {
+  textbook_id: string;
+  subject: string | null;
+  prompt: string;
+};
+
+async function insertQuestion(payload: InsertQuestionPayload): Promise<{ id: string }> {
+  const resp = await fetch(`${SUPABASE_REST_URL}/questions`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Failed to create question (${resp.status})`);
+  }
+  const data = await resp.json();
+  if (!Array.isArray(data) || !data[0]?.id) {
+    throw new Error('Question insertion did not return an id.');
+  }
+  return data[0] as { id: string };
+}
+
+type InsertAnswerPayload = {
+  question_id: string;
+  answer_text: string;
+  citations: string[] | null;
+  proof: Record<string, unknown> | null;
+  results: Record<string, string> | null;
+};
+
+async function insertAnswer(payload: InsertAnswerPayload): Promise<void> {
+  const resp = await fetch(`${SUPABASE_REST_URL}/answers`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Failed to save answer (${resp.status})`);
+  }
+  const data = await resp.json();
+  if (!Array.isArray(data) || !data[0]?.id) {
+    throw new Error('Answer insertion did not return a row.');
+  }
+}
+
+type ParsedAnswer = {
+  answerText: string;
+  citations: string[] | null;
+  results: Record<string, string> | null;
+};
+
+function parseAnswer(fullText: string): ParsedAnswer {
+  const trimmed = fullText.trim();
+  if (!trimmed) {
+    return { answerText: '', citations: null, results: null };
+  }
+
+  const lines = trimmed.split('\n');
+  const workingLines = [...lines];
+  let citations: string[] | null = null;
+
+  let citationLineIndex = -1;
+  for (let i = workingLines.length - 1; i >= 0; i -= 1) {
+    const rawLine = workingLines[i];
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+    if (/^Citations:/i.test(line)) {
+      citationLineIndex = i;
+      const matches = line.replace(/^Citations:/i, '').match(/\[[^\]]+\]/g);
+      if (matches && matches.length) {
+        citations = matches.map((m) => m.trim());
+      } else {
+        citations = [];
+      }
+      break;
+    }
+    const markers = line.match(/\[[^\]]+\]/g);
+    const remainder = line.replace(/\[[^\]]+\]/g, '').trim();
+    if (markers && markers.length && remainder === '') {
+      citationLineIndex = i;
+      citations = markers.map((m) => m.trim());
+      break;
+    }
+    if (markers) {
+      break;
+    }
+  }
+
+  if (citationLineIndex >= 0) {
+    workingLines.splice(citationLineIndex, 1);
+    while (workingLines.length && workingLines[workingLines.length - 1].trim() === '') {
+      workingLines.pop();
+    }
+  }
+
+  let results: Record<string, string> | null = null;
+  for (let i = 0; i < workingLines.length; i += 1) {
+    const rawLine = workingLines[i];
+    const line = rawLine.trim();
+    if (/^Results:/i.test(line)) {
+      const collected: Record<string, string> = {};
+      let j = i + 1;
+      for (; j < workingLines.length; j += 1) {
+        const entryLine = workingLines[j].trim();
+        if (!entryLine) {
+          j += 1;
+          break;
+        }
+        if (!entryLine.startsWith('- ')) {
+          break;
+        }
+        const withoutDash = entryLine.slice(2).trim();
+        if (!withoutDash) {
+          continue;
+        }
+        const eqIndex = withoutDash.indexOf('=');
+        if (eqIndex >= 0) {
+          const key = withoutDash.slice(0, eqIndex).trim();
+          const value = withoutDash.slice(eqIndex + 1).trim();
+          if (key) {
+            collected[key] = value;
+          }
+        } else {
+          collected[withoutDash] = '';
+        }
+      }
+      if (Object.keys(collected).length) {
+        results = collected;
+      }
+      workingLines.splice(i, j - i);
+      break;
+    }
+  }
+
+  const answerText = workingLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return { answerText, citations: citations && citations.length ? citations : null, results };
+}
 
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -25,13 +212,78 @@ export default function Page() {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [textbooks, setTextbooks] = useState<Textbook[]>([]);
+  const [textbooksLoading, setTextbooksLoading] = useState<boolean>(true);
+  const [textbooksError, setTextbooksError] = useState<string | null>(null);
+  const [selectedTextbookId, setSelectedTextbookId] = useState<string>('');
+  const [subject, setSubject] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string>('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastSelectionRef = useRef<string>('');
+  const selectedTextbook = textbooks.find(tb => tb.id === selectedTextbookId) ?? null;
 
   // scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setTextbooksLoading(true);
+      try {
+        const data = await fetchTextbooks();
+        if (!cancelled) {
+          setTextbooks(data);
+          setTextbooksError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : 'Failed to load textbooks.';
+          setTextbooksError(msg);
+          setTextbooks([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setTextbooksLoading(false);
+        }
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!textbooks.length) {
+      setSelectedTextbookId('');
+      return;
+    }
+    setSelectedTextbookId(prev => {
+      if (prev && textbooks.some(tb => tb.id === prev)) {
+        return prev;
+      }
+      return textbooks[0]?.id ?? '';
+    });
+  }, [textbooks]);
+
+  useEffect(() => {
+    if (!selectedTextbookId) {
+      setSubject('');
+      lastSelectionRef.current = '';
+      return;
+    }
+    if (lastSelectionRef.current !== selectedTextbookId) {
+      setSubject(selectedTextbook?.subject ?? '');
+      lastSelectionRef.current = selectedTextbookId;
+      return;
+    }
+    if (!subject && selectedTextbook?.subject) {
+      setSubject(selectedTextbook.subject);
+    }
+  }, [selectedTextbookId, selectedTextbook?.subject, subject]);
 
   // initialize or reuse chat id
   useEffect(() => {
@@ -95,37 +347,67 @@ export default function Page() {
     setAttachments(prev => prev.filter((_, i) => i !== idx));
 
   const send = async () => {
-    const q = input.trim();
-    if (!q && attachments.length === 0) return;
+    const questionText = input.trim();
+    const attachmentsToSend = attachments;
+    if (!questionText && attachmentsToSend.length === 0) return;
+    if (!selectedTextbookId) {
+      setFormError('Select a textbook before asking.');
+      return;
+    }
+    setFormError(null);
 
-    // push user message
     const now = new Date().toISOString();
-    setMessages(prev => [...prev, { role: 'user', content: q, attachments, created_at: now }]);
+    const userMessage: Message = {
+      role: 'user',
+      content: questionText,
+      attachments: attachmentsToSend,
+      created_at: now,
+    };
+    const baseMessages = [...messages, userMessage];
+    const aiIndex = baseMessages.length;
+
+    setMessages(prev => [...prev, userMessage, { role: 'assistant', content: '', created_at: now }]);
     setInput('');
     setAttachments([]);
     setLoading(true);
 
-    // placeholder for streaming assistant message
-    const aiIndex = messages.length + 1;
-    setMessages(prev => [...prev, { role: 'assistant', content: '', created_at: now }]);
+    const promptForSupabase = questionText || `[image-only question${attachmentsToSend.length ? ` with ${attachmentsToSend.length} attachment${attachmentsToSend.length === 1 ? '' : 's'}` : ''}]`;
+    let questionId: string | null = null;
+    try {
+      const inserted = await insertQuestion({
+        textbook_id: selectedTextbookId,
+        subject: subject.trim() ? subject.trim() : null,
+        prompt: promptForSupabase,
+      });
+      questionId = inserted.id;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to log question.';
+      setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: `[error] ${msg}` } : m)));
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // Minimal body the backend should accept; extend as needed:
-          // course_id, doc_sets, etc., can be added here later.
-          question: q,
-          attachments: attachments.map(a => ({
+          question: questionText,
+          attachments: attachmentsToSend.map(a => ({
             name: a.name,
             mime: a.type,
-            data_url: a.dataUrl, // base64 data URL; backend decodes
+            data_url: a.dataUrl,
           })),
         }),
       });
 
-      // Handle streaming and non-streaming
+      if (!res.ok) {
+        const errorBody = await res.text();
+        const fallback = errorBody || '[error] Failed to get an answer from the AI service.';
+        setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: fallback } : m)));
+        return;
+      }
+
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let acc = '';
@@ -133,19 +415,41 @@ export default function Page() {
       if (reader) {
         for (;;) {
           const { value, done } = await reader.read();
-          if (done) break;
-          acc += decoder.decode(value, { stream: true });
-          setMessages(prev => prev.map((m, i) => i === aiIndex ? { ...m, content: acc } : m));
+          if (value) {
+            acc += decoder.decode(value, { stream: true });
+            const current = acc;
+            setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: current } : m)));
+          }
+          if (done) {
+            break;
+          }
         }
+        acc += decoder.decode();
+        setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: acc } : m)));
       } else {
-        const text = await res.text();
-        acc = text;
-        setMessages(prev => prev.map((m, i) => i === aiIndex ? { ...m, content: acc } : m));
+        acc = await res.text();
+        setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: acc } : m)));
       }
-      // save after assistant reply
-      saveChat([...messages, { role: 'user', content: q, attachments, created_at: now }, { role: 'assistant', content: acc, created_at: now }]);
-    } catch (err) {
-      setMessages(prev => prev.map((m, i) => i === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m));
+
+      const parsed = parseAnswer(acc);
+      const hasErrorTag = /\[error\]/i.test(acc);
+      if (questionId && !hasErrorTag) {
+        try {
+          await insertAnswer({
+            question_id: questionId,
+            answer_text: parsed.answerText || acc.trim(),
+            citations: parsed.citations,
+            proof: null,
+            results: parsed.results,
+          });
+        } catch (answerErr) {
+          console.error('Failed to save answer to Supabase:', answerErr);
+        }
+      }
+
+      saveChat([...baseMessages, { role: 'assistant', content: acc, created_at: now }]);
+    } catch {
+      setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m)));
     } finally {
       setLoading(false);
     }
@@ -175,7 +479,7 @@ export default function Page() {
       const data = await resp.json();
       const reportId = data.report_id;
       if (reportId) router.push(`/report/${reportId}`);
-    } catch (e) {
+    } catch {
       alert('Error creating report');
     }
   };
@@ -193,6 +497,11 @@ export default function Page() {
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-6 space-y-4">
+        {textbooksError && (
+          <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+            {textbooksError}
+          </div>
+        )}
         {messages.map((m, idx) => (
           <motion.div
             key={idx}
@@ -218,6 +527,49 @@ export default function Page() {
 
       <div className="border-t border-neutral-800 sticky bottom-0 bg-neutral-950/80 backdrop-blur">
         <div className="mx-auto max-w-3xl px-4 py-3">
+          <div className="mb-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <label className="flex flex-col gap-1 text-sm text-neutral-300">
+              <span className="text-xs uppercase tracking-wide text-neutral-400">Textbook</span>
+              <select
+                value={selectedTextbookId}
+                onChange={(e) => {
+                  setSelectedTextbookId(e.target.value);
+                  setFormError(null);
+                }}
+                disabled={textbooksLoading || !textbooks.length}
+                className="h-10 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-600 disabled:opacity-60"
+              >
+                {textbooksLoading && <option value="">Loading textbooks…</option>}
+                {!textbooksLoading && !textbooks.length && <option value="">No textbooks available</option>}
+                {!textbooksLoading &&
+                  textbooks.map(tb => {
+                    const base = tb.label ? `${tb.label} — ${tb.title}` : tb.title;
+                    const suffix = tb.subject ? ` (${tb.subject})` : '';
+                    return (
+                      <option key={tb.id} value={tb.id}>
+                        {base}
+                        {suffix}
+                      </option>
+                    );
+                  })}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-neutral-300">
+              <span className="text-xs uppercase tracking-wide text-neutral-400">Subject (optional)</span>
+              <input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder={selectedTextbook?.subject ?? 'e.g. Physics'}
+                disabled={!selectedTextbookId}
+                className="h-10 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-600 disabled:opacity-60"
+              />
+            </label>
+          </div>
+          {formError && (
+            <div className="mb-3 rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+              {formError}
+            </div>
+          )}
           <Dropzone onDrop={(files) => addFiles(files)}>
             {({ getRootProps, getInputProps, isDragActive }) => (
               <div
@@ -260,7 +612,12 @@ export default function Page() {
             />
             <button
               onClick={send}
-              disabled={loading || (!input.trim() && attachments.length === 0)}
+              disabled={
+                loading ||
+                (!input.trim() && attachments.length === 0) ||
+                !selectedTextbookId ||
+                textbooksLoading
+              }
               className="h-10 w-10 rounded-2xl bg-white text-black flex items-center justify-center disabled:opacity-40"
               aria-label="Send"
               title="Send"
