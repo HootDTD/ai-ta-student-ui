@@ -11,7 +11,7 @@ type Report = {
   style?: string;
   length?: string;
   markdown?: string;
-  jsonld?: any;
+  jsonld?: { evidence?: { truncated?: boolean } } | null;
   model_fingerprint?: string;
   prompt_hashes?: string[];
 };
@@ -29,10 +29,13 @@ export default function ReportPage() {
       try {
         const resp = await fetch(`/api/reports/ai-use/${id}`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const j = await resp.json();
+        const j = (await resp.json()) as Report;
         if (alive) setData(j);
-      } catch (e: any) {
-        if (alive) setError(e?.message || 'Failed to load');
+      } catch (e: unknown) {
+        if (alive) {
+          const message = e instanceof Error ? e.message : 'Failed to load';
+          setError(message);
+        }
       }
     })();
     return () => { alive = false; };
@@ -86,7 +89,7 @@ export default function ReportPage() {
       a.download = `ai-use-report-${id}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e) {
+    } catch {
       alert('Export failed');
     }
   };
