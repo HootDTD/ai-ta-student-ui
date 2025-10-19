@@ -8,21 +8,20 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
-type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[]; created_at: string };
+import { CitationChip, type CitationMeta } from '@/components/CitationChip';
+
+type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[]; created_at: string; citations?: CitationMeta[] };
 type Textbook = { id: string; title: string; label: string | null; created_at: string };
 
 const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const rawSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!rawSupabaseUrl || !rawSupabaseAnonKey) {
-  throw new Error('Supabase environment variables NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.');
-}
-
-const SUPABASE_URL: string = rawSupabaseUrl;
-const SUPABASE_ANON_KEY: string = rawSupabaseAnonKey;
-const SUPABASE_REST_URL = `${SUPABASE_URL}/rest/v1`;
+const SUPABASE_ENABLED = Boolean(rawSupabaseUrl && rawSupabaseAnonKey);
+const SUPABASE_URL: string | undefined = rawSupabaseUrl;
+const SUPABASE_ANON_KEY: string | undefined = rawSupabaseAnonKey;
+const SUPABASE_REST_URL = SUPABASE_URL ? `${SUPABASE_URL}/rest/v1` : undefined;
 
 async function fetchTextbooks(): Promise<Textbook[]> {
+  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) return [];
   const resp = await fetch(
     `${SUPABASE_REST_URL}/textbooks?select=id,title,label,created_at&order=title.asc`,
     {
@@ -52,6 +51,9 @@ type InsertQuestionPayload = {
 };
 
 async function insertQuestion(payload: InsertQuestionPayload): Promise<{ id: string }> {
+  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
+    return { id: `local-${Date.now()}` };
+  }
   const resp = await fetch(`${SUPABASE_REST_URL}/questions`, {
     method: 'POST',
     headers: {
@@ -82,6 +84,7 @@ type InsertAnswerPayload = {
 };
 
 async function insertAnswer(payload: InsertAnswerPayload): Promise<void> {
+  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) return;
   const resp = await fetch(`${SUPABASE_REST_URL}/answers`, {
     method: 'POST',
     headers: {
@@ -227,6 +230,7 @@ export default function Page() {
   const [formError, setFormError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string>('');
   const [wireLogs, setWireLogs] = useState<string[]>([]);
+  const SHOW_PREVIEWS = (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
   const bottomRef = useRef<HTMLDivElement>(null);
   const selectedTextbookTitle = CLASS_TO_TEXTBOOK_TITLE[selectedClass] ?? '';
   const selectedTextbook = textbooks.find(tb => tb.title === selectedTextbookTitle) ?? null;
@@ -239,6 +243,12 @@ export default function Page() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (!SUPABASE_ENABLED) {
+        setTextbooks([]);
+        setTextbooksError(null);
+        setTextbooksLoading(false);
+        return;
+      }
       setTextbooksLoading(true);
       try {
         const data = await fetchTextbooks();
@@ -259,9 +269,7 @@ export default function Page() {
       }
     };
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   // initialize or reuse chat id
@@ -391,12 +399,13 @@ export default function Page() {
         return;
       }
 
-      const data = await res.json() as { answer?: string; logs?: unknown };
+      const data = await res.json() as { answer?: string; logs?: unknown; citations?: unknown };
       const answerText = typeof data.answer === 'string' ? data.answer : '';
       const logs = Array.isArray(data.logs) ? data.logs.filter((item): item is string => typeof item === 'string') : [];
+      const citations = Array.isArray((data as any).citations) ? (data as any).citations as CitationMeta[] : [];
 
       setWireLogs(logs);
-      setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText } : m)));
+      setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText, citations } : m)));
 
       const parsed = parseAnswer(answerText);
       const hasErrorTag = /\[error\]/i.test(answerText);
@@ -482,6 +491,13 @@ export default function Page() {
                 <div className="prose prose-invert max-w-none whitespace-pre-wrap">
                   {m.role === 'assistant' ? <ReactMarkdown>{m.content}</ReactMarkdown> : m.content}
                 </div>
+                {SHOW_PREVIEWS && m.role === 'assistant' && Array.isArray(m.citations) && m.citations.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {m.citations.map((c, i) => (
+                      <CitationChip key={i} meta={c} />
+                    ))}
+                  </div>
+                )}
                 {!!m.attachments?.length && (
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     {m.attachments.map((a, i) => (
@@ -595,8 +611,7 @@ export default function Page() {
               disabled={
                 loading ||
                 (!input.trim() && attachments.length === 0) ||
-                !selectedClass ||
-                textbooksLoading
+                !selectedClass
               }
               className="h-10 w-10 rounded-2xl bg-white text-black flex items-center justify-center disabled:opacity-40"
               aria-label="Send"
