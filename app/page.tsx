@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[]; created_at: string };
-type Textbook = { id: string; title: string; label: string | null; subject: string | null; created_at: string };
+type Textbook = { id: string; title: string; label: string | null; created_at: string };
 
 const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const rawSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -24,7 +24,7 @@ const SUPABASE_REST_URL = `${SUPABASE_URL}/rest/v1`;
 
 async function fetchTextbooks(): Promise<Textbook[]> {
   const resp = await fetch(
-    `${SUPABASE_REST_URL}/textbooks?select=id,title,label,subject,created_at&order=title.asc`,
+    `${SUPABASE_REST_URL}/textbooks?select=id,title,label,created_at&order=title.asc`,
     {
       headers: {
         apikey: SUPABASE_ANON_KEY,
@@ -46,8 +46,8 @@ async function fetchTextbooks(): Promise<Textbook[]> {
 }
 
 type InsertQuestionPayload = {
-  textbook_id: string;
-  subject: string | null;
+  textbook_id: string | null;
+  class_name: string;
   prompt: string;
 };
 
@@ -206,6 +206,14 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+const CLASS_OPTIONS = [
+  { value: 'AAE 33300: Introduction to Fluid Mechanics', label: 'AAE 33300: Introduction to Fluid Mechanics' },
+];
+
+const CLASS_TO_TEXTBOOK_TITLE: Record<string, string> = {
+  'AAE 33300: Introduction to Fluid Mechanics': 'Fundamentals of Aerodynamics',
+};
+
 export default function Page() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -215,13 +223,13 @@ export default function Page() {
   const [textbooks, setTextbooks] = useState<Textbook[]>([]);
   const [textbooksLoading, setTextbooksLoading] = useState<boolean>(true);
   const [textbooksError, setTextbooksError] = useState<string | null>(null);
-  const [selectedTextbookId, setSelectedTextbookId] = useState<string>('');
-  const [subject, setSubject] = useState('');
+  const [selectedClass, setSelectedClass] = useState<string>(CLASS_OPTIONS[0]?.value ?? '');
   const [formError, setFormError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string>('');
+  const [wireLogs, setWireLogs] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const lastSelectionRef = useRef<string>('');
-  const selectedTextbook = textbooks.find(tb => tb.id === selectedTextbookId) ?? null;
+  const selectedTextbookTitle = CLASS_TO_TEXTBOOK_TITLE[selectedClass] ?? '';
+  const selectedTextbook = textbooks.find(tb => tb.title === selectedTextbookTitle) ?? null;
 
   // scroll to bottom on new messages
   useEffect(() => {
@@ -255,35 +263,6 @@ export default function Page() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (!textbooks.length) {
-      setSelectedTextbookId('');
-      return;
-    }
-    setSelectedTextbookId(prev => {
-      if (prev && textbooks.some(tb => tb.id === prev)) {
-        return prev;
-      }
-      return textbooks[0]?.id ?? '';
-    });
-  }, [textbooks]);
-
-  useEffect(() => {
-    if (!selectedTextbookId) {
-      setSubject('');
-      lastSelectionRef.current = '';
-      return;
-    }
-    if (lastSelectionRef.current !== selectedTextbookId) {
-      setSubject(selectedTextbook?.subject ?? '');
-      lastSelectionRef.current = selectedTextbookId;
-      return;
-    }
-    if (!subject && selectedTextbook?.subject) {
-      setSubject(selectedTextbook.subject);
-    }
-  }, [selectedTextbookId, selectedTextbook?.subject, subject]);
 
   // initialize or reuse chat id
   useEffect(() => {
@@ -350,11 +329,12 @@ export default function Page() {
     const questionText = input.trim();
     const attachmentsToSend = attachments;
     if (!questionText && attachmentsToSend.length === 0) return;
-    if (!selectedTextbookId) {
-      setFormError('Select a textbook before asking.');
+    if (!selectedClass) {
+      setFormError('Select a class before asking.');
       return;
     }
     setFormError(null);
+    setWireLogs([]);
 
     const now = new Date().toISOString();
     const userMessage: Message = {
@@ -363,10 +343,12 @@ export default function Page() {
       attachments: attachmentsToSend,
       created_at: now,
     };
+    const assistantPlaceholder: Message = { role: 'assistant', content: '', created_at: now };
+    const nextMessages = [...messages, userMessage, assistantPlaceholder];
     const baseMessages = [...messages, userMessage];
-    const aiIndex = baseMessages.length;
+    const aiIndex = messages.length + 1;
 
-    setMessages(prev => [...prev, userMessage, { role: 'assistant', content: '', created_at: now }]);
+    setMessages(nextMessages);
     setInput('');
     setAttachments([]);
     setLoading(true);
@@ -375,8 +357,8 @@ export default function Page() {
     let questionId: string | null = null;
     try {
       const inserted = await insertQuestion({
-        textbook_id: selectedTextbookId,
-        subject: subject.trim() ? subject.trim() : null,
+        textbook_id: selectedTextbook?.id ?? null,
+        class_name: selectedClass,
         prompt: promptForSupabase,
       });
       questionId = inserted.id;
@@ -393,6 +375,7 @@ export default function Page() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: questionText,
+          class: selectedClass,
           attachments: attachmentsToSend.map(a => ({
             name: a.name,
             mime: a.type,
@@ -408,36 +391,20 @@ export default function Page() {
         return;
       }
 
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let acc = '';
+      const data = await res.json() as { answer?: string; logs?: unknown };
+      const answerText = typeof data.answer === 'string' ? data.answer : '';
+      const logs = Array.isArray(data.logs) ? data.logs.filter((item): item is string => typeof item === 'string') : [];
 
-      if (reader) {
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (value) {
-            acc += decoder.decode(value, { stream: true });
-            const current = acc;
-            setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: current } : m)));
-          }
-          if (done) {
-            break;
-          }
-        }
-        acc += decoder.decode();
-        setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: acc } : m)));
-      } else {
-        acc = await res.text();
-        setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: acc } : m)));
-      }
+      setWireLogs(logs);
+      setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText } : m)));
 
-      const parsed = parseAnswer(acc);
-      const hasErrorTag = /\[error\]/i.test(acc);
+      const parsed = parseAnswer(answerText);
+      const hasErrorTag = /\[error\]/i.test(answerText);
       if (questionId && !hasErrorTag) {
         try {
           await insertAnswer({
             question_id: questionId,
-            answer_text: parsed.answerText || acc.trim(),
+            answer_text: parsed.answerText || answerText.trim(),
             citations: parsed.citations,
             proof: null,
             results: parsed.results,
@@ -447,7 +414,7 @@ export default function Page() {
         }
       }
 
-      saveChat([...baseMessages, { role: 'assistant', content: acc, created_at: now }]);
+      saveChat([...baseMessages, { role: 'assistant', content: answerText, created_at: now }]);
     } catch {
       setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m)));
     } finally {
@@ -496,73 +463,86 @@ export default function Page() {
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-6 space-y-4">
-        {textbooksError && (
-          <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
-            {textbooksError}
-          </div>
-        )}
-        {messages.map((m, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`rounded-2xl p-3 ${m.role === 'user' ? 'bg-neutral-900 border border-neutral-800' : 'bg-neutral-950 border border-neutral-800'}`}
-          >
-            <div className="text-xs uppercase tracking-wider text-neutral-400 mb-2">{m.role}</div>
-            <div className="prose prose-invert max-w-none whitespace-pre-wrap">
-              {m.role === 'assistant' ? <ReactMarkdown>{m.content}</ReactMarkdown> : m.content}
-            </div>
-            {!!m.attachments?.length && (
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {m.attachments.map((a, i) => (
-                  <img key={i} src={a.dataUrl} alt={a.name} className="rounded-xl border border-neutral-800 object-cover h-24 w-full" />
-                ))}
+     <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-6 space-y-4">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-4">
+            {textbooksError && (
+              <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+                {textbooksError}
               </div>
             )}
-          </motion.div>
-        ))}
-        <div ref={bottomRef} />
+            {messages.map((m, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`rounded-2xl p-3 ${m.role === 'user' ? 'bg-neutral-900 border border-neutral-800' : 'bg-neutral-950 border border-neutral-800'}`}
+              >
+                <div className="text-xs uppercase tracking-wider text-neutral-400 mb-2">{m.role}</div>
+                <div className="prose prose-invert max-w-none whitespace-pre-wrap">
+                  {m.role === 'assistant' ? <ReactMarkdown>{m.content}</ReactMarkdown> : m.content}
+                </div>
+                {!!m.attachments?.length && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {m.attachments.map((a, i) => (
+                      <img key={i} src={a.dataUrl} alt={a.name} className="rounded-xl border border-neutral-800 object-cover h-24 w-full" />
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+          <aside className="hidden lg:flex flex-col rounded-2xl border border-neutral-800 bg-neutral-950 p-4 max-h-[70vh]">
+            <div className="text-xs uppercase tracking-wider text-neutral-400">AI Link</div>
+            <div className="mt-3 flex-1 overflow-y-auto space-y-2 text-sm text-neutral-300">
+              {wireLogs.length ? (
+                wireLogs.map((line, idx) => (
+                  <div key={idx} className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2">
+                    <pre className="whitespace-pre-wrap break-words text-neutral-200 text-xs md:text-sm">{line}</pre>
+                  </div>
+                ))
+              ) : (
+                <div className="text-neutral-500 text-xs">No retrieval exchange yet.</div>
+              )}
+            </div>
+          </aside>
+        </div>
+        <div className="lg:hidden rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+          <div className="text-xs uppercase tracking-wider text-neutral-400">AI Link</div>
+          <div className="mt-3 space-y-2 text-sm text-neutral-300">
+            {wireLogs.length ? (
+              wireLogs.map((line, idx) => (
+                <div key={idx} className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2">
+                  <pre className="whitespace-pre-wrap break-words text-neutral-200 text-xs">{line}</pre>
+                </div>
+              ))
+            ) : (
+              <div className="text-neutral-500 text-xs">No retrieval exchange yet.</div>
+            )}
+          </div>
+        </div>
       </main>
 
       <div className="border-t border-neutral-800 sticky bottom-0 bg-neutral-950/80 backdrop-blur">
         <div className="mx-auto max-w-3xl px-4 py-3">
-          <div className="mb-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="mb-3 grid gap-3 sm:grid-cols-1">
             <label className="flex flex-col gap-1 text-sm text-neutral-300">
-              <span className="text-xs uppercase tracking-wide text-neutral-400">Textbook</span>
+              <span className="text-xs uppercase tracking-wide text-neutral-400">Class</span>
               <select
-                value={selectedTextbookId}
+                value={selectedClass}
                 onChange={(e) => {
-                  setSelectedTextbookId(e.target.value);
+                  setSelectedClass(e.target.value);
                   setFormError(null);
                 }}
-                disabled={textbooksLoading || !textbooks.length}
                 className="h-10 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-600 disabled:opacity-60"
               >
-                {textbooksLoading && <option value="">Loading textbooks…</option>}
-                {!textbooksLoading && !textbooks.length && <option value="">No textbooks available</option>}
-                {!textbooksLoading &&
-                  textbooks.map(tb => {
-                    const base = tb.label ? `${tb.label} — ${tb.title}` : tb.title;
-                    const suffix = tb.subject ? ` (${tb.subject})` : '';
-                    return (
-                      <option key={tb.id} value={tb.id}>
-                        {base}
-                        {suffix}
-                      </option>
-                    );
-                  })}
+                {CLASS_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-neutral-300">
-              <span className="text-xs uppercase tracking-wide text-neutral-400">Subject (optional)</span>
-              <input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder={selectedTextbook?.subject ?? 'e.g. Physics'}
-                disabled={!selectedTextbookId}
-                className="h-10 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-600 disabled:opacity-60"
-              />
             </label>
           </div>
           {formError && (
@@ -615,7 +595,7 @@ export default function Page() {
               disabled={
                 loading ||
                 (!input.trim() && attachments.length === 0) ||
-                !selectedTextbookId ||
+                !selectedClass ||
                 textbooksLoading
               }
               className="h-10 w-10 rounded-2xl bg-white text-black flex items-center justify-center disabled:opacity-40"
