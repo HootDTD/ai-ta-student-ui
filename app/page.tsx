@@ -6,6 +6,8 @@ import Dropzone from 'react-dropzone';
 import { Send, X, ImagePlus, Paperclip } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
@@ -229,11 +231,33 @@ export default function Page() {
   const [selectedClass, setSelectedClass] = useState<string>(CLASS_OPTIONS[0]?.value ?? '');
   const [formError, setFormError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string>('');
-  const [wireLogs, setWireLogs] = useState<string[]>([]);
+  // Removed AI Link logs UI/state
   const SHOW_PREVIEWS = (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
   const bottomRef = useRef<HTMLDivElement>(null);
   const selectedTextbookTitle = CLASS_TO_TEXTBOOK_TITLE[selectedClass] ?? '';
   const selectedTextbook = textbooks.find(tb => tb.title === selectedTextbookTitle) ?? null;
+
+  // Normalize common AI formatting to LaTeX delimiters for math rendering
+  const normalizeMath = (text: string): string => {
+    let out = text;
+    // 0) Convert TeX display/inline delimiters \[...\], \(...\) to $$...$$ and $...$
+    //    Use [\s\S]*? to allow newlines inside display math.
+    out = out.replace(/^\s*\\\[([\s\S]*?)\\\]\s*$/gm, (_m, inner) => `$$${inner.trim()}$$`);
+    out = out.replace(/\\\((.+?)\\\)/g, (_m, inner) => `$${inner.trim()}$`);
+    // 1) Standalone-line bracketed TeX -> display math
+    out = out.replace(/^\s*\[\s*([^\n\]]+?)\s*\]\s*$/gm, (m, inner) => {
+      if (/\\[a-zA-Z]+|\^|_/.test(inner)) return `$$${inner}$$`;
+      return m;
+    });
+    // 2) Inline bracketed TeX -> inline math
+    out = out.replace(/\[(\s*[^\]]*?)\]/g, (m, inner) => {
+      if (/\\[a-zA-Z]+|\^|_/.test(inner) && !/\$\$?.*\$\$?/.test(inner)) {
+        return `$${inner.trim()}$`;
+      }
+      return m;
+    });
+    return out;
+  };
 
   // scroll to bottom on new messages
   useEffect(() => {
@@ -342,7 +366,6 @@ export default function Page() {
       return;
     }
     setFormError(null);
-    setWireLogs([]);
 
     const now = new Date().toISOString();
     const userMessage: Message = {
@@ -401,10 +424,9 @@ export default function Page() {
 
       const data = await res.json() as { answer?: string; logs?: unknown; citations?: unknown };
       const answerText = typeof data.answer === 'string' ? data.answer : '';
-      const logs = Array.isArray(data.logs) ? data.logs.filter((item): item is string => typeof item === 'string') : [];
+      // Logs are no longer displayed in the UI
       const citations = Array.isArray((data as any).citations) ? (data as any).citations as CitationMeta[] : [];
 
-      setWireLogs(logs);
       setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText, citations } : m)));
 
       const parsed = parseAnswer(answerText);
@@ -473,7 +495,7 @@ export default function Page() {
       </header>
 
      <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-6 space-y-4">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-4">
           <div className="space-y-4">
             {textbooksError && (
               <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
@@ -489,7 +511,13 @@ export default function Page() {
               >
                 <div className="text-xs uppercase tracking-wider text-neutral-400 mb-2">{m.role}</div>
                 <div className="prose prose-invert max-w-none whitespace-pre-wrap">
-                  {m.role === 'assistant' ? <ReactMarkdown>{m.content}</ReactMarkdown> : m.content}
+                  {m.role === 'assistant' ? (
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                      {normalizeMath(m.content)}
+                    </ReactMarkdown>
+                  ) : (
+                    m.content
+                  )}
                 </div>
                 {SHOW_PREVIEWS && m.role === 'assistant' && Array.isArray(m.citations) && m.citations.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -509,35 +537,8 @@ export default function Page() {
             ))}
             <div ref={bottomRef} />
           </div>
-          <aside className="hidden lg:flex flex-col rounded-2xl border border-neutral-800 bg-neutral-950 p-4 max-h-[70vh]">
-            <div className="text-xs uppercase tracking-wider text-neutral-400">AI Link</div>
-            <div className="mt-3 flex-1 overflow-y-auto space-y-2 text-sm text-neutral-300">
-              {wireLogs.length ? (
-                wireLogs.map((line, idx) => (
-                  <div key={idx} className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2">
-                    <pre className="whitespace-pre-wrap break-words text-neutral-200 text-xs md:text-sm">{line}</pre>
-                  </div>
-                ))
-              ) : (
-                <div className="text-neutral-500 text-xs">No retrieval exchange yet.</div>
-              )}
-            </div>
-          </aside>
         </div>
-        <div className="lg:hidden rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
-          <div className="text-xs uppercase tracking-wider text-neutral-400">AI Link</div>
-          <div className="mt-3 space-y-2 text-sm text-neutral-300">
-            {wireLogs.length ? (
-              wireLogs.map((line, idx) => (
-                <div key={idx} className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2">
-                  <pre className="whitespace-pre-wrap break-words text-neutral-200 text-xs">{line}</pre>
-                </div>
-              ))
-            ) : (
-              <div className="text-neutral-500 text-xs">No retrieval exchange yet.</div>
-            )}
-          </div>
-        </div>
+        
       </main>
 
       <div className="border-t border-neutral-800 sticky bottom-0 bg-neutral-950/80 backdrop-blur">
