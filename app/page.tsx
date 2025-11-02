@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Dropzone from 'react-dropzone';
 import { Send, X, ImagePlus, Paperclip } from 'lucide-react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -14,6 +15,11 @@ import { CitationChip, type CitationMeta } from '@/components/CitationChip';
 
 type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[]; created_at: string; citations?: CitationMeta[] };
 type Textbook = { id: string; title: string; label: string | null; created_at: string };
+type AskResponse = {
+  answer?: string;
+  logs?: unknown;
+  citations?: CitationMeta[];
+};
 
 const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const rawSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -422,10 +428,10 @@ export default function Page() {
         return;
       }
 
-      const data = await res.json() as { answer?: string; logs?: unknown; citations?: unknown };
+      const data = await res.json() as AskResponse;
       const answerText = typeof data.answer === 'string' ? data.answer : '';
       // Logs are no longer displayed in the UI
-      const citations = Array.isArray((data as any).citations) ? (data as any).citations as CitationMeta[] : [];
+      const citations = Array.isArray(data.citations) ? data.citations : [];
 
       setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText, citations } : m)));
 
@@ -529,7 +535,16 @@ export default function Page() {
                 {!!m.attachments?.length && (
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     {m.attachments.map((a, i) => (
-                      <img key={i} src={a.dataUrl} alt={a.name} className="rounded-xl border border-neutral-800 object-cover h-24 w-full" />
+                      <div key={i} className="relative h-24 w-full">
+                        <Image
+                          src={a.dataUrl}
+                          alt={a.name}
+                          fill
+                          className="rounded-xl border border-neutral-800 object-cover"
+                          sizes="(max-width: 640px) 33vw, 200px"
+                          unoptimized
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -553,6 +568,7 @@ export default function Page() {
                   setFormError(null);
                 }}
                 className="h-10 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-600 disabled:opacity-60"
+                disabled={textbooksLoading}
               >
                 {CLASS_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
@@ -584,7 +600,16 @@ export default function Page() {
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((a, i) => (
                 <div key={i} className="relative">
-                  <img src={a.dataUrl} alt={a.name} className="h-16 w-16 object-cover rounded-xl border border-neutral-800" />
+                  <div className="relative h-16 w-16">
+                    <Image
+                      src={a.dataUrl}
+                      alt={a.name}
+                      fill
+                      className="object-cover rounded-xl border border-neutral-800"
+                      sizes="64px"
+                      unoptimized
+                    />
+                  </div>
                   <button
                     onClick={() => removeAttachment(i)}
                     className="absolute -top-2 -right-2 bg-neutral-900 border border-neutral-700 rounded-full p-1"

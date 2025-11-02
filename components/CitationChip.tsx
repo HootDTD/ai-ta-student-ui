@@ -1,5 +1,6 @@
 "use client";
 
+import Image from 'next/image';
 import React from 'react';
 
 export type CitationMeta = {
@@ -31,8 +32,17 @@ export function CitationChip({ meta }: Props) {
             <div className="mt-1 text-xs text-neutral-400">OCR confidence: {(ocr_conf * 100).toFixed(0)}%</div>
           )}
           {thumb && (
-            <div className="mt-2 rounded overflow-hidden border border-neutral-800">
-              <img src={thumb} alt={label} className="w-full h-auto" />
+            <div className="mt-2 overflow-hidden rounded border border-neutral-800">
+              <div className="relative h-40 w-full">
+                <Image
+                  src={thumb}
+                  alt={label}
+                  fill
+                  className="object-cover"
+                  sizes="256px"
+                  unoptimized
+                />
+              </div>
             </div>
           )}
         </div>
@@ -40,4 +50,3 @@ export function CitationChip({ meta }: Props) {
     </div>
   );
 }
-
