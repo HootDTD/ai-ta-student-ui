@@ -232,6 +232,7 @@ export default function Page() {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState('');
   const [textbooks, setTextbooks] = useState<Textbook[]>([]);
   const [textbooksLoading, setTextbooksLoading] = useState<boolean>(true);
   const [textbooksError, setTextbooksError] = useState<string | null>(null);
@@ -334,7 +335,7 @@ export default function Page() {
         if (!cancelled) setClassesLoading(false);
       }
     })();
-    return () => { cancelled = false; };
+    return () => { cancelled = true; };
   }, []);
 
   // initialize or reuse chat id
@@ -442,7 +443,7 @@ export default function Page() {
     }
 
     try {
-      const res = await fetch('/api/ask', {
+      const res = await fetch('/api/ask/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -463,10 +464,53 @@ export default function Page() {
         return;
       }
 
-      const data = await res.json() as AskResponse;
-      const answerText = typeof data.answer === 'string' ? data.answer : '';
-      // Logs are no longer displayed in the UI
-      const citations = Array.isArray(data.citations) ? data.citations : [];
+      // Parse SSE stream for progress updates + final answer
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: '[error] No response stream' } : m)));
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let answerText = '';
+      let citations: CitationMeta[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse complete SSE events from buffer
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() ?? '';
+
+        for (const part of parts) {
+          const lines = part.split('\n');
+          let eventType = '';
+          const dataLines: string[] = [];
+          for (const line of lines) {
+            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+            else if (line.startsWith('data: ')) dataLines.push(line.slice(6));
+          }
+          const eventData = dataLines.join('\n');
+          if (!eventType || !eventData) continue;
+
+          try {
+            const payload = JSON.parse(eventData);
+            if (eventType === 'status') {
+              setLoadingStatus(payload.message || '');
+            } else if (eventType === 'answer') {
+              answerText = typeof payload.answer === 'string' ? payload.answer : '';
+              citations = Array.isArray(payload.citations) ? payload.citations : [];
+            } else if (eventType === 'error') {
+              answerText = payload.message || '[error] Unknown error';
+            }
+          } catch {
+            // Ignore malformed SSE data
+          }
+        }
+      }
 
       setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText, citations } : m)));
 
@@ -491,6 +535,7 @@ export default function Page() {
       setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m)));
     } finally {
       setLoading(false);
+      setLoadingStatus('');
     }
   };
 
@@ -524,8 +569,8 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
-      <header className="border-b border-neutral-800 sticky top-0 z-10 bg-neutral-950">
+    <div className="min-h-screen bg-[#060606] text-neutral-100 flex flex-col">
+      <header className="border-b border-neutral-800 sticky top-0 z-10 bg-[#070607]">
         <div className="px-4 py-3 relative flex items-center justify-between">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="font-semibold tracking-tight text-lg">Hoot</div>
@@ -596,9 +641,11 @@ export default function Page() {
                 key={idx}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-2xl p-3 ${m.role === 'user' ? 'bg-neutral-900 border border-neutral-800' : 'bg-neutral-950 border border-neutral-800'}`}
+                className={`rounded-2xl p-3 ${m.role === 'user' ? 'bg-neutral-900 border border-neutral-800' : ''}`}
               >
-                <div className="text-xs uppercase tracking-wider text-neutral-400 mb-2">{m.role}</div>
+                {m.role === 'user' && (
+                  <div className="text-xs uppercase tracking-wider text-neutral-400 mb-2">{m.role}</div>
+                )}
                 <div className="prose prose-invert max-w-none whitespace-pre-wrap">
                   {m.role === 'assistant' ? (
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
@@ -633,13 +680,35 @@ export default function Page() {
                 )}
               </motion.div>
             ))}
+            {loading && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-4 py-2"
+              >
+                <video
+                  src="/thinking.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-16 h-16 object-contain"
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm text-neutral-300">Hooting<span className="dot-1">.</span><span className="dot-2">.</span><span className="dot-3">.</span></span>
+                  {loadingStatus && (
+                    <span className="text-xs italic text-neutral-500">{loadingStatus}</span>
+                  )}
+                </div>
+              </motion.div>
+            )}
             <div ref={bottomRef} />
           </div>
         </div>
-        
+
       </main>
 
-      <div className="border-t border-neutral-800 bg-neutral-950">
+      <div className="border-t border-neutral-800 bg-[#070607]">
         <div className="mx-auto max-w-3xl px-4 py-3">
           {formError && (
             <div className="mb-3 rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
@@ -715,7 +784,7 @@ export default function Page() {
               <Paperclip className="h-3.5 w-3.5" />
               PNG/JPG up to ~5MB each • max 6 images
             </div>
-            <div>{loading ? 'Thinking…' : 'Press ⌘/Ctrl + Enter to send'}</div>
+            <div>{loading ? (loadingStatus || 'Thinking…') : 'Press ⌘/Ctrl + Enter to send'}</div>
           </div>
         </div>
       </div>
