@@ -217,13 +217,14 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-const CLASS_OPTIONS = [
-  { value: 'AAE 33300: Introduction to Fluid Mechanics', label: 'AAE 33300: Introduction to Fluid Mechanics' },
-];
+type ClassOption = { slug: string; name: string; subject_name: string };
 
-const CLASS_TO_TEXTBOOK_TITLE: Record<string, string> = {
-  'AAE 33300: Introduction to Fluid Mechanics': 'Fundamentals of Aerodynamics',
-};
+async function fetchClasses(): Promise<ClassOption[]> {
+  const resp = await fetch('/api/classes', { cache: 'no-store' });
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  return Array.isArray(data) ? data : [];
+}
 
 export default function Page() {
   const router = useRouter();
@@ -234,14 +235,16 @@ export default function Page() {
   const [textbooks, setTextbooks] = useState<Textbook[]>([]);
   const [textbooksLoading, setTextbooksLoading] = useState<boolean>(true);
   const [textbooksError, setTextbooksError] = useState<string | null>(null);
-  const [selectedClass, setSelectedClass] = useState<string>(CLASS_OPTIONS[0]?.value ?? '');
+  const [classOptions, setClassOptions] = useState<ClassOption[]>([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<string>('');
   const [formError, setFormError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string>('');
   // Removed AI Link logs UI/state
   const SHOW_PREVIEWS = (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
   const bottomRef = useRef<HTMLDivElement>(null);
-  const selectedTextbookTitle = CLASS_TO_TEXTBOOK_TITLE[selectedClass] ?? '';
-  const selectedTextbook = textbooks.find(tb => tb.title === selectedTextbookTitle) ?? null;
+  const selectedClassObj = classOptions.find(c => c.slug === selectedClass);
+  const selectedTextbook = textbooks.find(tb => tb.title === (selectedClassObj?.subject_name ?? '')) ?? null;
 
   // Normalize common AI formatting to LaTeX delimiters for math rendering
   const normalizeMath = (text: string): string => {
@@ -300,6 +303,25 @@ export default function Page() {
     };
     load();
     return () => { cancelled = true; };
+  }, []);
+
+  // fetch available classes from backend
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchClasses();
+        if (!cancelled) {
+          setClassOptions(data);
+          if (data.length > 0) setSelectedClass(data[0].slug);
+        }
+      } catch {
+        // silently fail — dropdown will be empty
+      } finally {
+        if (!cancelled) setClassesLoading(false);
+      }
+    })();
+    return () => { cancelled = false; };
   }, []);
 
   // initialize or reuse chat id
@@ -568,11 +590,13 @@ export default function Page() {
                   setFormError(null);
                 }}
                 className="h-10 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-600 disabled:opacity-60"
-                disabled={textbooksLoading}
+                disabled={classesLoading}
               >
-                {CLASS_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                {classesLoading && <option value="">Loading classes…</option>}
+                {!classesLoading && classOptions.length === 0 && <option value="">No classes available</option>}
+                {classOptions.map(c => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.name}
                   </option>
                 ))}
               </select>
