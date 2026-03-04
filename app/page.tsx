@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Dropzone from 'react-dropzone';
-import { Send, X, ImagePlus, Paperclip } from 'lucide-react';
+import { Send, X, ImagePlus, Paperclip, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
@@ -238,6 +238,8 @@ export default function Page() {
   const [classOptions, setClassOptions] = useState<ClassOption[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<string>('');
+  const [classDropdownOpen, setClassDropdownOpen] = useState(false);
+  const classDropdownRef = useRef<HTMLDivElement>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string>('');
   // Removed AI Link logs UI/state
@@ -267,6 +269,17 @@ export default function Page() {
     });
     return out;
   };
+
+  // close class dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (classDropdownRef.current && !classDropdownRef.current.contains(e.target as Node)) {
+        setClassDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   // scroll to bottom on new messages
   useEffect(() => {
@@ -512,11 +525,59 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
-      <header className="border-b border-neutral-800 sticky top-0 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/70">
-        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between gap-3">
-          <div className="font-semibold tracking-tight">Hoot</div>
-          <div className="flex items-center gap-2">
-            <button onClick={generateReport} className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-700 text-sm">Generate report</button>
+      <header className="border-b border-neutral-800 sticky top-0 z-10 bg-neutral-950">
+        <div className="px-4 py-3 relative flex items-center justify-between">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="font-semibold tracking-tight text-lg">Hoot</div>
+          </div>
+          <div className="flex items-center relative z-[1]">
+            <div ref={classDropdownRef} className="relative">
+              <button
+                onClick={() => setClassDropdownOpen(prev => !prev)}
+                disabled={classesLoading}
+                className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-700/50 bg-neutral-900/60 text-sm text-neutral-200 hover:bg-neutral-800 hover:border-neutral-600 transition-all duration-200 disabled:opacity-50"
+              >
+                <span className="max-w-[160px] truncate">
+                  {classesLoading ? 'Loading…' : (classOptions.find(c => c.slug === selectedClass)?.name || 'Select class')}
+                </span>
+                <ChevronDown className={`h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 ${classDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {classDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute left-0 top-full mt-1.5 min-w-[180px] rounded-lg border border-neutral-700/50 bg-neutral-900 shadow-xl shadow-black/40 overflow-hidden"
+                  >
+                    {classOptions.map(c => (
+                      <button
+                        key={c.slug}
+                        onClick={() => {
+                          setSelectedClass(c.slug);
+                          setFormError(null);
+                          setClassDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm transition-colors duration-100 ${
+                          c.slug === selectedClass
+                            ? 'bg-neutral-800 text-white'
+                            : 'text-neutral-300 hover:bg-neutral-800/60 hover:text-white'
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                    {!classesLoading && classOptions.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-neutral-500">No classes available</div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 relative z-[1]">
+            <button onClick={generateReport} className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-700 text-sm hover:bg-neutral-800 transition-colors">Generate report</button>
             <div className="text-sm text-neutral-400 hidden sm:block">Beta UI</div>
           </div>
         </div>
@@ -578,30 +639,8 @@ export default function Page() {
         
       </main>
 
-      <div className="border-t border-neutral-800 sticky bottom-0 bg-neutral-950/80 backdrop-blur">
+      <div className="border-t border-neutral-800 bg-neutral-950">
         <div className="mx-auto max-w-3xl px-4 py-3">
-          <div className="mb-3 grid gap-3 sm:grid-cols-1">
-            <label className="flex flex-col gap-1 text-sm text-neutral-300">
-              <span className="text-xs uppercase tracking-wide text-neutral-400">Class</span>
-              <select
-                value={selectedClass}
-                onChange={(e) => {
-                  setSelectedClass(e.target.value);
-                  setFormError(null);
-                }}
-                className="h-10 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-600 disabled:opacity-60"
-                disabled={classesLoading}
-              >
-                {classesLoading && <option value="">Loading classes…</option>}
-                {!classesLoading && classOptions.length === 0 && <option value="">No classes available</option>}
-                {classOptions.map(c => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
           {formError && (
             <div className="mb-3 rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
               {formError}

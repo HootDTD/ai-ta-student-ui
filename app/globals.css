@@ -12,5 +12,6 @@ body {
 
 /* Improve readability for markdown content */
 .prose { color: #e5e5e5; }
+.prose h2 { font-size: 1.35rem; font-weight: 700; color: #fafafa; margin-top: 1.25rem; margin-bottom: 0.5rem; }
 .prose a { color: #fafafa; text-decoration: underline; text-underline-offset: 4px; }
 .prose code { background-color: #171717; padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
