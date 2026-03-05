@@ -8,9 +8,12 @@ export async function POST(req: Request) {
   }
 
   const body = await req.text();
+  const authHeader = req.headers.get('authorization');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authHeader) headers.Authorization = authHeader;
   const resp = await fetch(`${backend}/ask/stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body,
   });
 

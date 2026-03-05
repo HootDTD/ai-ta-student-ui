@@ -9,33 +9,39 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import {
+  SUPABASE_ANON_KEY,
+  SUPABASE_AUTH_ENABLED,
+  SUPABASE_REST_URL,
+  clearStoredSession,
+  ensureActiveSession,
+  loadStoredSession,
+  saveStoredSession,
+  signInWithPassword,
+  type StoredSession,
+} from './lib/auth';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
 
 type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[]; created_at: string; citations?: CitationMeta[] };
 type Textbook = { id: string; title: string; label: string | null; created_at: string };
-type AskResponse = {
-  answer?: string;
-  logs?: unknown;
-  citations?: CitationMeta[];
-};
 
-const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const rawSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const SUPABASE_ENABLED = Boolean(rawSupabaseUrl && rawSupabaseAnonKey);
-const SUPABASE_URL: string | undefined = rawSupabaseUrl;
-const SUPABASE_ANON_KEY: string | undefined = rawSupabaseAnonKey;
-const SUPABASE_REST_URL = SUPABASE_URL ? `${SUPABASE_URL}/rest/v1` : undefined;
+const SUPABASE_ENABLED = Boolean(SUPABASE_AUTH_ENABLED && SUPABASE_REST_URL && SUPABASE_ANON_KEY);
 
-async function fetchTextbooks(): Promise<Textbook[]> {
-  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) return [];
+async function fetchTextbooks(accessToken: string): Promise<Textbook[]> {
+  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('Supabase auth/REST is not configured.');
+  }
+  if (!accessToken) {
+    throw new Error('Missing bearer token.');
+  }
   const resp = await fetch(
     `${SUPABASE_REST_URL}/textbooks?select=id,title,label,created_at&order=title.asc`,
     {
       headers: {
         apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${accessToken}`,
         Accept: 'application/json',
       },
       cache: 'no-store',
@@ -58,15 +64,18 @@ type InsertQuestionPayload = {
   prompt: string;
 };
 
-async function insertQuestion(payload: InsertQuestionPayload): Promise<{ id: string }> {
+async function insertQuestion(payload: InsertQuestionPayload, accessToken: string): Promise<{ id: string }> {
   if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
-    return { id: `local-${Date.now()}` };
+    throw new Error('Supabase auth/REST is not configured.');
+  }
+  if (!accessToken) {
+    throw new Error('Missing bearer token.');
   }
   const resp = await fetch(`${SUPABASE_REST_URL}/questions`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
     },
@@ -91,13 +100,18 @@ type InsertAnswerPayload = {
   results: Record<string, string> | null;
 };
 
-async function insertAnswer(payload: InsertAnswerPayload): Promise<void> {
-  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) return;
+async function insertAnswer(payload: InsertAnswerPayload, accessToken: string): Promise<void> {
+  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('Supabase auth/REST is not configured.');
+  }
+  if (!accessToken) {
+    throw new Error('Missing bearer token.');
+  }
   const resp = await fetch(`${SUPABASE_REST_URL}/answers`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
     },
@@ -217,17 +231,49 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-type ClassOption = { slug: string; name: string; subject_name: string };
+type ClassOption = { id: number; slug: string; name: string; subject_name: string };
 
-async function fetchClasses(): Promise<ClassOption[]> {
-  const resp = await fetch('/api/classes', { cache: 'no-store' });
-  if (!resp.ok) return [];
+async function fetchClasses(accessToken: string, signal?: AbortSignal): Promise<ClassOption[]> {
+  if (!accessToken) {
+    throw new Error('Missing bearer token.');
+  }
+  const resp = await fetch('/api/classes', {
+    cache: 'no-store',
+    signal,
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Failed to load classes (${resp.status})`);
+  }
   const data = await resp.json();
-  return Array.isArray(data) ? data : [];
+  if (!Array.isArray(data)) {
+    throw new Error('Unexpected class response format');
+  }
+  const normalized: ClassOption[] = data
+    .map((row: unknown) => {
+      const obj = row as Partial<ClassOption> & { id?: number | string };
+      const id = Number(obj.id);
+      if (!Number.isFinite(id) || id <= 0) return null;
+      return {
+        id,
+        slug: String(obj.slug || ''),
+        name: String(obj.name || ''),
+        subject_name: String(obj.subject_name || ''),
+      };
+    })
+    .filter((row: ClassOption | null): row is ClassOption => row !== null);
+  return normalized;
 }
 
 export default function Page() {
   const router = useRouter();
+  const [authReady, setAuthReady] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [session, setSession] = useState<StoredSession | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -238,7 +284,8 @@ export default function Page() {
   const [textbooksError, setTextbooksError] = useState<string | null>(null);
   const [classOptions, setClassOptions] = useState<ClassOption[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
-  const [selectedClass, setSelectedClass] = useState<string>('');
+  const [classesError, setClassesError] = useState<string | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [classDropdownOpen, setClassDropdownOpen] = useState(false);
   const classDropdownRef = useRef<HTMLDivElement>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -246,8 +293,10 @@ export default function Page() {
   // Removed AI Link logs UI/state
   const SHOW_PREVIEWS = (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
   const bottomRef = useRef<HTMLDivElement>(null);
-  const selectedClassObj = classOptions.find(c => c.slug === selectedClass);
+  const selectedClassObj = classOptions.find(c => c.id === selectedClassId);
   const selectedTextbook = textbooks.find(tb => tb.title === (selectedClassObj?.subject_name ?? '')) ?? null;
+  const accessToken = session?.access_token || '';
+  const userLabel = session?.user_email || session?.user_id || 'Signed in';
 
   // Normalize common AI formatting to LaTeX delimiters for math rendering
   const normalizeMath = (text: string): string => {
@@ -271,6 +320,41 @@ export default function Page() {
     return out;
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!SUPABASE_AUTH_ENABLED) {
+        if (!cancelled) {
+          setAuthError('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be configured.');
+          setSession(null);
+          setAuthReady(true);
+        }
+        return;
+      }
+
+      const stored = loadStoredSession();
+      const active = await ensureActiveSession(stored);
+      if (cancelled) return;
+      if (active) {
+        saveStoredSession(active);
+        setSession(active);
+      } else {
+        clearStoredSession();
+        setSession(null);
+      }
+      setAuthReady(true);
+    })().catch((err: unknown) => {
+      if (cancelled) return;
+      const msg = err instanceof Error ? err.message : 'Failed to initialize auth session.';
+      setAuthError(msg);
+      setSession(null);
+      setAuthReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // close class dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -290,7 +374,16 @@ export default function Page() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (!authReady) {
+        return;
+      }
       if (!SUPABASE_ENABLED) {
+        setTextbooks([]);
+        setTextbooksError('Supabase REST is not configured.');
+        setTextbooksLoading(false);
+        return;
+      }
+      if (!accessToken) {
         setTextbooks([]);
         setTextbooksError(null);
         setTextbooksLoading(false);
@@ -298,7 +391,7 @@ export default function Page() {
       }
       setTextbooksLoading(true);
       try {
-        const data = await fetchTextbooks();
+        const data = await fetchTextbooks(accessToken);
         if (!cancelled) {
           setTextbooks(data);
           setTextbooksError(null);
@@ -317,61 +410,76 @@ export default function Page() {
     };
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [accessToken, authReady]);
 
   // fetch available classes from backend
   useEffect(() => {
+    if (!authReady) return;
+    if (!accessToken) {
+      setClassOptions([]);
+      setSelectedClassId(null);
+      setClassesError(null);
+      setClassesLoading(false);
+      return;
+    }
     let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    setClassesLoading(true);
     (async () => {
       try {
-        const data = await fetchClasses();
+        const data = await fetchClasses(accessToken, controller.signal);
         if (!cancelled) {
           setClassOptions(data);
-          if (data.length > 0) setSelectedClass(data[0].slug);
+          if (data.length > 0) {
+            setSelectedClassId(data[0].id);
+            setClassesError(null);
+          } else {
+            setSelectedClassId(null);
+            setClassesError('No classes were returned by the backend.');
+          }
         }
-      } catch {
-        // silently fail — dropdown will be empty
+      } catch (err) {
+        if (!cancelled) {
+          const msg =
+            err instanceof DOMException && err.name === 'AbortError'
+              ? 'Loading classes timed out. Check backend connectivity.'
+              : err instanceof Error
+                ? err.message
+                : 'Failed to load classes.';
+          setClassesError(msg);
+          setClassOptions([]);
+          setSelectedClassId(null);
+        }
       } finally {
-        if (!cancelled) setClassesLoading(false);
+        if (!cancelled) {
+          setClassesLoading(false);
+        }
+        clearTimeout(timer);
       }
     })();
-    return () => { cancelled = true; };
-  }, []);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [accessToken, authReady]);
 
   // initialize or reuse chat id
   useEffect(() => {
-    const existing = localStorage.getItem('hoot_chat_id');
+    if (!session) {
+      setChatId('');
+      return;
+    }
+    const key = `hoot_chat_id_${session.user_id || 'default'}`;
+    const existing = localStorage.getItem(key);
     if (existing) setChatId(existing);
     else {
       const id = 'chat-' + Math.random().toString(16).slice(2, 10);
-      localStorage.setItem('hoot_chat_id', id);
+      localStorage.setItem(key, id);
       setChatId(id);
     }
-  }, []);
-
-  const saveChat = async (turns: Message[]) => {
-    if (!chatId || !turns.length) return;
-    const payload = {
-      chat_id: chatId,
-      meta: {},
-      turns: turns.map((t, i) => ({
-        turn_id: String(i + 1),
-        role: t.role,
-        content: t.content,
-        created_at: t.created_at,
-        model: t.role === 'assistant' ? undefined : null,
-        tool_name: null,
-        attachments: t.attachments?.map(a => ({ name: a.name, mime: a.type, data_url: a.dataUrl })) || [],
-      })),
-    };
-    try {
-      await fetch(`/api/chats/${encodeURIComponent(chatId)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    } catch {}
-  };
+  }, [session]);
 
   const addFiles = useCallback(async (files: File[]) => {
     const imgs = files.filter(f => f.type.startsWith('image/'));
@@ -399,12 +507,52 @@ export default function Page() {
   const removeAttachment = (idx: number) =>
     setAttachments(prev => prev.filter((_, i) => i !== idx));
 
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setAuthError(null);
+    if (!email.trim() || !password) {
+      setAuthError('Email and password are required.');
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      const nextSession = await signInWithPassword(email.trim(), password);
+      saveStoredSession(nextSession);
+      setSession(nextSession);
+      setPassword('');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Sign in failed.';
+      setAuthError(msg);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = () => {
+    clearStoredSession();
+    setSession(null);
+    setMessages([]);
+    setInput('');
+    setAttachments([]);
+    setClassOptions([]);
+    setSelectedClassId(null);
+    setChatId('');
+  };
+
   const send = async () => {
     const questionText = input.trim();
     const attachmentsToSend = attachments;
     if (!questionText && attachmentsToSend.length === 0) return;
-    if (!selectedClass) {
+    if (!accessToken) {
+      setFormError('Sign in is required before sending messages.');
+      return;
+    }
+    if (selectedClassId == null) {
       setFormError('Select a class before asking.');
+      return;
+    }
+    if (!chatId) {
+      setFormError('Chat session is not ready yet. Please try again.');
       return;
     }
     setFormError(null);
@@ -418,7 +566,6 @@ export default function Page() {
     };
     const assistantPlaceholder: Message = { role: 'assistant', content: '', created_at: now };
     const nextMessages = [...messages, userMessage, assistantPlaceholder];
-    const baseMessages = [...messages, userMessage];
     const aiIndex = messages.length + 1;
 
     setMessages(nextMessages);
@@ -431,24 +578,27 @@ export default function Page() {
     try {
       const inserted = await insertQuestion({
         textbook_id: selectedTextbook?.id ?? null,
-        class_name: selectedClass,
+        class_name: selectedClassObj?.name || '',
         prompt: promptForSupabase,
-      });
+      }, accessToken);
       questionId = inserted.id;
     } catch (error) {
+      // Question/answer logging is optional for chat flow; continue even if RLS blocks writes.
       const msg = error instanceof Error ? error.message : 'Failed to log question.';
-      setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: `[error] ${msg}` } : m)));
-      setLoading(false);
-      return;
+      console.warn('Skipping question logging:', msg);
     }
 
     try {
       const res = await fetch('/api/ask/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
+          chat_id: chatId,
+          search_space_id: selectedClassId,
           question: questionText,
-          class: selectedClass,
           attachments: attachmentsToSend.map(a => ({
             name: a.name,
             mime: a.type,
@@ -524,13 +674,11 @@ export default function Page() {
             citations: parsed.citations,
             proof: null,
             results: parsed.results,
-          });
+          }, accessToken);
         } catch (answerErr) {
           console.error('Failed to save answer to Supabase:', answerErr);
         }
       }
-
-      saveChat([...baseMessages, { role: 'assistant', content: answerText, created_at: now }]);
     } catch {
       setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m)));
     } finally {
@@ -548,11 +696,14 @@ export default function Page() {
   };
 
   const generateReport = async () => {
-    if (!chatId) return;
+    if (!chatId || !accessToken) return;
     try {
       const resp = await fetch(`/api/reports/ai-use/${encodeURIComponent(chatId)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ style: 'none', length: 'brief' }),
       });
       if (!resp.ok) {
@@ -567,6 +718,72 @@ export default function Page() {
       alert('Error creating report');
     }
   };
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-[#060606] text-neutral-100 flex items-center justify-center px-4">
+        <div className="text-sm text-neutral-300">Checking authentication…</div>
+      </div>
+    );
+  }
+
+  if (!SUPABASE_AUTH_ENABLED) {
+    return (
+      <div className="min-h-screen bg-[#060606] text-neutral-100 flex items-center justify-center px-4">
+        <div className="max-w-md rounded-2xl border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-100">
+          Supabase auth is not configured. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-[#060606] text-neutral-100 flex items-center justify-center px-4">
+        <form
+          onSubmit={handleSignIn}
+          className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900/70 p-5 space-y-4"
+        >
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Sign in to Hoot</h1>
+            <p className="mt-1 text-sm text-neutral-400">Use your Supabase account to access course data.</p>
+          </div>
+          {authError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+              {authError}
+            </div>
+          )}
+          <label className="block text-sm text-neutral-300">
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              className="mt-1 w-full h-10 rounded-xl border border-neutral-700 bg-neutral-950 px-3 outline-none focus:ring-2 focus:ring-neutral-600"
+            />
+          </label>
+          <label className="block text-sm text-neutral-300">
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              className="mt-1 w-full h-10 rounded-xl border border-neutral-700 bg-neutral-950 px-3 outline-none focus:ring-2 focus:ring-neutral-600"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={authLoading}
+            className="h-10 w-full rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-50"
+          >
+            {authLoading ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#060606] text-neutral-100 flex flex-col">
@@ -583,7 +800,7 @@ export default function Page() {
                 className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-700/50 bg-neutral-900/60 text-sm text-neutral-200 hover:bg-neutral-800 hover:border-neutral-600 transition-all duration-200 disabled:opacity-50"
               >
                 <span className="max-w-[160px] truncate">
-                  {classesLoading ? 'Loading…' : (classOptions.find(c => c.slug === selectedClass)?.name || 'Select class')}
+                  {classesLoading ? 'Loading…' : (classOptions.find(c => c.id === selectedClassId)?.name || 'Select class')}
                 </span>
                 <ChevronDown className={`h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 ${classDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -598,14 +815,14 @@ export default function Page() {
                   >
                     {classOptions.map(c => (
                       <button
-                        key={c.slug}
+                        key={c.id}
                         onClick={() => {
-                          setSelectedClass(c.slug);
+                          setSelectedClassId(c.id);
                           setFormError(null);
                           setClassDropdownOpen(false);
                         }}
                         className={`w-full text-left px-3 py-2 text-sm transition-colors duration-100 ${
-                          c.slug === selectedClass
+                          c.id === selectedClassId
                             ? 'bg-neutral-800 text-white'
                             : 'text-neutral-300 hover:bg-neutral-800/60 hover:text-white'
                         }`}
@@ -623,7 +840,15 @@ export default function Page() {
           </div>
           <div className="flex items-center gap-2 relative z-[1]">
             <button onClick={generateReport} className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-700 text-sm hover:bg-neutral-800 transition-colors">Generate report</button>
-            <div className="text-sm text-neutral-400 hidden sm:block">Beta UI</div>
+            <div className="text-xs text-neutral-400 hidden md:block max-w-[220px] truncate" title={userLabel}>
+              {userLabel}
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="px-3 py-1.5 rounded-md border border-neutral-700 text-sm text-neutral-200 hover:bg-neutral-800 transition-colors"
+            >
+              Sign out
+            </button>
           </div>
         </div>
       </header>
@@ -634,6 +859,16 @@ export default function Page() {
             {textbooksError && (
               <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
                 {textbooksError}
+              </div>
+            )}
+            {textbooksLoading && (
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 px-3 py-2 text-sm text-neutral-300">
+                Loading course resources…
+              </div>
+            )}
+            {classesError && (
+              <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+                {classesError}
               </div>
             )}
             {messages.map((m, idx) => (
@@ -769,7 +1004,7 @@ export default function Page() {
               disabled={
                 loading ||
                 (!input.trim() && attachments.length === 0) ||
-                !selectedClass
+                selectedClassId == null
               }
               className="h-10 w-10 rounded-2xl bg-white text-black flex items-center justify-center disabled:opacity-40"
               aria-label="Send"
