@@ -81,15 +81,13 @@ export default function ReportPage() {
         }
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [authReady, id, session?.access_token]);
 
   const truncated = Boolean(data?.jsonld?.evidence?.truncated);
-  const modelNames = ((): string => {
-    const jf = data?.model_fingerprint || '';
-    if (!jf) return 'unknown';
-    return jf;
-  })();
+  const modelNames = data?.model_fingerprint || 'unknown';
 
   const onCopy = async () => {
     if (!data?.markdown) return;
@@ -144,67 +142,82 @@ export default function ReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <div className="mx-auto max-w-5xl px-4 py-6 grid md:grid-cols-[1fr_260px] gap-6">
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-5xl px-4 py-6 grid gap-6 md:grid-cols-[1fr_260px]">
         <div>
           {authError && (
-            <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm">
+            <div className="mb-3 notice" data-tone="danger">
               {authError}
             </div>
           )}
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-semibold">AI-use Report</h1>
-            <div className="flex gap-2">
-              <button onClick={onCopy} className="px-3 py-1.5 rounded-md bg-neutral-800 border border-neutral-700 text-sm">{copyOk ? 'Copied' : 'Copy'}</button>
-              <button onClick={downloadMd} className="px-3 py-1.5 rounded-md bg-neutral-800 border border-neutral-700 text-sm">Download .md</button>
-              <button onClick={downloadJson} className="px-3 py-1.5 rounded-md bg-neutral-800 border border-neutral-700 text-sm">Download .json</button>
-              <button onClick={exportPdf} className="px-3 py-1.5 rounded-md bg-white text-black text-sm rounded-md">Export PDF</button>
+
+          <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+            <h1 className="section-title">AI-use Report</h1>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={onCopy} className="ui-button ui-button--small" type="button">
+                {copyOk ? 'Copied' : 'Copy'}
+              </button>
+              <button onClick={downloadMd} className="ui-button ui-button--small" type="button">
+                Download .md
+              </button>
+              <button onClick={downloadJson} className="ui-button ui-button--small" type="button">
+                Download .json
+              </button>
+              <button onClick={exportPdf} className="ui-button ui-button--primary ui-button--small" type="button">
+                Export PDF
+              </button>
             </div>
           </div>
 
           {truncated && (
-            <div className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-200 p-3 text-sm">
+            <div className="mb-3 notice" data-tone="warning">
               Warning: This report was generated from a truncated chat; some context may be missing.
             </div>
           )}
 
-          {error && <div className="text-red-400">{error}</div>}
-          {!data && !error && <div className="text-neutral-400">{authReady ? 'Loading…' : 'Checking session…'}</div>}
+          {error && <div className="notice" data-tone="danger">{error}</div>}
+          {!data && !error && (
+            <div className="notice">{authReady ? 'Loading…' : 'Checking session…'}</div>
+          )}
+
           {data?.markdown && (
-            <article className="prose prose-invert max-w-none">
+            <article className="module prose max-w-none">
               <ReactMarkdown>{data.markdown}</ReactMarkdown>
             </article>
           )}
 
           <section className="mt-8">
-            <h2 className="text-lg font-semibold mb-2">Prompts log</h2>
-            <div className="text-sm text-neutral-300">
-              {/* If markdown contains anchors like #turn-n, list quick links */}
+            <h2 className="mb-2 section-title !text-[1.6rem]">Prompts log</h2>
+            <div className="text-sm">
               {data?.markdown && /\(#turn-\d+\)/i.test(data.markdown) ? (
-                <ul className="list-disc pl-6">
-                  {[...new Set(Array.from(data.markdown.matchAll(/\(#(turn-[^)]+)\)/g)).map(m => m[1]))].slice(0, 12).map((anc, i) => (
-                    <li key={i}><a href={`#${anc}`} className="underline">{anc}</a></li>
-                  ))}
+                <ul className="plain-list">
+                  {[...new Set(Array.from(data.markdown.matchAll(/\(#(turn-[^)]+)\)/g)).map((m) => m[1]))]
+                    .slice(0, 12)
+                    .map((anc, i) => (
+                      <li key={i}>
+                        <a href={`#${anc}`}>{anc}</a>
+                      </li>
+                    ))}
                 </ul>
               ) : (
-                <div className="text-neutral-500">No inline turn anchors found.</div>
+                <div className="note">No inline turn anchors found.</div>
               )}
             </div>
           </section>
         </div>
 
         <aside className="md:sticky md:top-4 h-fit space-y-3">
-          <div className="rounded-lg border border-neutral-800 p-3 bg-neutral-900/50">
-            <div className="text-xs uppercase tracking-wider text-neutral-400">Metadata</div>
+          <div className="card">
+            <div className="eyebrow">Metadata</div>
             <div className="mt-2 text-sm space-y-1">
-              <div><span className="text-neutral-400">Chat ID:</span> {data?.chat_id}</div>
-              <div><span className="text-neutral-400">Created:</span> {data?.created_at}</div>
-              <div><span className="text-neutral-400">Model(s):</span> {modelNames}</div>
+              <div><span className="note">Chat ID:</span> {data?.chat_id}</div>
+              <div><span className="note">Created:</span> {data?.created_at}</div>
+              <div><span className="note">Model(s):</span> {modelNames}</div>
             </div>
           </div>
-          <div className="rounded-lg border border-neutral-800 p-3 bg-neutral-900/50">
-            <div className="text-xs uppercase tracking-wider text-neutral-400">Prompt hashes</div>
-            <div className="mt-2 text-xs text-neutral-300 break-words">
+          <div className="card">
+            <div className="eyebrow">Prompt hashes</div>
+            <div className="mt-2 text-xs break-words">
               {data?.prompt_hashes?.length ? data.prompt_hashes.join(', ') : '—'}
             </div>
           </div>

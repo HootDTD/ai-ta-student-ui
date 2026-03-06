@@ -21,11 +21,16 @@ import {
   signUpWithPassword,
   type StoredSession,
 } from './lib/auth';
-
-type Attachment = { name: string; type: string; dataUrl: string; size: number };
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
 
-type Message = { role: 'user' | 'assistant'; content: string; attachments?: Attachment[]; created_at: string; citations?: CitationMeta[] };
+type Attachment = { name: string; type: string; dataUrl: string; size: number };
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+  attachments?: Attachment[];
+  created_at: string;
+  citations?: CitationMeta[];
+};
 type Textbook = { id: string; title: string; label: string | null; created_at: string };
 
 const SUPABASE_ENABLED = Boolean(SUPABASE_AUTH_ENABLED && SUPABASE_REST_URL && SUPABASE_ANON_KEY);
@@ -65,7 +70,10 @@ type InsertQuestionPayload = {
   prompt: string;
 };
 
-async function insertQuestion(payload: InsertQuestionPayload, accessToken: string): Promise<{ id: string }> {
+async function insertQuestion(
+  payload: InsertQuestionPayload,
+  accessToken: string,
+): Promise<{ id: string }> {
   if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Supabase auth/REST is not configured.');
   }
@@ -292,27 +300,23 @@ export default function Page() {
   const classDropdownRef = useRef<HTMLDivElement>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string>('');
-  // Removed AI Link logs UI/state
-  const SHOW_PREVIEWS = (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
+  const SHOW_PREVIEWS =
+    (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
   const bottomRef = useRef<HTMLDivElement>(null);
-  const selectedClassObj = classOptions.find(c => c.id === selectedClassId);
-  const selectedTextbook = textbooks.find(tb => tb.title === (selectedClassObj?.subject_name ?? '')) ?? null;
+  const selectedClassObj = classOptions.find((c) => c.id === selectedClassId);
+  const selectedTextbook =
+    textbooks.find((tb) => tb.title === (selectedClassObj?.subject_name ?? '')) ?? null;
   const accessToken = session?.access_token || '';
-  const userLabel = session?.user_email || session?.user_id || 'Signed in';
+  const accountLabel = session?.user_email || session?.user_id || 'this account';
 
-  // Normalize common AI formatting to LaTeX delimiters for math rendering
   const normalizeMath = (text: string): string => {
     let out = text;
-    // 0) Convert TeX display/inline delimiters \[...\], \(...\) to $$...$$ and $...$
-    //    Use [\s\S]*? to allow newlines inside display math.
     out = out.replace(/^\s*\\\[([\s\S]*?)\\\]\s*$/gm, (_m, inner) => `$$${inner.trim()}$$`);
     out = out.replace(/\\\((.+?)\\\)/g, (_m, inner) => `$${inner.trim()}$`);
-    // 1) Standalone-line bracketed TeX -> display math
     out = out.replace(/^\s*\[\s*([^\n\]]+?)\s*\]\s*$/gm, (m, inner) => {
       if (/\\[a-zA-Z]+|\^|_/.test(inner)) return `$$${inner}$$`;
       return m;
     });
-    // 2) Inline bracketed TeX -> inline math
     out = out.replace(/\[(\s*[^\]]*?)\]/g, (m, inner) => {
       if (/\\[a-zA-Z]+|\^|_/.test(inner) && !/\$\$?.*\$\$?/.test(inner)) {
         return `$${inner.trim()}$`;
@@ -357,7 +361,6 @@ export default function Page() {
     };
   }, []);
 
-  // close class dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (classDropdownRef.current && !classDropdownRef.current.contains(e.target as Node)) {
@@ -368,7 +371,6 @@ export default function Page() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
@@ -411,10 +413,11 @@ export default function Page() {
       }
     };
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [accessToken, authReady]);
 
-  // fetch available classes from backend
   useEffect(() => {
     if (!authReady) return;
     if (!accessToken) {
@@ -467,7 +470,6 @@ export default function Page() {
     };
   }, [accessToken, authReady]);
 
-  // initialize or reuse chat id
   useEffect(() => {
     if (!session) {
       setChatId('');
@@ -477,37 +479,39 @@ export default function Page() {
     const existing = localStorage.getItem(key);
     if (existing) setChatId(existing);
     else {
-      const id = 'chat-' + Math.random().toString(16).slice(2, 10);
+      const id = `chat-${Math.random().toString(16).slice(2, 10)}`;
       localStorage.setItem(key, id);
       setChatId(id);
     }
   }, [session]);
 
   const addFiles = useCallback(async (files: File[]) => {
-    const imgs = files.filter(f => f.type.startsWith('image/'));
-    const limited = imgs.slice(0, 6); // cap to 6 images
+    const imgs = files.filter((f) => f.type.startsWith('image/'));
+    const limited = imgs.slice(0, 6);
     const MAX_MB = 5;
-    const filtered = limited.filter(f => f.size <= MAX_MB * 1024 * 1024);
-    const converted = await Promise.all(filtered.map(async f => ({
-      name: f.name,
-      type: f.type,
-      size: f.size,
-      dataUrl: await fileToDataUrl(f),
-    })));
-    setAttachments(prev => [...prev, ...converted]);
+    const filtered = limited.filter((f) => f.size <= MAX_MB * 1024 * 1024);
+    const converted = await Promise.all(
+      filtered.map(async (f) => ({
+        name: f.name,
+        type: f.type,
+        size: f.size,
+        dataUrl: await fileToDataUrl(f),
+      })),
+    );
+    setAttachments((prev) => [...prev, ...converted]);
   }, []);
 
   const onPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = Array.from(e.clipboardData.items);
     const files = items
-      .filter(i => i.type.startsWith('image/'))
-      .map(i => i.getAsFile())
+      .filter((i) => i.type.startsWith('image/'))
+      .map((i) => i.getAsFile())
       .filter(Boolean) as File[];
     if (files.length) await addFiles(files);
   };
 
   const removeAttachment = (idx: number) =>
-    setAttachments(prev => prev.filter((_, i) => i !== idx));
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -605,17 +609,21 @@ export default function Page() {
     setAttachments([]);
     setLoading(true);
 
-    const promptForSupabase = questionText || `[image-only question${attachmentsToSend.length ? ` with ${attachmentsToSend.length} attachment${attachmentsToSend.length === 1 ? '' : 's'}` : ''}]`;
+    const promptForSupabase =
+      questionText ||
+      `[image-only question${attachmentsToSend.length ? ` with ${attachmentsToSend.length} attachment${attachmentsToSend.length === 1 ? '' : 's'}` : ''}]`;
     let questionId: string | null = null;
     try {
-      const inserted = await insertQuestion({
-        textbook_id: selectedTextbook?.id ?? null,
-        class_name: selectedClassObj?.name || '',
-        prompt: promptForSupabase,
-      }, accessToken);
+      const inserted = await insertQuestion(
+        {
+          textbook_id: selectedTextbook?.id ?? null,
+          class_name: selectedClassObj?.name || '',
+          prompt: promptForSupabase,
+        },
+        accessToken,
+      );
       questionId = inserted.id;
     } catch (error) {
-      // Question/answer logging is optional for chat flow; continue even if RLS blocks writes.
       const msg = error instanceof Error ? error.message : 'Failed to log question.';
       console.warn('Skipping question logging:', msg);
     }
@@ -631,7 +639,7 @@ export default function Page() {
           chat_id: chatId,
           search_space_id: selectedClassId,
           question: questionText,
-          attachments: attachmentsToSend.map(a => ({
+          attachments: attachmentsToSend.map((a) => ({
             name: a.name,
             mime: a.type,
             data_url: a.dataUrl,
@@ -642,14 +650,15 @@ export default function Page() {
       if (!res.ok) {
         const errorBody = await res.text();
         const fallback = errorBody || '[error] Failed to get an answer from the AI service.';
-        setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: fallback } : m)));
+        setMessages((prev) => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: fallback } : m)));
         return;
       }
 
-      // Parse SSE stream for progress updates + final answer
       const reader = res.body?.getReader();
       if (!reader) {
-        setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: '[error] No response stream' } : m)));
+        setMessages((prev) =>
+          prev.map((m, idx) => (idx === aiIndex ? { ...m, content: '[error] No response stream' } : m)),
+        );
         return;
       }
 
@@ -663,7 +672,6 @@ export default function Page() {
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // Parse complete SSE events from buffer
         const parts = buffer.split('\n\n');
         buffer = parts.pop() ?? '';
 
@@ -694,32 +702,38 @@ export default function Page() {
         }
       }
 
-      setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText, citations } : m)));
+      setMessages((prev) =>
+        prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText, citations } : m)),
+      );
 
       const parsed = parseAnswer(answerText);
       const hasErrorTag = /\[error\]/i.test(answerText);
       if (questionId && !hasErrorTag) {
         try {
-          await insertAnswer({
-            question_id: questionId,
-            answer_text: parsed.answerText || answerText.trim(),
-            citations: parsed.citations,
-            proof: null,
-            results: parsed.results,
-          }, accessToken);
+          await insertAnswer(
+            {
+              question_id: questionId,
+              answer_text: parsed.answerText || answerText.trim(),
+              citations: parsed.citations,
+              proof: null,
+              results: parsed.results,
+            },
+            accessToken,
+          );
         } catch (answerErr) {
           console.error('Failed to save answer to Supabase:', answerErr);
         }
       }
     } catch {
-      setMessages(prev => prev.map((m, idx) => (idx === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m)));
+      setMessages((prev) =>
+        prev.map((m, idx) => (idx === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m)),
+      );
     } finally {
       setLoading(false);
       setLoadingStatus('');
     }
   };
 
-  // keyboard shortcut: Cmd/Ctrl+Enter to send
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -753,17 +767,24 @@ export default function Page() {
 
   if (!authReady) {
     return (
-      <div className="min-h-screen bg-[#060606] text-neutral-100 flex items-center justify-center px-4">
-        <div className="text-sm text-neutral-300">Checking authentication…</div>
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="module w-full max-w-md">
+          <div className="eyebrow">Authentication</div>
+          <div>Checking authentication…</div>
+        </div>
       </div>
     );
   }
 
   if (!SUPABASE_AUTH_ENABLED) {
     return (
-      <div className="min-h-screen bg-[#060606] text-neutral-100 flex items-center justify-center px-4">
-        <div className="max-w-md rounded-2xl border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-100">
-          Supabase auth is not configured. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="module w-full max-w-md">
+          <div className="eyebrow">Configuration</div>
+          <div className="notice" data-tone="danger">
+            Supabase auth is not configured. Set `NEXT_PUBLIC_SUPABASE_URL` and
+            `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+          </div>
         </div>
       </div>
     );
@@ -771,86 +792,75 @@ export default function Page() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#060606] text-neutral-100 flex items-center justify-center px-4">
-        <form
-          onSubmit={handleSignIn}
-          className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900/70 p-5 space-y-4"
-        >
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <form onSubmit={handleSignIn} className="module w-full max-w-sm">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Sign in to Hoot</h1>
-            <p className="mt-1 text-sm text-neutral-400">Use your Supabase account to access course data.</p>
+            <h1 className="section-title">Sign in to Hoot</h1>
+            <p className="note mt-2">Use your Supabase account to access course data.</p>
           </div>
           {authError && (
-            <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+            <div className="notice" data-tone="danger">
               {authError}
             </div>
           )}
-          {authNotice && (
-            <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-100">
-              {authNotice}
-            </div>
-          )}
-          <label className="block text-sm text-neutral-300">
+          {authNotice && <div className="notice">{authNotice}</div>}
+          <label className="field-label">
             Email
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              className="mt-1 w-full h-10 rounded-xl border border-neutral-700 bg-neutral-950 px-3 outline-none focus:ring-2 focus:ring-neutral-600"
+              className="input"
             />
           </label>
-          <label className="block text-sm text-neutral-300">
+          <label className="field-label">
             Password
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              className="mt-1 w-full h-10 rounded-xl border border-neutral-700 bg-neutral-950 px-3 outline-none focus:ring-2 focus:ring-neutral-600"
+              className="input"
             />
           </label>
-          <button
-            type="submit"
-            disabled={authLoading}
-            className="h-10 w-full rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-50"
-          >
+          <button type="submit" disabled={authLoading} className="ui-button ui-button--primary ui-button--full">
             {authLoading ? 'Signing in…' : 'Sign in'}
           </button>
-          <button
-            type="button"
-            disabled={authLoading}
-            onClick={handleSignUp}
-            className="h-10 w-full rounded-xl border border-neutral-700 text-sm font-semibold text-neutral-200 disabled:opacity-50"
-          >
+          <button type="button" disabled={authLoading} onClick={handleSignUp} className="ui-button ui-button--full">
             {authLoading ? 'Working…' : 'Create account'}
           </button>
-          <p className="text-xs text-neutral-500">
-            New accounts also need a `course_memberships` row to access a class.
-          </p>
+          <p className="note">New accounts also need a `course_memberships` row to access a class.</p>
         </form>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#060606] text-neutral-100 flex flex-col">
-      <header className="border-b border-neutral-800 sticky top-0 z-10 bg-[#070607]">
-        <div className="px-4 py-3 relative flex items-center justify-between">
+    <div className="min-h-screen flex flex-col">
+      <header className="site-header">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 relative">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="font-semibold tracking-tight text-lg">Hoot</div>
+            <div className="site-brand">Hoot</div>
           </div>
           <div className="flex items-center relative z-[1]">
-            <div ref={classDropdownRef} className="relative">
+            <div ref={classDropdownRef} className="dropdown">
               <button
-                onClick={() => setClassDropdownOpen(prev => !prev)}
+                onClick={() => setClassDropdownOpen((prev) => !prev)}
                 disabled={classesLoading}
-                className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-neutral-700/50 bg-neutral-900/60 text-sm text-neutral-200 hover:bg-neutral-800 hover:border-neutral-600 transition-all duration-200 disabled:opacity-50"
+                className="dropdown-trigger !h-8 !min-h-8 !w-auto !px-3 !py-1.5 text-sm"
+                type="button"
               >
                 <span className="max-w-[160px] truncate">
-                  {classesLoading ? 'Loading…' : (classOptions.find(c => c.id === selectedClassId)?.name || 'Select class')}
+                  {classesLoading
+                    ? 'Loading…'
+                    : classOptions.find((c) => c.id === selectedClassId)?.name || 'Select class'}
                 </span>
-                <ChevronDown className={`h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 ${classDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${
+                    classDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </button>
               <AnimatePresence>
                 {classDropdownOpen && (
@@ -858,10 +868,10 @@ export default function Page() {
                     initial={{ opacity: 0, y: -4, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="absolute left-0 top-full mt-1.5 min-w-[180px] rounded-lg border border-neutral-700/50 bg-neutral-900 shadow-xl shadow-black/40 overflow-hidden"
+                    transition={{ duration: 0.16, ease: 'easeOut' }}
+                    className="dropdown-menu"
                   >
-                    {classOptions.map(c => (
+                    {classOptions.map((c) => (
                       <button
                         key={c.id}
                         onClick={() => {
@@ -869,17 +879,15 @@ export default function Page() {
                           setFormError(null);
                           setClassDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors duration-100 ${
-                          c.id === selectedClassId
-                            ? 'bg-neutral-800 text-white'
-                            : 'text-neutral-300 hover:bg-neutral-800/60 hover:text-white'
-                        }`}
+                        className="dropdown-item text-sm"
+                        data-active={c.id === selectedClassId}
+                        type="button"
                       >
                         {c.name}
                       </button>
                     ))}
                     {!classesLoading && classOptions.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-neutral-500">No classes available</div>
+                      <div className="dropdown-item text-sm">No classes available</div>
                     )}
                   </motion.div>
                 )}
@@ -887,35 +895,32 @@ export default function Page() {
             </div>
           </div>
           <div className="flex items-center gap-2 relative z-[1]">
-            <button onClick={generateReport} className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-700 text-sm hover:bg-neutral-800 transition-colors">Generate report</button>
-            <div className="text-xs text-neutral-400 hidden md:block max-w-[220px] truncate" title={userLabel}>
-              {userLabel}
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="px-3 py-1.5 rounded-md border border-neutral-700 text-sm text-neutral-200 hover:bg-neutral-800 transition-colors"
-            >
-              Sign out
+            <button onClick={generateReport} className="ui-button ui-button--primary ui-button--small" type="button">
+              Generate report
             </button>
+            <div className="group relative">
+              <button onClick={handleSignOut} className="ui-button ui-button--small" type="button">
+                Sign out
+              </button>
+              <div className="pointer-events-none absolute right-0 top-full z-20 mt-2 hidden w-72 border border-[var(--border)] bg-[linear-gradient(145deg,rgba(233,223,207,0.95),rgba(214,205,190,0.82))] p-3 text-sm text-[var(--text)] shadow-[0_16px_32px_rgba(0,0,0,0.09)] group-hover:block group-focus-within:block">
+                Are you sure you want to sign out of <span className="font-semibold">{accountLabel}</span>?
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
-     <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-6 space-y-4">
+      <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-6 space-y-4">
         <div className="grid gap-4">
           <div className="space-y-4">
             {textbooksError && (
-              <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+              <div className="notice" data-tone="danger">
                 {textbooksError}
               </div>
             )}
-            {textbooksLoading && (
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 px-3 py-2 text-sm text-neutral-300">
-                Loading course resources…
-              </div>
-            )}
+            {textbooksLoading && <div className="notice">Loading course resources…</div>}
             {classesError && (
-              <div className="rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+              <div className="notice" data-tone="danger">
                 {classesError}
               </div>
             )}
@@ -924,12 +929,16 @@ export default function Page() {
                 key={idx}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-2xl p-3 ${m.role === 'user' ? 'bg-neutral-900 border border-neutral-800' : ''}`}
+                className={`p-3 border border-[var(--border)] ${
+                  m.role === 'user'
+                    ? 'bg-[rgba(214,205,190,0.55)]'
+                    : 'bg-[linear-gradient(145deg,rgba(233,223,207,0.95),rgba(214,205,190,0.82))] border-l-4 border-l-[var(--accent)] shadow-[0_16px_32px_rgba(0,0,0,0.09)]'
+                }`}
               >
                 {m.role === 'user' && (
-                  <div className="text-xs uppercase tracking-wider text-neutral-400 mb-2">{m.role}</div>
+                  <div className="message-meta mb-2">{m.role}</div>
                 )}
-                <div className="prose prose-invert max-w-none whitespace-pre-wrap">
+                <div className="prose max-w-none whitespace-pre-wrap">
                   {m.role === 'assistant' ? (
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                       {normalizeMath(m.content)}
@@ -948,12 +957,12 @@ export default function Page() {
                 {!!m.attachments?.length && (
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     {m.attachments.map((a, i) => (
-                      <div key={i} className="relative h-24 w-full">
+                      <div key={i} className="relative h-24 w-full border border-[var(--border)] bg-[rgba(214,205,190,0.42)]">
                         <Image
                           src={a.dataUrl}
                           alt={a.name}
                           fill
-                          className="rounded-xl border border-neutral-800 object-cover"
+                          className="object-cover"
                           sizes="(max-width: 640px) 33vw, 200px"
                           unoptimized
                         />
@@ -964,11 +973,7 @@ export default function Page() {
               </motion.div>
             ))}
             {loading && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-4 py-2"
-              >
+              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="thinking-indicator">
                 <video
                   src="/thinking.mp4"
                   autoPlay
@@ -978,23 +983,24 @@ export default function Page() {
                   className="w-16 h-16 object-contain"
                 />
                 <div className="flex flex-col">
-                  <span className="text-sm text-neutral-300">Hooting<span className="dot-1">.</span><span className="dot-2">.</span><span className="dot-3">.</span></span>
-                  {loadingStatus && (
-                    <span className="text-xs italic text-neutral-500">{loadingStatus}</span>
-                  )}
+                  <span className="text-sm">
+                    Hooting<span className="dot-1">.</span>
+                    <span className="dot-2">.</span>
+                    <span className="dot-3">.</span>
+                  </span>
+                  {loadingStatus && <span className="note italic text-xs">{loadingStatus}</span>}
                 </div>
               </motion.div>
             )}
             <div ref={bottomRef} />
           </div>
         </div>
-
       </main>
 
-      <div className="border-t border-neutral-800 bg-[#070607]">
+      <div className="border-t border-[var(--border)] bg-[rgba(233,223,207,0.82)]">
         <div className="mx-auto max-w-3xl px-4 py-3">
           {formError && (
-            <div className="mb-3 rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+            <div className="mb-3 notice" data-tone="danger">
               {formError}
             </div>
           )}
@@ -1002,11 +1008,14 @@ export default function Page() {
             {({ getRootProps, getInputProps, isDragActive }) => (
               <div
                 {...getRootProps()}
-                className={`mb-2 rounded-xl border border-dashed ${isDragActive ? 'border-neutral-300' : 'border-neutral-800'} p-3 text-sm text-neutral-400 flex items-center gap-2`}
+                className="upload-zone mb-2 text-sm"
+                data-active={isDragActive}
               >
                 <input {...getInputProps()} accept="image/*" />
                 <ImagePlus className="h-4 w-4" />
-                {isDragActive ? 'Drop your screenshots…' : 'Drag & drop screenshots, click to upload, or paste into the box below.'}
+                {isDragActive
+                  ? 'Drop your screenshots…'
+                  : 'Drag & drop screenshots, click to upload, or paste into the box below.'}
               </div>
             )}
           </Dropzone>
@@ -1015,20 +1024,21 @@ export default function Page() {
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((a, i) => (
                 <div key={i} className="relative">
-                  <div className="relative h-16 w-16">
+                  <div className="relative h-16 w-16 border border-[var(--border)] bg-[rgba(214,205,190,0.42)]">
                     <Image
                       src={a.dataUrl}
                       alt={a.name}
                       fill
-                      className="object-cover rounded-xl border border-neutral-800"
+                      className="object-cover"
                       sizes="64px"
                       unoptimized
                     />
                   </div>
                   <button
                     onClick={() => removeAttachment(i)}
-                    className="absolute -top-2 -right-2 bg-neutral-900 border border-neutral-700 rounded-full p-1"
+                    className="absolute -top-2 -right-2 ui-button ui-button--small ui-button--icon !h-6 !w-6 !p-0"
                     aria-label="Remove"
+                    type="button"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -1045,29 +1055,26 @@ export default function Page() {
               onKeyDown={onKeyDown}
               rows={3}
               placeholder="Ask anything about your course…"
-              className="flex-1 resize-none rounded-2xl bg-neutral-900 border border-neutral-800 p-3 outline-none focus:ring-2 focus:ring-neutral-600"
+              className="textarea flex-1"
             />
             <button
               onClick={send}
-              disabled={
-                loading ||
-                (!input.trim() && attachments.length === 0) ||
-                selectedClassId == null
-              }
-              className="h-10 w-10 rounded-2xl bg-white text-black flex items-center justify-center disabled:opacity-40"
+              disabled={loading || (!input.trim() && attachments.length === 0) || selectedClassId == null}
+              className="ui-button ui-button--primary ui-button--icon"
               aria-label="Send"
               title="Send"
+              type="button"
             >
               <Send className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="mt-2 flex items-center justify-between text-xs text-neutral-500">
+          <div className="mt-2 flex items-center justify-between text-xs note gap-3">
             <div className="flex items-center gap-2">
               <Paperclip className="h-3.5 w-3.5" />
               PNG/JPG up to ~5MB each • max 6 images
             </div>
-            <div>{loading ? (loadingStatus || 'Thinking…') : 'Press ⌘/Ctrl + Enter to send'}</div>
+            <div>{loading ? loadingStatus || 'Thinking…' : 'Press ⌘/Ctrl + Enter to send'}</div>
           </div>
         </div>
       </div>
