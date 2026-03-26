@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Dropzone from 'react-dropzone';
-import { Send, X, ImagePlus, Paperclip, ChevronDown } from 'lucide-react';
+import { Send, X, ImagePlus, Paperclip, ChevronDown, MoreVertical, Sun, Moon, Plus, MessageSquare, PanelLeftClose, PanelLeft, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
@@ -32,6 +32,14 @@ type Message = {
   citations?: CitationMeta[];
 };
 type Textbook = { id: string; title: string; label: string | null; created_at: string };
+type ChatSummary = {
+  chat_id: string;
+  search_space_id: number;
+  title: string;
+  turn_count: number;
+  created_at: string | null;
+  updated_at: string | null;
+};
 
 const SUPABASE_ENABLED = Boolean(SUPABASE_AUTH_ENABLED && SUPABASE_REST_URL && SUPABASE_ANON_KEY);
 
@@ -298,6 +306,30 @@ export default function Page() {
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [classDropdownOpen, setClassDropdownOpen] = useState(false);
   const classDropdownRef = useRef<HTMLDivElement>(null);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const headerMenuRef = useRef<HTMLDivElement>(null);
+  const [darkMode, setDarkMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chatList, setChatList] = useState<ChatSummary[]>([]);
+  const [chatListLoading, setChatListLoading] = useState(false);
+  const [loadingChatId, setLoadingChatId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = stored ? stored === 'dark' : prefersDark;
+    setDarkMode(isDark);
+    document.documentElement.classList.toggle('dark', isDark);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !darkMode;
+    document.documentElement.classList.add('theme-transition');
+    setDarkMode(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+    setTimeout(() => document.documentElement.classList.remove('theme-transition'), 450);
+  };
   const [formError, setFormError] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string>('');
   const SHOW_PREVIEWS =
@@ -377,6 +409,9 @@ export default function Page() {
     const handler = (e: MouseEvent) => {
       if (classDropdownRef.current && !classDropdownRef.current.contains(e.target as Node)) {
         setClassDropdownOpen(false);
+      }
+      if (headerMenuRef.current && !headerMenuRef.current.contains(e.target as Node)) {
+        setHeaderMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -482,20 +517,119 @@ export default function Page() {
     };
   }, [accessToken, authReady]);
 
+  const createNewChatId = useCallback(() => {
+    const id = `chat-${Math.random().toString(16).slice(2, 10)}`;
+    setChatId(id);
+    setMessages([]);
+    return id;
+  }, []);
+
   useEffect(() => {
     if (!session) {
       setChatId('');
       return;
     }
-    const key = `hoot_chat_id_${session.user_id || 'default'}`;
-    const existing = localStorage.getItem(key);
-    if (existing) setChatId(existing);
-    else {
-      const id = `chat-${Math.random().toString(16).slice(2, 10)}`;
-      localStorage.setItem(key, id);
-      setChatId(id);
+    // On login, start a fresh chat
+    createNewChatId();
+  }, [session, createNewChatId]);
+
+  const fetchChatList = useCallback(async () => {
+    if (!accessToken || !selectedClassId) {
+      setChatList([]);
+      return;
     }
-  }, [session]);
+    setChatListLoading(true);
+    try {
+      const resp = await fetch(`/api/chats?search_space_id=${selectedClassId}`, {
+        cache: 'no-store',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!resp.ok) throw new Error('Failed to load chats');
+      const data = (await resp.json()) as ChatSummary[];
+      setChatList(Array.isArray(data) ? data.filter((c) => c.turn_count > 0) : []);
+    } catch {
+      setChatList([]);
+    } finally {
+      setChatListLoading(false);
+    }
+  }, [accessToken, selectedClassId]);
+
+  useEffect(() => {
+    if (!authReady || !accessToken || !selectedClassId) {
+      setChatList([]);
+      return;
+    }
+    void fetchChatList();
+  }, [authReady, accessToken, selectedClassId, fetchChatList]);
+
+  const handleNewChat = useCallback(() => {
+    createNewChatId();
+    setSidebarOpen(false);
+  }, [createNewChatId]);
+
+  const handleLoadChat = useCallback(async (targetChatId: string) => {
+    console.log('[handleLoadChat] called with:', targetChatId, 'current chatId:', chatId, 'hasToken:', !!accessToken);
+    if (!accessToken) {
+      console.warn('[handleLoadChat] no access token');
+      return;
+    }
+    if (targetChatId === chatId) {
+      console.log('[handleLoadChat] same chat, closing sidebar');
+      setSidebarOpen(false);
+      return;
+    }
+    setLoadingChatId(targetChatId);
+    try {
+      const url = `/api/chats/${encodeURIComponent(targetChatId)}`;
+      console.log('[handleLoadChat] fetching:', url);
+      const resp = await fetch(url, {
+        cache: 'no-store',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      console.log('[handleLoadChat] response status:', resp.status);
+      if (!resp.ok) throw new Error(`Failed to load chat (${resp.status})`);
+      const data = await resp.json();
+      const turns = (data.turns || []) as Array<{
+        role: string;
+        content: string;
+        created_at?: string;
+        attachments?: Attachment[];
+      }>;
+      const loadedMessages: Message[] = turns.map((t) => ({
+        role: t.role as 'user' | 'assistant',
+        content: t.content || '',
+        created_at: t.created_at || '',
+        attachments: t.attachments,
+      }));
+      setChatId(targetChatId);
+      setMessages(loadedMessages);
+      setSidebarOpen(false);
+    } catch {
+      setFormError('Failed to load chat history.');
+    } finally {
+      setLoadingChatId(null);
+    }
+  }, [accessToken, chatId]);
+
+  const handleDeleteChat = useCallback(async (targetChatId: string) => {
+    console.log('[handleDeleteChat] called with:', targetChatId, 'hasToken:', !!accessToken);
+    if (!accessToken) return;
+    try {
+      const resp = await fetch(`/api/chats/${encodeURIComponent(targetChatId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      console.log('[handleDeleteChat] response status:', resp.status);
+      if (resp.status !== 204 && !resp.ok) throw new Error('Failed to delete chat');
+      // If we deleted the active chat, start a new one
+      if (targetChatId === chatId) {
+        createNewChatId();
+      }
+      setChatList((prev) => prev.filter((c) => c.chat_id !== targetChatId));
+    } catch {
+      setFormError('Failed to delete chat.');
+    }
+  }, [accessToken, chatId, createNewChatId]);
 
   const addFiles = useCallback(async (files: File[]) => {
     const imgs = files.filter((f) => f.type.startsWith('image/'));
@@ -585,6 +719,8 @@ export default function Page() {
     setClassOptions([]);
     setSelectedClassId(null);
     setChatId('');
+    setChatList([]);
+    setSidebarOpen(false);
   };
 
   const send = async () => {
@@ -743,6 +879,7 @@ export default function Page() {
     } finally {
       setLoading(false);
       setLoadingStatus('');
+      void fetchChatList();
     }
   };
 
@@ -985,14 +1122,116 @@ export default function Page() {
     );
   }
 
+  const formatRelativeTime = (isoDate: string | null) => {
+    if (!isoDate) return '';
+    const date = new Date(isoDate);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex">
+      {/* Sidebar overlay on mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Chat sidebar */}
+      <aside
+        className={`chat-sidebar ${sidebarOpen ? 'chat-sidebar--open' : ''}`}
+      >
+        <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
+          <button
+            onClick={handleNewChat}
+            className="text-sm flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] bg-transparent hover:bg-[var(--card-fill)] transition-colors"
+            type="button"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New chat
+          </button>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-md hover:bg-[var(--card-fill)] transition-colors"
+            type="button"
+            aria-label="Close sidebar"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {chatListLoading && (
+            <div className="p-3 text-xs text-[var(--muted)]">Loading chats…</div>
+          )}
+          {!chatListLoading && chatList.length === 0 && (
+            <div className="p-3 text-xs text-[var(--muted)]">No previous chats</div>
+          )}
+          {chatList.map((chat) => {
+            const isActive = chat.chat_id === chatId;
+            const isLoading = loadingChatId === chat.chat_id;
+            return (
+              <div
+                key={chat.chat_id}
+                className={`chat-sidebar-item ${isActive ? 'chat-sidebar-item--active' : ''}`}
+                onClick={() => {
+                  console.log('[sidebar] clicked chat:', chat.chat_id);
+                  void handleLoadChat(chat.chat_id);
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <MessageSquare className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="truncate text-sm">
+                    {isLoading ? 'Loading…' : (chat.title || 'Untitled chat')}
+                  </div>
+                  <div className="text-xs text-[var(--muted)]">
+                    {formatRelativeTime(chat.updated_at)}
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('[sidebar] deleting chat:', chat.chat_id);
+                    void handleDeleteChat(chat.chat_id);
+                  }}
+                  className="chat-sidebar-delete shrink-0 p-1 rounded-md hover:bg-[var(--danger-bg)] transition-colors"
+                  type="button"
+                  aria-label="Delete chat"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-[var(--muted)]" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
       <header className="site-header">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-1.5 relative">
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="site-brand">Hoot</div>
-          </div>
-          <div className="flex items-center relative z-[1]">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-1.5 relative">
+          <div className="flex items-center gap-2 relative z-[1]">
+            {!sidebarOpen && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-1.5 rounded-md hover:bg-[var(--card-fill)] transition-colors"
+                type="button"
+                aria-label="Open chat history"
+              >
+                <PanelLeft className="h-4 w-4" />
+              </button>
+            )}
             <div ref={classDropdownRef} className="dropdown">
               <button
                 onClick={() => setClassDropdownOpen((prev) => !prev)}
@@ -1043,18 +1282,52 @@ export default function Page() {
               </AnimatePresence>
             </div>
           </div>
-          <div className="flex items-center gap-2 relative z-[1]">
-            <button onClick={generateReport} className="ui-button ui-button--small" type="button">
-              Generate report
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="site-brand">Hoot</div>
+          </div>
+          <div ref={headerMenuRef} className="relative z-[1]">
+            <button
+              onClick={() => setHeaderMenuOpen((prev) => !prev)}
+              className="header-menu-trigger"
+              type="button"
+              aria-label="Menu"
+            >
+              <MoreVertical className="h-4 w-4" />
             </button>
-            <div className="group relative">
-              <button onClick={handleSignOut} className="ui-button ui-button--small" type="button">
-                Sign out
-              </button>
-              <div className="pointer-events-none absolute right-0 top-full z-20 mt-2 hidden w-72 border border-[var(--border)] bg-[rgba(233,223,207,0.95)] p-3 text-sm text-[var(--text)] shadow-[0_16px_32px_rgba(0,0,0,0.09)] group-hover:block group-focus-within:block">
-                Are you sure you want to sign out of <span className="font-semibold">{accountLabel}</span>?
-              </div>
-            </div>
+            <AnimatePresence>
+              {headerMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                  transition={{ duration: 0.16, ease: 'easeOut' }}
+                  className="header-menu"
+                >
+                  <button
+                    onClick={toggleTheme}
+                    className="dropdown-item text-sm flex items-center gap-2"
+                    type="button"
+                  >
+                    {darkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                    {darkMode ? 'Light mode' : 'Dark mode'}
+                  </button>
+                  <button
+                    onClick={() => { generateReport(); setHeaderMenuOpen(false); }}
+                    className="dropdown-item text-sm"
+                    type="button"
+                  >
+                    Generate report
+                  </button>
+                  <button
+                    onClick={() => { handleSignOut(); setHeaderMenuOpen(false); }}
+                    className="dropdown-item text-sm"
+                    type="button"
+                  >
+                    Sign out of {accountLabel}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </header>
@@ -1089,8 +1362,8 @@ export default function Page() {
               <div
                 className={`p-3 border border-[var(--border)] ${
                   m.role === 'user'
-                    ? 'bg-[rgba(214,205,190,0.55)] text-right inline-block max-w-[75%]'
-                    : 'bg-[rgba(233,223,207,0.95)] border-l-4 border-l-[var(--accent)] shadow-[0_16px_32px_rgba(0,0,0,0.09)]'
+                    ? 'bg-[var(--msg-user-bg)] text-right inline-block max-w-[75%]'
+                    : 'bg-[var(--msg-assistant-bg)] border-l-4 border-l-[var(--accent)] shadow-[var(--shadow-soft)]'
                 }`}
               >
                 <div className="prose max-w-none">
@@ -1099,7 +1372,7 @@ export default function Page() {
                       {normalizeMath(parseAnswer(m.content).answerText)}
                     </ReactMarkdown>
                   ) : (
-                    <span className="whitespace-pre-wrap">{m.content}</span>
+                    <span className="whitespace-pre-wrap" style={{ fontFamily: 'var(--font-stack)' }}>{m.content}</span>
                   )}
                 </div>
                 {SHOW_PREVIEWS && m.role === 'assistant' && Array.isArray(m.citations) && m.citations.length > 0 && (
@@ -1112,7 +1385,7 @@ export default function Page() {
                 {!!m.attachments?.length && (
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     {m.attachments.map((a, i) => (
-                      <div key={i} className="relative h-24 w-full border border-[var(--border)] bg-[rgba(214,205,190,0.42)]">
+                      <div key={i} className="relative h-24 w-full border border-[var(--border)] bg-[var(--img-placeholder)]">
                         <Image
                           src={a.dataUrl}
                           alt={a.name}
@@ -1155,7 +1428,7 @@ export default function Page() {
         </div>
       </main>
 
-      <div className="border-t border-[var(--border)] bg-[rgba(233,223,207,0.82)]">
+      <div className="border-t border-[var(--border)] bg-[var(--bar-bg)]">
         <div className="mx-auto max-w-3xl px-4 py-3">
           {formError && (
             <div className="mb-3 notice" data-tone="danger">
@@ -1182,7 +1455,7 @@ export default function Page() {
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((a, i) => (
                 <div key={i} className="relative">
-                  <div className="relative h-16 w-16 border border-[var(--border)] bg-[rgba(214,205,190,0.42)]">
+                  <div className="relative h-16 w-16 border border-[var(--border)] bg-[var(--img-placeholder)]">
                     <Image
                       src={a.dataUrl}
                       alt={a.name}
@@ -1236,6 +1509,7 @@ export default function Page() {
           </div>
         </div>
       </div>
+      </div>{/* end main content wrapper */}
     </div>
   );
 }
