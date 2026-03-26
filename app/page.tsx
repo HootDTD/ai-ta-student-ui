@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Dropzone from 'react-dropzone';
 import { Send, X, ImagePlus, Paperclip, ChevronDown } from 'lucide-react';
@@ -308,6 +308,18 @@ export default function Page() {
     textbooks.find((tb) => tb.title === (selectedClassObj?.subject_name ?? '')) ?? null;
   const accessToken = session?.access_token || '';
   const accountLabel = session?.user_email || session?.user_id || 'this account';
+
+  const APOLLO_VERBS = [
+    'scouring', 'flying', 'soaring', 'diving', 'gliding', 'swooping',
+    'searching', 'scanning', 'fluttering', 'burrowing', 'navigating',
+    'rummaging', 'combing', 'rifling', 'hunting', 'perching on',
+    'hooting at', 'pecking through', 'roosting in', 'nesting in',
+  ];
+  const apolloVerb = useMemo(
+    () => APOLLO_VERBS[Math.floor(Math.random() * APOLLO_VERBS.length)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [loading],
+  );
 
   const normalizeMath = (text: string): string => {
     let out = text;
@@ -741,28 +753,165 @@ export default function Page() {
     }
   };
 
-  const generateReport = async () => {
-    if (!chatId || !accessToken) return;
-    try {
-      const resp = await fetch(`/api/reports/ai-use/${encodeURIComponent(chatId)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ style: 'none', length: 'brief' }),
-      });
-      if (!resp.ok) {
-        const msg = await resp.text();
-        alert(`Failed to create report: ${msg}`);
-        return;
-      }
-      const data = await resp.json();
-      const reportId = data.report_id;
-      if (reportId) router.push(`/report/${reportId}`);
-    } catch {
-      alert('Error creating report');
+  const generateReport = () => {
+    if (!messages.length) {
+      alert('Start a conversation before generating a report.');
+      return;
     }
+
+    const esc = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const mdToHtml = (md: string): string => {
+      let h = esc(md);
+      h = h.replace(/^#{1,6} (.+)$/gm, '<strong>$1</strong>');
+      h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      return h;
+    };
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-AU', { year: 'numeric', month: 'long', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+    const subject = selectedClassObj?.subject_name || selectedClassObj?.name || '—';
+    const userTurns = messages.filter((m) => m.role === 'user');
+    const allCitations = messages.flatMap((m) => m.citations ?? []);
+    const uniqueCitations = [...new Map(allCitations.map((c) => [c.label, c])).values()];
+
+    const turnsHtml = messages
+      .map((m) => {
+        const isUser = m.role === 'user';
+        const cleanContent = isUser
+          ? esc(m.content)
+          : mdToHtml(parseAnswer(m.content).answerText || m.content);
+        const citLabels = m.citations?.map((c) => esc(c.label)).join(', ') || '';
+        return `
+        <div class="turn ${isUser ? 'turn--user' : 'turn--ai'}">
+          <div class="turn-label">${isUser ? 'Student Prompt' : 'Hoot AI Response'}</div>
+          <div class="turn-body">${cleanContent}</div>
+          ${citLabels ? `<div class="turn-sources">Sources referenced: ${citLabels}</div>` : ''}
+        </div>`;
+      })
+      .join('\n');
+
+    const citationsHtml = uniqueCitations.length
+      ? `<section class="section">
+          <h2>Sources Referenced by AI</h2>
+          <ul>${uniqueCitations
+            .map(
+              (c) =>
+                `<li><strong>${esc(c.label)}</strong>${c.file ? ` — ${esc(c.file)}` : ''}${typeof c.page === 'number' ? `, p.\u00a0${c.page}` : ''}</li>`,
+            )
+            .join('')}</ul>
+        </section>`
+      : '';
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AI Use Acknowledgement Report — ${dateStr}</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Georgia,'Times New Roman',serif;font-size:11pt;color:#1a1a1a;background:#fff}
+  .page{max-width:780px;margin:0 auto;padding:48px}
+  h1{font-size:20pt;font-weight:700;margin-bottom:4px}
+  h2{font-size:11pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:12px}
+  .subtitle{font-size:10pt;color:#555;margin-bottom:32px}
+  .section{margin-bottom:28px}
+  .meta-grid{display:grid;grid-template-columns:160px 1fr;gap:5px 12px;font-size:10.5pt}
+  .meta-grid .key{color:#555}
+  .declaration{background:#f6f4f0;border-left:3px solid #555;padding:14px 18px;font-size:10.5pt;line-height:1.65;margin-bottom:10px}
+  .formula{background:#f0ede8;border:1px dashed #bbb;padding:12px 16px;font-size:10pt;font-style:italic;line-height:1.65}
+  .turn{margin-bottom:12px;padding:12px 14px;border:1px solid #ddd;page-break-inside:avoid}
+  .turn--user{background:#fafafa;border-left:3px solid #888}
+  .turn--ai{background:#f6f4f0;border-left:3px solid #333}
+  .turn-label{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#555;margin-bottom:6px}
+  .turn-body{font-size:10.5pt;line-height:1.6;white-space:pre-wrap}
+  .turn-sources{margin-top:8px;font-size:9pt;color:#666;font-style:italic}
+  ul{padding-left:1.5em}li{margin-bottom:4px;font-size:10.5pt}
+  ol{padding-left:1.5em}
+  .footer{margin-top:36px;padding-top:12px;border-top:1px solid #ccc;font-size:9pt;color:#777;text-align:center}
+  @media print{
+    .page{padding:24px 32px}
+    .no-print{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>AI Use Acknowledgement Report</h1>
+  <p class="subtitle">Generated ${dateStr} at ${timeStr}&ensp;·&ensp;Hoot AI Tutoring Assistant</p>
+
+  <section class="section">
+    <h2>Session Details</h2>
+    <div class="meta-grid">
+      <span class="key">Date:</span><span>${dateStr}</span>
+      <span class="key">Student:</span><span>${esc(session?.user_email || '—')}</span>
+      <span class="key">Subject / Class:</span><span>${esc(subject)}</span>
+      <span class="key">AI Tool:</span><span>Hoot AI Tutoring Assistant</span>
+      <span class="key">Total Interactions:</span><span>${userTurns.length} prompt${userTurns.length !== 1 ? 's' : ''}</span>
+      <span class="key">Session ID:</span><span>${esc(chatId)}</span>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Declaration of AI Use</h2>
+    <div class="declaration">
+      I used <strong>Hoot</strong> (an AI tutoring assistant) to assist with
+      understanding course material related to <strong>${esc(subject)}</strong>. This session consisted of
+      <strong>${userTurns.length} interaction${userTurns.length !== 1 ? 's' : ''}</strong>. I reviewed all
+      AI-generated responses critically and used them to support my own understanding. All final work submitted
+      represents my own conclusions and analysis.
+    </div>
+    <div class="formula">
+      <strong>Monash acknowledgement statement:</strong><br>
+      I used <em>Hoot AI</em> to <em>seek explanations and worked examples for ${esc(subject)}</em>
+      (${userTurns.length} iteration${userTurns.length !== 1 ? 's' : ''}). I modified the outputs by
+      <em>critically reviewing responses, cross-referencing with course materials, and forming my own conclusions</em>.
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Prompts Submitted (${userTurns.length})</h2>
+    <ol>${userTurns.map((m) => `<li style="margin-bottom:6px">${esc(m.content)}</li>`).join('')}</ol>
+  </section>
+
+  <section class="section">
+    <h2>Full Conversation Log</h2>
+    ${turnsHtml}
+  </section>
+
+  ${citationsHtml}
+
+  <section class="section">
+    <h2>How AI Output Was Used</h2>
+    <p style="font-size:10.5pt;line-height:1.65">
+      The AI responses were used as a learning aid to better understand course concepts. Responses were read
+      critically and compared against textbook material. Any information used in submitted work was independently
+      verified and expressed in my own words.
+    </p>
+    <p style="margin-top:10px;font-size:9.5pt;color:#666;font-style:italic">
+      You may expand this section to describe specifically how you incorporated or adapted the AI&apos;s responses
+      in your submitted work, as required by your Chief Examiner.
+    </p>
+  </section>
+
+  <div class="footer">
+    Automatically generated by Hoot on ${dateStr}&ensp;·&ensp;Session ID: ${esc(chatId)}<br>
+    This report is intended to support academic integrity declarations in accordance with your institution&apos;s AI use policy.
+  </div>
+</div>
+<script>window.addEventListener('load', () => window.print());</script>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const tab = window.open(url, '_blank');
+    if (!tab) alert('Please allow pop-ups for this site to open the report.');
+    setTimeout(() => URL.revokeObjectURL(url), 120_000);
   };
 
   if (!authReady) {
@@ -839,7 +988,7 @@ export default function Page() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="site-header">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 relative">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-1.5 relative">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="site-brand">Hoot</div>
           </div>
@@ -895,14 +1044,14 @@ export default function Page() {
             </div>
           </div>
           <div className="flex items-center gap-2 relative z-[1]">
-            <button onClick={generateReport} className="ui-button ui-button--primary ui-button--small" type="button">
+            <button onClick={generateReport} className="ui-button ui-button--small" type="button">
               Generate report
             </button>
             <div className="group relative">
               <button onClick={handleSignOut} className="ui-button ui-button--small" type="button">
                 Sign out
               </button>
-              <div className="pointer-events-none absolute right-0 top-full z-20 mt-2 hidden w-72 border border-[var(--border)] bg-[linear-gradient(145deg,rgba(233,223,207,0.95),rgba(214,205,190,0.82))] p-3 text-sm text-[var(--text)] shadow-[0_16px_32px_rgba(0,0,0,0.09)] group-hover:block group-focus-within:block">
+              <div className="pointer-events-none absolute right-0 top-full z-20 mt-2 hidden w-72 border border-[var(--border)] bg-[rgba(233,223,207,0.95)] p-3 text-sm text-[var(--text)] shadow-[0_16px_32px_rgba(0,0,0,0.09)] group-hover:block group-focus-within:block">
                 Are you sure you want to sign out of <span className="font-semibold">{accountLabel}</span>?
               </div>
             </div>
@@ -910,7 +1059,7 @@ export default function Page() {
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-6 space-y-4">
+      <main className="flex-1 mx-auto w-full max-w-3xl px-4 pt-3 pb-4 space-y-4">
         <div className="grid gap-4">
           <div className="space-y-4">
             {textbooksError && (
@@ -924,27 +1073,33 @@ export default function Page() {
                 {classesError}
               </div>
             )}
-            {messages.map((m, idx) => (
+            {messages.map((m, idx) => {
+              if (m.role === 'assistant' && !m.content && !m.attachments?.length) return null;
+              return (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`p-3 border border-[var(--border)] ${
+                className={`${
                   m.role === 'user'
-                    ? 'bg-[rgba(214,205,190,0.55)]'
-                    : 'bg-[linear-gradient(145deg,rgba(233,223,207,0.95),rgba(214,205,190,0.82))] border-l-4 border-l-[var(--accent)] shadow-[0_16px_32px_rgba(0,0,0,0.09)]'
+                    ? 'flex justify-end'
+                    : ''
                 }`}
               >
-                {m.role === 'user' && (
-                  <div className="message-meta mb-2">{m.role}</div>
-                )}
-                <div className="prose max-w-none whitespace-pre-wrap">
+              <div
+                className={`p-3 border border-[var(--border)] ${
+                  m.role === 'user'
+                    ? 'bg-[rgba(214,205,190,0.55)] text-right inline-block max-w-[75%]'
+                    : 'bg-[rgba(233,223,207,0.95)] border-l-4 border-l-[var(--accent)] shadow-[0_16px_32px_rgba(0,0,0,0.09)]'
+                }`}
+              >
+                <div className="prose max-w-none">
                   {m.role === 'assistant' ? (
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                      {normalizeMath(m.content)}
+                      {normalizeMath(parseAnswer(m.content).answerText)}
                     </ReactMarkdown>
                   ) : (
-                    m.content
+                    <span className="whitespace-pre-wrap">{m.content}</span>
                   )}
                 </div>
                 {SHOW_PREVIEWS && m.role === 'assistant' && Array.isArray(m.citations) && m.citations.length > 0 && (
@@ -970,8 +1125,10 @@ export default function Page() {
                     ))}
                   </div>
                 )}
+              </div>
               </motion.div>
-            ))}
+              );
+            })}
             {loading && (
               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="thinking-indicator">
                 <video
@@ -980,11 +1137,12 @@ export default function Page() {
                   loop
                   muted
                   playsInline
-                  className="w-16 h-16 object-contain"
+                  className="thinking-indicator__video"
                 />
                 <div className="flex flex-col">
                   <span className="text-sm">
-                    Hooting<span className="dot-1">.</span>
+                    Apollo is {apolloVerb} through all resources
+                    <span className="dot-1">.</span>
                     <span className="dot-2">.</span>
                     <span className="dot-3">.</span>
                   </span>
