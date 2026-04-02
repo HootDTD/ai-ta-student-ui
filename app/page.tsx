@@ -10,9 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import {
-  SUPABASE_ANON_KEY,
   SUPABASE_AUTH_ENABLED,
-  SUPABASE_REST_URL,
   clearStoredSession,
   ensureActiveSession,
   loadStoredSession,
@@ -31,7 +29,6 @@ type Message = {
   created_at: string;
   citations?: CitationMeta[];
 };
-type Textbook = { id: string; title: string; label: string | null; created_at: string };
 type ChatSummary = {
   chat_id: string;
   search_space_id: number;
@@ -40,109 +37,6 @@ type ChatSummary = {
   created_at: string | null;
   updated_at: string | null;
 };
-
-const SUPABASE_ENABLED = Boolean(SUPABASE_AUTH_ENABLED && SUPABASE_REST_URL && SUPABASE_ANON_KEY);
-
-async function fetchTextbooks(accessToken: string): Promise<Textbook[]> {
-  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('Supabase auth/REST is not configured.');
-  }
-  if (!accessToken) {
-    throw new Error('Missing bearer token.');
-  }
-  const resp = await fetch(
-    `${SUPABASE_REST_URL}/textbooks?select=id,title,label,created_at&order=title.asc`,
-    {
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/json',
-      },
-      cache: 'no-store',
-    },
-  );
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || `Failed to load textbooks (${resp.status})`);
-  }
-  const data = await resp.json();
-  if (!Array.isArray(data)) {
-    throw new Error('Unexpected textbooks response shape.');
-  }
-  return data as Textbook[];
-}
-
-type InsertQuestionPayload = {
-  textbook_id: string | null;
-  class_name: string;
-  prompt: string;
-};
-
-async function insertQuestion(
-  payload: InsertQuestionPayload,
-  accessToken: string,
-): Promise<{ id: string }> {
-  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('Supabase auth/REST is not configured.');
-  }
-  if (!accessToken) {
-    throw new Error('Missing bearer token.');
-  }
-  const resp = await fetch(`${SUPABASE_REST_URL}/questions`, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || `Failed to create question (${resp.status})`);
-  }
-  const data = await resp.json();
-  if (!Array.isArray(data) || !data[0]?.id) {
-    throw new Error('Question insertion did not return an id.');
-  }
-  return data[0] as { id: string };
-}
-
-type InsertAnswerPayload = {
-  question_id: string;
-  answer_text: string;
-  citations: string[] | null;
-  proof: Record<string, unknown> | null;
-  results: Record<string, string> | null;
-};
-
-async function insertAnswer(payload: InsertAnswerPayload, accessToken: string): Promise<void> {
-  if (!SUPABASE_ENABLED || !SUPABASE_REST_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('Supabase auth/REST is not configured.');
-  }
-  if (!accessToken) {
-    throw new Error('Missing bearer token.');
-  }
-  const resp = await fetch(`${SUPABASE_REST_URL}/answers`, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || `Failed to save answer (${resp.status})`);
-  }
-  const data = await resp.json();
-  if (!Array.isArray(data) || !data[0]?.id) {
-    throw new Error('Answer insertion did not return a row.');
-  }
-}
 
 type ParsedAnswer = {
   answerText: string;
@@ -297,9 +191,6 @@ export default function Page() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
-  const [textbooks, setTextbooks] = useState<Textbook[]>([]);
-  const [textbooksLoading, setTextbooksLoading] = useState<boolean>(true);
-  const [textbooksError, setTextbooksError] = useState<string | null>(null);
   const [classOptions, setClassOptions] = useState<ClassOption[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState<string | null>(null);
@@ -336,8 +227,6 @@ export default function Page() {
     (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
   const bottomRef = useRef<HTMLDivElement>(null);
   const selectedClassObj = classOptions.find((c) => c.id === selectedClassId);
-  const selectedTextbook =
-    textbooks.find((tb) => tb.title === (selectedClassObj?.subject_name ?? '')) ?? null;
   const accessToken = session?.access_token || '';
   const accountLabel = session?.user_email || session?.user_id || 'this account';
 
@@ -421,49 +310,6 @@ export default function Page() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (!authReady) {
-        return;
-      }
-      if (!SUPABASE_ENABLED) {
-        setTextbooks([]);
-        setTextbooksError('Supabase REST is not configured.');
-        setTextbooksLoading(false);
-        return;
-      }
-      if (!accessToken) {
-        setTextbooks([]);
-        setTextbooksError(null);
-        setTextbooksLoading(false);
-        return;
-      }
-      setTextbooksLoading(true);
-      try {
-        const data = await fetchTextbooks(accessToken);
-        if (!cancelled) {
-          setTextbooks(data);
-          setTextbooksError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const msg = err instanceof Error ? err.message : 'Failed to load textbooks.';
-          setTextbooksError(msg);
-          setTextbooks([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setTextbooksLoading(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, authReady]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -757,25 +603,6 @@ export default function Page() {
     setAttachments([]);
     setLoading(true);
 
-    const promptForSupabase =
-      questionText ||
-      `[image-only question${attachmentsToSend.length ? ` with ${attachmentsToSend.length} attachment${attachmentsToSend.length === 1 ? '' : 's'}` : ''}]`;
-    let questionId: string | null = null;
-    try {
-      const inserted = await insertQuestion(
-        {
-          textbook_id: selectedTextbook?.id ?? null,
-          class_name: selectedClassObj?.name || '',
-          prompt: promptForSupabase,
-        },
-        accessToken,
-      );
-      questionId = inserted.id;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Failed to log question.';
-      console.warn('Skipping question logging:', msg);
-    }
-
     try {
       const res = await fetch('/api/ask/stream', {
         method: 'POST',
@@ -853,25 +680,6 @@ export default function Page() {
       setMessages((prev) =>
         prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText, citations } : m)),
       );
-
-      const parsed = parseAnswer(answerText);
-      const hasErrorTag = /\[error\]/i.test(answerText);
-      if (questionId && !hasErrorTag) {
-        try {
-          await insertAnswer(
-            {
-              question_id: questionId,
-              answer_text: parsed.answerText || answerText.trim(),
-              citations: parsed.citations,
-              proof: null,
-              results: parsed.results,
-            },
-            accessToken,
-          );
-        } catch (answerErr) {
-          console.error('Failed to save answer to Supabase:', answerErr);
-        }
-      }
     } catch {
       setMessages((prev) =>
         prev.map((m, idx) => (idx === aiIndex ? { ...m, content: 'Error connecting to AI service.' } : m)),
@@ -1335,12 +1143,6 @@ export default function Page() {
       <main className="flex-1 mx-auto w-full max-w-3xl px-4 pt-3 pb-4 space-y-4">
         <div className="grid gap-4">
           <div className="space-y-4">
-            {textbooksError && (
-              <div className="notice" data-tone="danger">
-                {textbooksError}
-              </div>
-            )}
-            {textbooksLoading && <div className="notice">Loading course resources…</div>}
             {classesError && (
               <div className="notice" data-tone="danger">
                 {classesError}
