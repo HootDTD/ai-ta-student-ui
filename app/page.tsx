@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Dropzone from 'react-dropzone';
 import { Send, X, ImagePlus, Paperclip, ChevronDown, MoreVertical, Sun, Moon, Plus, MessageSquare, PanelLeftClose, PanelLeft, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -178,7 +177,6 @@ async function fetchClasses(accessToken: string, signal?: AbortSignal): Promise<
 }
 
 export default function Page() {
-  const router = useRouter();
   const [authReady, setAuthReady] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);

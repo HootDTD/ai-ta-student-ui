@@ -199,7 +199,7 @@ export default function JoinPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="module w-full max-w-sm text-center">
-          <h1 className="section-title">You're in!</h1>
+          <h1 className="section-title">You&apos;re in!</h1>
           <p className="note mt-2">
             Joined <strong>{resolved.course_name}</strong> as {resolved.role}.
           </p>
