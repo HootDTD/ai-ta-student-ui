@@ -148,7 +148,7 @@ async function fetchClasses(accessToken: string, signal?: AbortSignal): Promise<
   if (!accessToken) {
     throw new Error('Missing bearer token.');
   }
-  const resp = await fetch('/api/classes', {
+  const resp = await fetch('/api/my-classes', {
     cache: 'no-store',
     signal,
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -334,7 +334,7 @@ export default function Page() {
             setClassesError(null);
           } else {
             setSelectedClassId(null);
-            setClassesError('No classes were returned by the backend.');
+            setClassesError('You are not enrolled in any classes. Ask your instructor for a join code.');
           }
         }
       } catch (err) {
@@ -924,7 +924,7 @@ export default function Page() {
           <button type="button" disabled={authLoading} onClick={handleSignUp} className="ui-button ui-button--full">
             {authLoading ? 'Working…' : 'Create account'}
           </button>
-          <p className="note">New accounts also need a `course_memberships` row to access a class.</p>
+          <p className="note">After signing in, use a class join link from your instructor to enroll.</p>
         </form>
       </div>
     );
