@@ -97,7 +97,7 @@ export default function ApolloPage() {
     return (
       <main style={{ padding: 24 }}>
         <h1>Session ended</h1>
-        <p>You've ended this Apollo session.</p>
+        <p>You&apos;ve ended this Apollo session.</p>
       </main>
     );
   }

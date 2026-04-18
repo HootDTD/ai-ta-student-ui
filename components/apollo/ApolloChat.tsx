@@ -86,7 +86,7 @@ export default function ApolloChat({
           Send
         </button>
         <button onClick={onDoneClicked} disabled={disabled || sending}>
-          I'm done teaching
+          I&apos;m done teaching
         </button>
       </div>
     </section>

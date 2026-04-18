@@ -29,7 +29,7 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
         </p>
       )}
       <details open style={{ margin: "8px 0" }}>
-        <summary>Apollo's reasoning trace</summary>
+        <summary>Apollo&apos;s reasoning trace</summary>
         <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.9em" }}>{narrated_trace}</pre>
       </details>
       <details open style={{ margin: "8px 0" }}>
