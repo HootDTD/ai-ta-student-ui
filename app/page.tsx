@@ -1111,14 +1111,6 @@ export default function Page() {
                 )}
               </AnimatePresence>
             </div>
-            <button
-              onClick={startApollo}
-              disabled={apolloStarting || messages.length === 0}
-              className="text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] bg-transparent hover:bg-[var(--card-fill)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              type="button"
-            >
-              {apolloStarting ? 'Starting\u2026' : 'Teach Apollo'}
-            </button>
           </div>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="site-brand">Hoot</div>
@@ -1176,11 +1168,6 @@ export default function Page() {
             {classesError && (
               <div className="notice" data-tone="danger">
                 {classesError}
-              </div>
-            )}
-            {apolloError && (
-              <div role="alert" className="notice" data-tone="danger">
-                {apolloError}
               </div>
             )}
             {messages.map((m, idx) => {
@@ -1267,6 +1254,23 @@ export default function Page() {
 
       <div className="border-t border-[var(--border)] bg-[var(--bar-bg)]">
         <div className="mx-auto max-w-3xl px-4 py-3">
+          {apolloError && (
+            <div role="alert" className="mb-3 notice" data-tone="danger">
+              {apolloError}
+            </div>
+          )}
+          {messages.length > 0 && (
+            <div className="mb-3 flex justify-end">
+              <button
+                onClick={startApollo}
+                disabled={apolloStarting}
+                className="ui-button ui-button--primary ui-button--small"
+                type="button"
+              >
+                {apolloStarting ? 'Starting\u2026' : 'Teach Apollo what you just learned'}
+              </button>
+            </div>
+          )}
           {formError && (
             <div className="mb-3 notice" data-tone="danger">
               {formError}
