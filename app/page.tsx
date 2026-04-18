@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Dropzone from 'react-dropzone';
 import { Send, X, ImagePlus, Paperclip, ChevronDown, MoreVertical, Sun, Moon, Plus, MessageSquare, PanelLeftClose, PanelLeft, Trash2 } from 'lucide-react';
@@ -19,6 +20,7 @@ import {
   type StoredSession,
 } from './lib/auth';
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
+import { startSessionFromHoot, ApolloApiError } from '@/lib/apollo/api';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 type Message = {
@@ -202,6 +204,9 @@ export default function Page() {
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
   const [chatListLoading, setChatListLoading] = useState(false);
   const [loadingChatId, setLoadingChatId] = useState<string | null>(null);
+  const [apolloError, setApolloError] = useState<string | null>(null);
+  const [apolloStarting, setApolloStarting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const stored = localStorage.getItem('theme');
@@ -551,6 +556,25 @@ export default function Page() {
       setAuthError(msg);
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const startApollo = async () => {
+    setApolloError(null);
+    setApolloStarting(true);
+    try {
+      const transcript = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
+      const studentId = session?.user_id ?? 'unknown';
+      const { session_id } = await startSessionFromHoot(studentId, transcript);
+      router.push(`/apollo?session=${session_id}`);
+    } catch (err) {
+      if (err instanceof ApolloApiError && err.errorCode === 'no_matching_concept') {
+        setApolloError("Apollo doesn't cover this topic yet.");
+      } else {
+        setApolloError((err as Error).message);
+      }
+    } finally {
+      setApolloStarting(false);
     }
   };
 
@@ -1087,6 +1111,14 @@ export default function Page() {
                 )}
               </AnimatePresence>
             </div>
+            <button
+              onClick={startApollo}
+              disabled={apolloStarting || messages.length === 0}
+              className="text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] bg-transparent hover:bg-[var(--card-fill)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+            >
+              {apolloStarting ? 'Starting\u2026' : 'Teach Apollo'}
+            </button>
           </div>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="site-brand">Hoot</div>
@@ -1144,6 +1176,11 @@ export default function Page() {
             {classesError && (
               <div className="notice" data-tone="danger">
                 {classesError}
+              </div>
+            )}
+            {apolloError && (
+              <div role="alert" className="notice" data-tone="danger">
+                {apolloError}
               </div>
             )}
             {messages.map((m, idx) => {
