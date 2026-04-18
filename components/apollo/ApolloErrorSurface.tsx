@@ -51,22 +51,19 @@ function detailFor(err: ApolloApiError | Error): string {
 export default function ApolloErrorSurface({ error, onDismiss }: Props) {
   if (!error) return null;
   return (
-    <div
-      role="alert"
-      style={{
-        border: "1px solid #b00",
-        background: "#fee",
-        padding: "12px 16px",
-        borderRadius: 6,
-        margin: "8px 0",
-      }}
-    >
-      <strong style={{ color: "#b00" }}>{titleFor(error)}</strong>
-      <p style={{ margin: "4px 0 8px 0" }}>{detailFor(error)}</p>
+    <div role="alert" className="notice" data-tone="danger">
+      <strong>{titleFor(error)}</strong>
+      <p>{detailFor(error)}</p>
       {onDismiss && (
-        <button onClick={onDismiss} style={{ padding: "4px 10px" }}>
-          Dismiss
-        </button>
+        <div>
+          <button
+            onClick={onDismiss}
+            type="button"
+            className="ui-button ui-button--small"
+          >
+            Dismiss
+          </button>
+        </div>
       )}
     </div>
   );

@@ -47,27 +47,17 @@ export default function ApolloChat({
   }
 
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div
-        style={{
-          border: "1px solid #ccc",
-          borderRadius: 6,
-          padding: 12,
-          minHeight: "40vh",
-          maxHeight: "55vh",
-          overflowY: "auto",
-          background: "#fff",
-        }}
-      >
+    <section className="composer-grid">
+      <div className="apollo-scrollback">
         {messages.map((m, i) => (
-          <div key={i} style={{ margin: "6px 0" }}>
-            <strong style={{ color: m.role === "student" ? "#0a4" : "#024" }}>
-              {m.role === "student" ? "You" : "Apollo"}:
-            </strong>{" "}
-            {m.content}
+          <div key={i} className="apollo-turn">
+            <span className="eyebrow">
+              {m.role === "student" ? "You" : "Apollo"}
+            </span>
+            <span>{m.content}</span>
           </div>
         ))}
-        {sending && <em style={{ color: "#888" }}>Apollo is thinking…</em>}
+        {sending && <em className="note">Apollo is thinking…</em>}
       </div>
 
       <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
@@ -78,14 +68,24 @@ export default function ApolloChat({
         placeholder="Teach Apollo in your own words…"
         rows={3}
         disabled={disabled || sending}
-        style={{ width: "100%", padding: 8, fontSize: "1em" }}
+        className="textarea"
       />
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={handleSend} disabled={disabled || sending || !draft.trim()}>
-          Send
+      <div className="composer-foot">
+        <button
+          onClick={handleSend}
+          disabled={disabled || sending || !draft.trim()}
+          type="button"
+          className="ui-button ui-button--primary ui-button--small"
+        >
+          {sending ? "Sending…" : "Send"}
         </button>
-        <button onClick={onDoneClicked} disabled={disabled || sending}>
+        <button
+          onClick={onDoneClicked}
+          disabled={disabled || sending}
+          type="button"
+          className="ui-button ui-button--small"
+        >
           I&apos;m done teaching
         </button>
       </div>

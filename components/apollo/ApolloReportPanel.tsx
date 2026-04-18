@@ -11,36 +11,48 @@ interface Props {
 
 export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Props) {
   const { result, value, missing_variables, narrated_trace, diagnostic_report } = report;
+  const tone = result === "solved" ? "success" : "danger";
   return (
-    <section
-      style={{
-        border: "1px solid #888",
-        borderRadius: 6,
-        padding: 12,
-        background: result === "solved" ? "#e7f7ea" : "#fdeaea",
-      }}
-    >
-      <header style={{ marginBottom: 6 }}>
-        <strong>{result === "solved" ? `Apollo solved it — value = ${value}` : "Apollo got stuck"}</strong>
-      </header>
+    <section className="notice" data-tone={tone}>
+      <div className="eyebrow">Result</div>
+      <strong>
+        {result === "solved" ? `Apollo solved it — value = ${value}` : "Apollo got stuck"}
+      </strong>
       {result === "stuck" && missing_variables.length > 0 && (
-        <p>
+        <p className="note">
           <em>Missing: {missing_variables.join(", ")}</em>
         </p>
       )}
-      <details open style={{ margin: "8px 0" }}>
+      <details open>
         <summary>Apollo&apos;s reasoning trace</summary>
-        <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.9em" }}>{narrated_trace}</pre>
+        <pre
+          className="prose"
+          style={{ whiteSpace: "pre-wrap", margin: "0.5rem 0 0" }}
+        >
+          {narrated_trace}
+        </pre>
       </details>
-      <details open style={{ margin: "8px 0" }}>
+      <details open>
         <summary>Diagnostic report</summary>
-        <p style={{ whiteSpace: "pre-wrap" }}>{diagnostic_report}</p>
+        <p className="prose" style={{ whiteSpace: "pre-wrap", margin: "0.5rem 0 0" }}>
+          {diagnostic_report}
+        </p>
       </details>
-      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <button onClick={onRetry} disabled={busy}>
+      <div className="composer-foot">
+        <button
+          onClick={onRetry}
+          disabled={busy}
+          type="button"
+          className="ui-button ui-button--primary ui-button--small"
+        >
           Teach more and retry
         </button>
-        <button onClick={onEnd} disabled={busy}>
+        <button
+          onClick={onEnd}
+          disabled={busy}
+          type="button"
+          className="ui-button ui-button--small"
+        >
           End session
         </button>
       </div>

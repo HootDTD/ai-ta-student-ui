@@ -86,26 +86,51 @@ export default function ApolloPageClient() {
   }
 
   if (!sessionId) {
-    return <main style={{ padding: 24 }}>Missing ?session=N query parameter.</main>;
+    return (
+      <main className="apollo-page">
+        <div className="apollo-page__main">
+          <div className="notice" data-tone="danger">
+            Missing ?session=N query parameter.
+          </div>
+        </div>
+      </main>
+    );
   }
 
   if (!state) {
-    return <main style={{ padding: 24 }}>Loading session…</main>;
+    return (
+      <main className="apollo-page">
+        <div className="apollo-page__main">
+          <div className="card">
+            <div className="eyebrow">Apollo</div>
+            <span>Loading session…</span>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   if (state.status === "ended") {
     return (
-      <main style={{ padding: 24 }}>
-        <h1>Session ended</h1>
-        <p>You&apos;ve ended this Apollo session.</p>
+      <main className="apollo-page">
+        <div className="apollo-page__main">
+          <div className="module">
+            <div className="eyebrow">Apollo</div>
+            <h1 className="section-title">Session ended</h1>
+            <p className="lede">You&apos;ve ended this Apollo session.</p>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, padding: 24, maxWidth: 1200, margin: "0 auto" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <h1 style={{ fontSize: "1.3em", margin: 0 }}>Teach Apollo</h1>
+    <main className="apollo-page">
+      <div className="apollo-page__main">
+        <div>
+          <div className="eyebrow">Apollo</div>
+          <h1 className="section-title">Teach Apollo</h1>
+        </div>
         <ApolloProblemPanel problem={state.problem} />
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
         {report ? (
@@ -120,7 +145,7 @@ export default function ApolloPageClient() {
           />
         )}
       </div>
-      <aside>{kg && <ApolloKGPanel kg={kg} />}</aside>
+      <aside className="apollo-page__aside">{kg && <ApolloKGPanel kg={kg} />}</aside>
     </main>
   );
 }
