@@ -489,6 +489,13 @@ button:disabled {
   min-width: 0;
 }
 
+.apollo-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 @media (max-width: 960px) {
   .apollo-page {
     grid-template-columns: 1fr;

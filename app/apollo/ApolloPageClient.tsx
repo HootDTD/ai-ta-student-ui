@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   ApolloApiError,
@@ -20,8 +20,19 @@ import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
 import ApolloReportPanel from "@/components/apollo/ApolloReportPanel";
 
 export default function ApolloPageClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = Number(searchParams.get("session"));
+
+  const returnButton = (
+    <button
+      type="button"
+      className="ui-button ui-button--small"
+      onClick={() => router.push("/")}
+    >
+      ← Return to Hoot
+    </button>
+  );
 
   const [state, setState] = useState<ApolloSessionState | null>(null);
   const [kg, setKg] = useState<ApolloKG | null>(null);
@@ -89,6 +100,10 @@ export default function ApolloPageClient() {
     return (
       <main className="apollo-page">
         <div className="apollo-page__main">
+          <div className="apollo-page__header">
+            <div />
+            {returnButton}
+          </div>
           <div className="notice" data-tone="danger">
             Missing ?session=N query parameter.
           </div>
@@ -101,6 +116,10 @@ export default function ApolloPageClient() {
     return (
       <main className="apollo-page">
         <div className="apollo-page__main">
+          <div className="apollo-page__header">
+            <div />
+            {returnButton}
+          </div>
           <div className="card">
             <div className="eyebrow">Apollo</div>
             <span>Loading session…</span>
@@ -115,7 +134,10 @@ export default function ApolloPageClient() {
       <main className="apollo-page">
         <div className="apollo-page__main">
           <div className="module">
-            <div className="eyebrow">Apollo</div>
+            <div className="apollo-page__header">
+              <div className="eyebrow">Apollo</div>
+              {returnButton}
+            </div>
             <h1 className="section-title">Session ended</h1>
             <p className="lede">You&apos;ve ended this Apollo session.</p>
           </div>
@@ -127,9 +149,12 @@ export default function ApolloPageClient() {
   return (
     <main className="apollo-page">
       <div className="apollo-page__main">
-        <div>
-          <div className="eyebrow">Apollo</div>
-          <h1 className="section-title">Teach Apollo</h1>
+        <div className="apollo-page__header">
+          <div>
+            <div className="eyebrow">Apollo</div>
+            <h1 className="section-title">Teach Apollo</h1>
+          </div>
+          {returnButton}
         </div>
         <ApolloProblemPanel problem={state.problem} />
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
