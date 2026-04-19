@@ -30,12 +30,13 @@ export default function ApolloKGPanel({ kg }: Props) {
       <div className="apollo-kg__section">
         <strong>Equations</strong>
         {bulletList(kg.equation, (e) => {
-          const label = (e as Record<string, string>).label ?? "";
-          const sym = (e as Record<string, string>).symbolic ?? "";
+          const entry = e as Record<string, string>;
+          const label = entry.label ?? "";
+          const tex = entry.latex ?? entry.symbolic ?? "";
           return (
             <span>
               {label && <span>{label}: </span>}
-              <InlineMath math={sym} />
+              <InlineMath math={tex} />
             </span>
           );
         })}

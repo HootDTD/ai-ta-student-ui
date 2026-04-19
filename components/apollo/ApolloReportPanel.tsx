@@ -1,5 +1,9 @@
 "use client";
 
+import { Fragment } from "react";
+import { InlineMath } from "react-katex";
+import "katex/dist/katex.min.css";
+
 import type { DoneResponse } from "@/lib/apollo/api";
 
 interface Props {
@@ -7,6 +11,17 @@ interface Props {
   onRetry: () => void;
   onEnd: () => void;
   busy?: boolean;
+}
+
+function renderWithMath(text: string) {
+  const parts = text.split(/(\$[^$]+\$)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("$") && part.endsWith("$")) {
+      const tex = part.slice(1, -1);
+      return <InlineMath key={i} math={tex} />;
+    }
+    return <Fragment key={i}>{part}</Fragment>;
+  });
 }
 
 export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Props) {
@@ -25,12 +40,14 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
       )}
       <details open>
         <summary>Apollo&apos;s reasoning trace</summary>
-        <pre
-          className="prose"
+        <div
+          className="prose apollo-trace"
           style={{ whiteSpace: "pre-wrap", margin: "0.5rem 0 0" }}
         >
-          {narrated_trace}
-        </pre>
+          {narrated_trace.split("\n").map((line, i) => (
+            <div key={i}>{renderWithMath(line)}</div>
+          ))}
+        </div>
       </details>
       <details open>
         <summary>Diagnostic report</summary>
