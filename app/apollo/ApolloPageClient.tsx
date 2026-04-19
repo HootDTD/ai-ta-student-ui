@@ -24,10 +24,10 @@ export default function ApolloPageClient() {
   const searchParams = useSearchParams();
   const sessionId = Number(searchParams.get("session"));
 
-  const returnButton = (
+  const returnLink = (
     <button
       type="button"
-      className="ui-button ui-button--small"
+      className="apollo-return-link"
       onClick={() => router.push("/")}
     >
       ← Return to Hoot
@@ -99,11 +99,8 @@ export default function ApolloPageClient() {
   if (!sessionId) {
     return (
       <main className="apollo-page">
+        <nav className="apollo-page__nav">{returnLink}</nav>
         <div className="apollo-page__main">
-          <div className="apollo-page__header">
-            <div />
-            {returnButton}
-          </div>
           <div className="notice" data-tone="danger">
             Missing ?session=N query parameter.
           </div>
@@ -115,13 +112,9 @@ export default function ApolloPageClient() {
   if (!state) {
     return (
       <main className="apollo-page">
+        <nav className="apollo-page__nav">{returnLink}</nav>
         <div className="apollo-page__main">
-          <div className="apollo-page__header">
-            <div />
-            {returnButton}
-          </div>
           <div className="card">
-            <div className="eyebrow">Apollo</div>
             <span>Loading session…</span>
           </div>
         </div>
@@ -132,12 +125,9 @@ export default function ApolloPageClient() {
   if (state.status === "ended") {
     return (
       <main className="apollo-page">
+        <nav className="apollo-page__nav">{returnLink}</nav>
         <div className="apollo-page__main">
           <div className="module">
-            <div className="apollo-page__header">
-              <div className="eyebrow">Apollo</div>
-              {returnButton}
-            </div>
             <h1 className="section-title">Session ended</h1>
             <p className="lede">You&apos;ve ended this Apollo session.</p>
           </div>
@@ -148,14 +138,8 @@ export default function ApolloPageClient() {
 
   return (
     <main className="apollo-page">
+      <nav className="apollo-page__nav">{returnLink}</nav>
       <div className="apollo-page__main">
-        <div className="apollo-page__header">
-          <div>
-            <div className="eyebrow">Apollo</div>
-            <h1 className="section-title">Teach Apollo</h1>
-          </div>
-          {returnButton}
-        </div>
         <ApolloProblemPanel problem={state.problem} />
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
         {report ? (
