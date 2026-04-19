@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { ApolloApiError, sendChat } from "@/lib/apollo/api";
 import type { ApolloKG } from "@/lib/apollo/api";
+import SpecialCharsPalette from "@/components/SpecialCharsPalette";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 
 interface Props {
@@ -40,6 +41,23 @@ export default function ApolloChat({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  function insertChar(ch: string) {
+    const ta = textareaRef.current;
+    if (!ta) {
+      setDraft((d) => d + ch);
+      return;
+    }
+    const start = ta.selectionStart ?? draft.length;
+    const end = ta.selectionEnd ?? draft.length;
+    const next = draft.slice(0, start) + ch + draft.slice(end);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + ch.length, start + ch.length);
+    });
+  }
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -117,7 +135,10 @@ export default function ApolloChat({
 
       <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
 
+      <SpecialCharsPalette onInsert={insertChar} />
+
       <textarea
+        ref={textareaRef}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Teach Apollo in your own words…"

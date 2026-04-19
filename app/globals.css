@@ -1163,3 +1163,71 @@ button:disabled {
     position: static;
   }
 }
+
+/* Special-characters palette — shared by Hoot chat and Apollo chat composers. */
+.char-palette {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.char-palette__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.char-palette__toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.char-palette__toggle-glyph {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.char-palette__grid {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--border);
+  background: var(--card-fill);
+  width: 100%;
+}
+
+.char-palette__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.char-palette__key {
+  min-width: 2rem;
+  padding: 0.3rem 0.55rem;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.char-palette__key:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.char-palette__key:active {
+  transform: translateY(1px);
+}

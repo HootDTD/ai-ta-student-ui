@@ -20,6 +20,7 @@ import {
   type StoredSession,
 } from './lib/auth';
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
+import SpecialCharsPalette from '@/components/SpecialCharsPalette';
 import { startSessionFromHoot, ApolloApiError } from '@/lib/apollo/api';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
@@ -229,6 +230,24 @@ export default function Page() {
   const SHOW_PREVIEWS =
     (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertChar(ch: string) {
+    const ta = inputRef.current;
+    if (!ta) {
+      setInput((d) => d + ch);
+      return;
+    }
+    const start = ta.selectionStart ?? input.length;
+    const end = ta.selectionEnd ?? input.length;
+    const next = input.slice(0, start) + ch + input.slice(end);
+    setInput(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + ch.length, start + ch.length);
+    });
+  }
+
   const selectedClassObj = classOptions.find((c) => c.id === selectedClassId);
   const accessToken = session?.access_token || '';
   const accountLabel = session?.user_email || session?.user_id || 'this account';
@@ -1319,8 +1338,13 @@ export default function Page() {
             </div>
           )}
 
+          <div className="mb-2">
+            <SpecialCharsPalette onInsert={insertChar} />
+          </div>
+
           <div className="flex items-end gap-2">
             <textarea
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onPaste={onPaste}
