@@ -6,6 +6,13 @@ interface Props {
   problem: ApolloProblem | null;
 }
 
+const DIFFICULTY_LABELS: Record<string, string> = {
+  intro: "Beginner",
+  easy: "Easy",
+  medium: "Intermediate",
+  hard: "Challenging",
+};
+
 export default function ApolloProblemPanel({ problem }: Props) {
   if (!problem) {
     return (
@@ -14,9 +21,11 @@ export default function ApolloProblemPanel({ problem }: Props) {
       </section>
     );
   }
+  const difficultyLabel =
+    DIFFICULTY_LABELS[problem.difficulty] ?? problem.difficulty;
   return (
     <section className="module">
-      <div className="eyebrow">Problem · difficulty {problem.difficulty}</div>
+      <div className="eyebrow">Problem · {difficultyLabel}</div>
       <p className="prose" style={{ margin: 0 }}>
         {problem.problem_text}
       </p>

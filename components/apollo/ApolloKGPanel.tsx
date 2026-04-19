@@ -24,13 +24,10 @@ function bulletList<T>(items: T[], render: (item: T, idx: number) => React.React
 
 export default function ApolloKGPanel({ kg }: Props) {
   return (
-    <aside className="card">
+    <aside className="card apollo-kg">
       <div className="eyebrow">Apollo&apos;s understanding</div>
-      <h3 className="note" style={{ margin: 0, fontWeight: 600 }}>
-        What Apollo has understood so far
-      </h3>
 
-      <div>
+      <div className="apollo-kg__section">
         <strong>Equations</strong>
         {bulletList(kg.equation, (e) => {
           const label = (e as Record<string, string>).label ?? "";
@@ -44,7 +41,7 @@ export default function ApolloKGPanel({ kg }: Props) {
         })}
       </div>
 
-      <div>
+      <div className="apollo-kg__section">
         <strong>Conditions</strong>
         {bulletList(kg.condition, (c) => {
           const aw = (c as Record<string, string>).applies_when ?? "";
@@ -58,7 +55,7 @@ export default function ApolloKGPanel({ kg }: Props) {
         })}
       </div>
 
-      <div>
+      <div className="apollo-kg__section">
         <strong>Simplifications</strong>
         {bulletList(kg.simplification, (s) => {
           const aw = (s as Record<string, string>).applies_when ?? "";
@@ -71,7 +68,7 @@ export default function ApolloKGPanel({ kg }: Props) {
         })}
       </div>
 
-      <div>
+      <div className="apollo-kg__section">
         <strong>Definitions</strong>
         {bulletList(kg.definition, (d) => {
           const c = (d as Record<string, string>).concept ?? "";
@@ -84,7 +81,7 @@ export default function ApolloKGPanel({ kg }: Props) {
         })}
       </div>
 
-      <div>
+      <div className="apollo-kg__section">
         <strong>Variable mappings</strong>
         {bulletList(kg.variable_mapping, (v) => {
           const t = (v as Record<string, string>).term ?? "";

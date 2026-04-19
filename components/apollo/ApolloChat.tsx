@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApolloApiError, sendChat } from "@/lib/apollo/api";
 import type { ApolloKG } from "@/lib/apollo/api";
@@ -14,6 +14,20 @@ interface Props {
   disabled?: boolean;
 }
 
+function ApolloAvatar() {
+  return (
+    <video
+      className="apollo-avatar"
+      src="/thinking.mp4"
+      autoPlay
+      loop
+      muted
+      playsInline
+      aria-hidden
+    />
+  );
+}
+
 export default function ApolloChat({
   sessionId,
   initialMessages,
@@ -25,6 +39,13 @@ export default function ApolloChat({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, sending]);
 
   async function handleSend() {
     if (!draft.trim() || sending) return;
@@ -39,26 +60,60 @@ export default function ApolloChat({
       onKgUpdate(resp.kg);
     } catch (err) {
       setError(err as Error);
-      // Roll back the optimistic student message since the turn didn't complete.
       setMessages((m) => m.slice(0, -1));
     } finally {
       setSending(false);
     }
   }
 
+  const hasConversation = messages.length > 0 || sending;
+
   return (
     <section className="composer-grid">
-      <div className="apollo-scrollback">
-        {messages.map((m, i) => (
-          <div key={i} className="apollo-turn">
-            <span className="eyebrow">
-              {m.role === "student" ? "You" : "Apollo"}
-            </span>
-            <span>{m.content}</span>
+      {hasConversation ? (
+        <div ref={scrollRef} className="apollo-scrollback">
+          {messages.map((m, i) => {
+            if (m.role === "student") {
+              return (
+                <div key={i} className="apollo-turn apollo-turn--student">
+                  <span className="eyebrow">You</span>
+                  <span>{m.content}</span>
+                </div>
+              );
+            }
+            return (
+              <div key={i} className="apollo-turn apollo-turn--apollo">
+                <ApolloAvatar />
+                <div className="apollo-turn__body">
+                  <span className="eyebrow">Apollo</span>
+                  <span>{m.content}</span>
+                </div>
+              </div>
+            );
+          })}
+          {sending && (
+            <div className="apollo-turn apollo-turn--apollo" aria-live="polite">
+              <ApolloAvatar />
+              <div className="apollo-turn__body">
+                <span className="eyebrow">Apollo</span>
+                <em className="note" style={{ margin: 0 }}>
+                  thinking…
+                </em>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="apollo-empty">
+          <ApolloAvatar />
+          <div>
+            <div className="eyebrow">Apollo</div>
+            <p className="prose" style={{ margin: 0 }}>
+              Hi! Teach me how to solve this problem in your own words.
+            </p>
           </div>
-        ))}
-        {sending && <em className="note">Apollo is thinking…</em>}
-      </div>
+        </div>
+      )}
 
       <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
 

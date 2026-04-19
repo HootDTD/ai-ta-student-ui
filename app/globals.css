@@ -454,22 +454,75 @@ button:disabled {
   background: var(--success-bg);
 }
 
-/* Apollo teach-scrollback: reuses notice/card visual vocabulary but needs
-   min/max height + scroll for the long conversation transcript. */
+/* Apollo teach-scrollback: grows with messages, caps at max-height then
+   scrolls. No min-height — empty state is handled separately. */
 .apollo-scrollback {
   display: grid;
-  gap: 0.75rem;
-  min-height: 40vh;
+  gap: 0.9rem;
   max-height: 55vh;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 1rem 1.1rem;
   border: 1px solid var(--border);
   background: var(--card-fill);
 }
 
-.apollo-scrollback > .apollo-turn {
+.apollo-turn {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.apollo-turn--apollo {
+  grid-template-columns: 2.25rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.apollo-turn__body {
   display: grid;
   gap: 0.25rem;
+  min-width: 0;
+}
+
+.apollo-turn--student {
+  justify-items: start;
+}
+
+.apollo-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+}
+
+.apollo-empty {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.1rem 1.15rem;
+  border: 1px solid var(--border);
+  background: var(--card-fill);
+}
+
+.apollo-empty .apollo-avatar {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+.apollo-kg {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.apollo-kg__section {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.apollo-kg__section > strong {
+  font-size: 0.95rem;
 }
 
 .apollo-page {
