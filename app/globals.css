@@ -490,10 +490,8 @@ button:disabled {
 .apollo-avatar {
   width: 2.25rem;
   height: 2.25rem;
-  border-radius: 50%;
-  object-fit: cover;
-  background: var(--accent-soft);
-  border: 1px solid var(--border);
+  object-fit: contain;
+  background: transparent;
   filter: invert(var(--owl-invert));
   mix-blend-mode: var(--owl-blend);
 }
