@@ -58,13 +58,34 @@ export interface ChatResponse {
   kg: ApolloKG;
 }
 
+export interface RubricAxis {
+  score: number;
+  letter: string;
+  present?: boolean;
+}
+
+export interface Rubric {
+  overall: { score: number; letter: string };
+  procedure: RubricAxis;
+  justification: RubricAxis;
+  simplification: RubricAxis;
+  variables: RubricAxis;
+}
+
+export interface SolverIndicator {
+  reached: boolean;
+  value?: string;
+  missing?: string[];
+}
+
 export interface DoneResponse {
-  result: "solved" | "stuck";
-  value: string | null;
-  missing_variables: string[];
-  narrated_trace: string;
-  diagnostic_report: string;
-  coverage: Record<string, string>;
+  rubric: Rubric;
+  solver_indicator: SolverIndicator;
+  diagnostic_narrative: string;
+  coverage: {
+    per_step: Record<string, string>;
+    procedure_scores: Record<string, number>;
+  };
 }
 
 async function _handle(res: Response): Promise<unknown> {
