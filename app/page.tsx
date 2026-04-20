@@ -1196,30 +1196,21 @@ export default function Page() {
                 key={idx}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`${
-                  m.role === 'user'
-                    ? 'flex justify-end'
-                    : ''
-                }`}
+                className={m.role === 'user' ? 'flex justify-end' : ''}
               >
-              <div
-                className={`p-3 border border-[var(--border)] ${
-                  m.role === 'user'
-                    ? 'bg-[var(--msg-user-bg)] text-right inline-block max-w-[75%]'
-                    : 'bg-[var(--msg-assistant-bg)] border-l-4 border-l-[var(--accent)] shadow-[var(--shadow-soft)]'
-                }`}
-              >
+              <div className={m.role === 'user' ? 'msg-user' : 'msg-ai'}>
                 <div className="prose max-w-none">
                   {m.role === 'assistant' ? (
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                       {normalizeMath(parseAnswer(m.content).answerText)}
                     </ReactMarkdown>
                   ) : (
-                    <span className="whitespace-pre-wrap" style={{ fontFamily: 'var(--font-stack)' }}>{m.content}</span>
+                    <span className="whitespace-pre-wrap">{m.content}</span>
                   )}
                 </div>
                 {SHOW_PREVIEWS && m.role === 'assistant' && Array.isArray(m.citations) && m.citations.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="msg-ai__sources">
+                    <span className="msg-ai__sources-label">Sources referenced</span>
                     {m.citations.map((c, i) => (
                       <CitationChip key={i} meta={c} />
                     ))}
