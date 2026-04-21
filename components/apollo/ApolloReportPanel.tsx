@@ -67,6 +67,11 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
   const { rubric, solver_indicator, diagnostic_narrative } = report;
   const tone = rubric.overall.score >= PASS_SCORE ? "success" : "danger";
 
+  // Gamification fields are optional so older backend deploys still render.
+  const xpEarned = report.xp_earned;
+  const levelUp = report.level_up === true;
+  const levelAfter = report.level_after;
+
   return (
     <section className="notice" data-tone={tone}>
       <div className="eyebrow">Teaching grade</div>
@@ -83,6 +88,19 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
       <p className="note" style={{ margin: "0.5rem 0" }}>
         {solverOutcomeText(solver_indicator)}
       </p>
+
+      {typeof xpEarned === "number" && (
+        <p className="apollo-xp-line">+{xpEarned} XP earned</p>
+      )}
+
+      {levelUp && typeof levelAfter === "number" && (
+        <div className="apollo-level-up" role="status" aria-live="polite">
+          <span className="apollo-level-up__confetti" aria-hidden>🎉</span>
+          <span>
+            Level up! You&apos;re now <strong>level {levelAfter}</strong>.
+          </span>
+        </div>
+      )}
 
       <details open>
         <summary>Diagnostic narrative</summary>
