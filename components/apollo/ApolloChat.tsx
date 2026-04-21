@@ -127,7 +127,7 @@ export default function ApolloChat({
           <div>
             <div className="eyebrow">Apollo</div>
             <p className="prose" style={{ margin: 0 }}>
-              Hi! Teach me how to solve this problem in your own words.
+              I need you to walk me through the steps to solve this — not just give me formulas. Explain what to do first, why it applies here, and how to get from there to the answer.
             </p>
           </div>
         </div>
