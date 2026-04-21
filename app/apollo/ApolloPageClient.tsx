@@ -8,10 +8,12 @@ import {
   endSession,
   finishTeaching,
   getSessionState,
+  getStudentProgress,
   retryProblem,
   type ApolloKG,
   type ApolloSessionState,
   type DoneResponse,
+  type StudentProgress,
 } from "@/lib/apollo/api";
 import ApolloChat from "@/components/apollo/ApolloChat";
 import ApolloErrorSurface from "@/components/apollo/ApolloErrorSurface";
@@ -37,6 +39,7 @@ export default function ApolloPageClient() {
   const [state, setState] = useState<ApolloSessionState | null>(null);
   const [kg, setKg] = useState<ApolloKG | null>(null);
   const [report, setReport] = useState<DoneResponse | null>(null);
+  const [progress, setProgress] = useState<StudentProgress | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -46,9 +49,23 @@ export default function ApolloPageClient() {
       .then((s) => {
         setState(s);
         setKg(s.kg);
+        // Fetch progress for the greeting + avatar level. Non-blocking;
+        // errors fall back silently (greeting renders level 1 defaults).
+        getStudentProgress(s.student_id)
+          .then(setProgress)
+          .catch(() => setProgress(null));
       })
       .catch((e) => setError(e as Error));
   }, [sessionId]);
+
+  // After any Done event, refresh progress so the greeting/avatar update
+  // on a level-up without requiring a page reload.
+  useEffect(() => {
+    if (!report || !state) return;
+    getStudentProgress(state.student_id)
+      .then(setProgress)
+      .catch(() => {});
+  }, [report, state]);
 
   async function handleDone() {
     if (!sessionId) return;
@@ -136,10 +153,16 @@ export default function ApolloPageClient() {
     );
   }
 
+  const levelForAvatar = progress?.level ?? 1;
+  const titleForGreeting = progress?.title ?? "Apollo Apprentice";
+
   return (
-    <main className="apollo-page">
+    <main className="apollo-page" data-apollo-level={levelForAvatar}>
       <nav className="apollo-page__nav">{returnLink}</nav>
       <div className="apollo-page__main">
+        <p className="apollo-greeting">
+          Welcome back, <strong>{titleForGreeting}</strong>.
+        </p>
         <ApolloProblemPanel problem={state.problem} />
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
         {report ? (

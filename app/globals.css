@@ -596,6 +596,30 @@ button:disabled {
   }
 }
 
+.apollo-greeting {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--muted, currentColor);
+}
+
+/* Avatar cosmetic accents per level tier. Asset swap is a follow-on; for
+   now we shift the hue/saturation of the existing owl image so higher
+   tiers look visibly distinct without requiring new art. */
+.apollo-page[data-apollo-level="2"] .apollo-avatar {
+  filter: invert(var(--owl-invert)) hue-rotate(12deg) saturate(1.05);
+}
+.apollo-page[data-apollo-level="3"] .apollo-avatar {
+  filter: invert(var(--owl-invert)) hue-rotate(25deg) saturate(1.10);
+}
+.apollo-page[data-apollo-level="4"] .apollo-avatar {
+  filter: invert(var(--owl-invert)) hue-rotate(40deg) saturate(1.15)
+          drop-shadow(0 0 3px rgba(255, 215, 0, 0.4));
+}
+.apollo-page[data-apollo-level="5"] .apollo-avatar {
+  filter: invert(var(--owl-invert)) hue-rotate(55deg) saturate(1.25)
+          drop-shadow(0 0 5px rgba(255, 215, 0, 0.65));
+}
+
 .ui-button {
   display: inline-flex;
   align-items: center;
