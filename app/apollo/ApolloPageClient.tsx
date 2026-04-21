@@ -19,6 +19,7 @@ import ApolloChat from "@/components/apollo/ApolloChat";
 import ApolloErrorSurface from "@/components/apollo/ApolloErrorSurface";
 import ApolloKGPanel from "@/components/apollo/ApolloKGPanel";
 import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
+import ApolloProgressCard from "@/components/apollo/ApolloProgressCard";
 import ApolloReportPanel from "@/components/apollo/ApolloReportPanel";
 
 export default function ApolloPageClient() {
@@ -154,15 +155,12 @@ export default function ApolloPageClient() {
   }
 
   const levelForAvatar = progress?.level ?? 1;
-  const titleForGreeting = progress?.title ?? "Apollo Apprentice";
 
   return (
     <main className="apollo-page" data-apollo-level={levelForAvatar}>
       <nav className="apollo-page__nav">{returnLink}</nav>
       <div className="apollo-page__main">
-        <p className="apollo-greeting">
-          Welcome back, <strong>{titleForGreeting}</strong>.
-        </p>
+        <ApolloProgressCard progress={progress} />
         <ApolloProblemPanel problem={state.problem} />
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
         {report ? (

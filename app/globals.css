@@ -596,10 +596,172 @@ button:disabled {
   }
 }
 
-.apollo-greeting {
-  margin: 0 0 0.75rem;
-  font-size: 0.95rem;
-  color: var(--muted, currentColor);
+/* ── Apollo progress card (mount-persistent XP/level banner) ─────────── */
+
+.apollo-progress-card {
+  /* Per-tier accent variables — overridden by data-level attrs below.
+     --acc is the bar fill color; --acc-soft is the track; --glow is the
+     optional outer shadow on higher tiers. */
+  --apollo-acc: var(--accent);
+  --apollo-acc-soft: var(--accent-soft);
+  --apollo-glow: transparent;
+
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-fill);
+  box-shadow:
+    var(--inset-shadow),
+    0 0 0 1px transparent,
+    0 0 0 4px var(--apollo-glow);
+  transition:
+    box-shadow 300ms ease-out,
+    border-color 300ms ease-out;
+}
+
+.apollo-progress-card[data-loading="true"] {
+  opacity: 0.72;
+}
+
+.apollo-progress-card__row {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 1fr) minmax(10rem, 2.2fr) minmax(9rem, 1fr);
+  align-items: center;
+  gap: 0.95rem;
+}
+
+@media (max-width: 720px) {
+  .apollo-progress-card__row {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+}
+
+.apollo-progress-card__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.apollo-progress-card__title {
+  font-family: var(--serif, inherit);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apollo-progress-card__level {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.apollo-progress-card__bar-track {
+  height: 0.55rem;
+  background: var(--apollo-acc-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.apollo-progress-card__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--apollo-acc), var(--apollo-acc));
+  border-radius: inherit;
+  transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.apollo-progress-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  align-items: flex-end;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .apollo-progress-card__meta {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+.apollo-progress-card__xp {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.apollo-progress-card__next {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+/* ── Tier accents — match the avatar cosmetic gradient. L1 uses
+   defaults; L2-L3 warm amber; L4-L5 gold with progressively stronger
+   outer glow. ────────────────────────────────────────────────────────── */
+.apollo-progress-card[data-level="2"] {
+  --apollo-acc: #c08a2a;
+  --apollo-acc-soft: rgba(192, 138, 42, 0.14);
+}
+.apollo-progress-card[data-level="3"] {
+  --apollo-acc: #b0731a;
+  --apollo-acc-soft: rgba(176, 115, 26, 0.16);
+}
+.apollo-progress-card[data-level="4"] {
+  --apollo-acc: #a25d0c;
+  --apollo-acc-soft: rgba(162, 93, 12, 0.18);
+  --apollo-glow: rgba(255, 215, 0, 0.10);
+  border-color: rgba(162, 93, 12, 0.35);
+}
+.apollo-progress-card[data-level="5"] {
+  --apollo-acc: #8a4a06;
+  --apollo-acc-soft: rgba(138, 74, 6, 0.20);
+  --apollo-glow: rgba(255, 215, 0, 0.16);
+  border-color: rgba(138, 74, 6, 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.06),
+    var(--card-fill) 60%
+  );
+}
+
+/* Dark-mode tier tweaks — warmer amber reads better on dark bg. */
+html.dark .apollo-progress-card[data-level="2"] {
+  --apollo-acc: #e0a84a;
+  --apollo-acc-soft: rgba(224, 168, 74, 0.18);
+}
+html.dark .apollo-progress-card[data-level="3"] {
+  --apollo-acc: #e8b55a;
+  --apollo-acc-soft: rgba(232, 181, 90, 0.20);
+}
+html.dark .apollo-progress-card[data-level="4"] {
+  --apollo-acc: #f0c060;
+  --apollo-acc-soft: rgba(240, 192, 96, 0.22);
+  --apollo-glow: rgba(255, 215, 0, 0.14);
+  border-color: rgba(240, 192, 96, 0.35);
+}
+html.dark .apollo-progress-card[data-level="5"] {
+  --apollo-acc: #ffcf6a;
+  --apollo-acc-soft: rgba(255, 207, 106, 0.26);
+  --apollo-glow: rgba(255, 215, 0, 0.22);
+  border-color: rgba(255, 207, 106, 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.10),
+    var(--card-fill) 60%
+  );
 }
 
 /* Avatar cosmetic accents per level tier. Asset swap is a follow-on; for
