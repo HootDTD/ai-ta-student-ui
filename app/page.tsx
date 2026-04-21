@@ -21,7 +21,7 @@ import {
 } from './lib/auth';
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
 import SpecialCharsPalette from '@/components/SpecialCharsPalette';
-import { startSessionFromHoot, ApolloApiError } from '@/lib/apollo/api';
+import { startSessionFromHoot, ApolloApiError, getStudentProgress, type StudentProgress } from '@/lib/apollo/api';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 type Message = {
@@ -207,6 +207,7 @@ export default function Page() {
   const [loadingChatId, setLoadingChatId] = useState<string | null>(null);
   const [apolloError, setApolloError] = useState<string | null>(null);
   const [apolloStarting, setApolloStarting] = useState(false);
+  const [apolloProgress, setApolloProgress] = useState<StudentProgress | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -384,6 +385,18 @@ export default function Page() {
       controller.abort();
     };
   }, [accessToken, authReady]);
+
+  useEffect(() => {
+    if (!authReady || !session?.user_id) {
+      setApolloProgress(null);
+      return;
+    }
+    let cancelled = false;
+    getStudentProgress(session.user_id)
+      .then((p) => { if (!cancelled) setApolloProgress(p); })
+      .catch(() => { if (!cancelled) setApolloProgress(null); });
+    return () => { cancelled = true; };
+  }, [authReady, session?.user_id]);
 
   const createNewChatId = useCallback(() => {
     const id = `chat-${Math.random().toString(16).slice(2, 10)}`;
@@ -1132,6 +1145,16 @@ export default function Page() {
                 )}
               </AnimatePresence>
             </div>
+            {apolloProgress && (
+              <div
+                className="apollo-xp-chip"
+                title={`Level ${apolloProgress.level} · ${apolloProgress.xp_total} XP`}
+                aria-label={`${apolloProgress.title}, ${apolloProgress.xp_total} experience points`}
+              >
+                <span className="apollo-xp-chip__level">L{apolloProgress.level}</span>
+                <span className="apollo-xp-chip__xp">{apolloProgress.xp_total} XP</span>
+              </div>
+            )}
           </div>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="site-brand">Hoot</div>

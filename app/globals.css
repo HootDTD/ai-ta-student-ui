@@ -1428,3 +1428,26 @@ button:disabled {
   60%  { transform: scale(1.25) rotate(8deg); }
   100% { transform: scale(1) rotate(0deg); }
 }
+
+.apollo-xp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  padding: 0 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-fill);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.apollo-xp-chip__level {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.apollo-xp-chip__xp {
+  color: var(--muted, currentColor);
+}
