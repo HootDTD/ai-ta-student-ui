@@ -69,7 +69,6 @@ export interface Rubric {
   procedure: RubricAxis;
   justification: RubricAxis;
   simplification: RubricAxis;
-  variables: RubricAxis;
 }
 
 export interface SolverIndicator {

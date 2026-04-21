@@ -20,7 +20,6 @@ const AXIS_LABELS: Record<keyof Omit<Rubric, "overall">, string> = {
   procedure: "Procedure",
   justification: "Justification",
   simplification: "Simplification",
-  variables: "Variables",
 };
 
 function renderWithMath(text: string) {
@@ -79,7 +78,6 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
         <AxisRow label={AXIS_LABELS.procedure} axis={rubric.procedure} />
         <AxisRow label={AXIS_LABELS.justification} axis={rubric.justification} />
         <AxisRow label={AXIS_LABELS.simplification} axis={rubric.simplification} />
-        <AxisRow label={AXIS_LABELS.variables} axis={rubric.variables} />
       </div>
 
       <p className="note" style={{ margin: "0.5rem 0" }}>
