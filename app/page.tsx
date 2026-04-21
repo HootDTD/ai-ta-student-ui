@@ -462,12 +462,14 @@ export default function Page() {
         content: string;
         created_at?: string;
         attachments?: Attachment[];
+        citations?: CitationMeta[];
       }>;
       const loadedMessages: Message[] = turns.map((t) => ({
         role: t.role as 'user' | 'assistant',
         content: t.content || '',
         created_at: t.created_at || '',
         attachments: t.attachments,
+        citations: Array.isArray(t.citations) ? t.citations : [],
       }));
       setChatId(targetChatId);
       setMessages(loadedMessages);
