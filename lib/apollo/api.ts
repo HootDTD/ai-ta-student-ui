@@ -85,6 +85,21 @@ export interface DoneResponse {
     per_step: Record<string, string>;
     procedure_scores: Record<string, number>;
   };
+  // Phase 2 gamification (may be absent if backend is mid-deploy).
+  xp_earned?: number;
+  xp_before?: number;
+  xp_after?: number;
+  level_before?: number;
+  level_after?: number;
+  level_up?: boolean;
+}
+
+export interface StudentProgress {
+  student_id: string;
+  xp_total: number;
+  level: number;
+  title: string;
+  next_tier_threshold: number | null;
 }
 
 async function _handle(res: Response): Promise<unknown> {
@@ -139,4 +154,9 @@ export async function retryProblem(sessionId: number): Promise<{ ok: boolean }> 
 export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
   const res = await fetch(`/api/apollo/sessions/${sessionId}/end`, { method: "POST" });
   return (await _handle(res)) as { ok: boolean };
+}
+
+export async function getStudentProgress(studentId: string): Promise<StudentProgress> {
+  const res = await fetch(`/api/apollo/progress/${encodeURIComponent(studentId)}`);
+  return (await _handle(res)) as StudentProgress;
 }
