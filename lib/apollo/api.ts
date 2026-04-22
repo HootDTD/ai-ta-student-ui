@@ -10,6 +10,7 @@ export type ApolloErrorCode =
   | "no_matching_concept"
   | "pool_exhausted"
   | "session_frozen"
+  | "invalid_phase"
   | "unknown";
 
 export class ApolloApiError extends Error {
@@ -23,6 +24,28 @@ export class ApolloApiError extends Error {
     this.extra = extra;
   }
 }
+
+export type Difficulty = "intro" | "standard" | "hard";
+
+export const DIFFICULTIES: Difficulty[] = ["intro", "standard", "hard"];
+
+export const DIFFICULTY_MULTIPLIERS: Record<Difficulty, number> = {
+  intro: 1.0,
+  standard: 1.5,
+  hard: 2.0,
+};
+
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  intro: "Intro",
+  standard: "Standard",
+  hard: "Hard",
+};
+
+export const DIFFICULTY_DESCRIPTIONS: Record<Difficulty, string> = {
+  intro: "Start here if a concept is brand new.",
+  standard: "The usual workload — a fair test of what you know.",
+  hard: "For when you want a challenge and more XP.",
+};
 
 export interface ApolloProblem {
   id: string;
@@ -115,16 +138,29 @@ async function _handle(res: Response): Promise<unknown> {
   throw new ApolloApiError(message, code, res.status, body);
 }
 
-export async function startSessionFromHoot(studentId: string, hootTranscript: string): Promise<{
+export async function startSessionFromHoot(
+  studentId: string,
+  hootTranscript: string,
+  difficulty: Difficulty,
+): Promise<{
   session_id: number;
   problem: ApolloProblem;
+  attempt_id: number;
 }> {
   const res = await fetch("/api/apollo/sessions/from_hoot", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ student_id: studentId, hoot_transcript: hootTranscript }),
+    body: JSON.stringify({
+      student_id: studentId,
+      hoot_transcript: hootTranscript,
+      difficulty,
+    }),
   });
-  return (await _handle(res)) as { session_id: number; problem: ApolloProblem };
+  return (await _handle(res)) as {
+    session_id: number;
+    problem: ApolloProblem;
+    attempt_id: number;
+  };
 }
 
 export async function getSessionState(sessionId: number): Promise<ApolloSessionState> {
@@ -148,6 +184,33 @@ export async function finishTeaching(sessionId: number): Promise<DoneResponse> {
 
 export async function retryProblem(sessionId: number): Promise<{ ok: boolean }> {
   const res = await fetch(`/api/apollo/sessions/${sessionId}/retry`, { method: "POST" });
+  return (await _handle(res)) as { ok: boolean };
+}
+
+export async function nextProblem(
+  sessionId: number,
+  difficulty: Difficulty,
+): Promise<{
+  session_id: number;
+  problem: ApolloProblem;
+  attempt_id: number;
+}> {
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/next`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ difficulty }),
+  });
+  return (await _handle(res)) as {
+    session_id: number;
+    problem: ApolloProblem;
+    attempt_id: number;
+  };
+}
+
+export async function restartProblem(sessionId: number): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/restart_problem`, {
+    method: "POST",
+  });
   return (await _handle(res)) as { ok: boolean };
 }
 
