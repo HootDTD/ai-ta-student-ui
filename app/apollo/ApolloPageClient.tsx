@@ -10,8 +10,10 @@ import {
   getSessionState,
   getStudentProgress,
   retryProblem,
+  startSessionFromHoot,
   type ApolloKG,
   type ApolloSessionState,
+  type Difficulty,
   type DoneResponse,
   type StudentProgress,
 } from "@/lib/apollo/api";
@@ -21,11 +23,13 @@ import ApolloKGPanel from "@/components/apollo/ApolloKGPanel";
 import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
 import ApolloProgressCard from "@/components/apollo/ApolloProgressCard";
 import ApolloReportPanel from "@/components/apollo/ApolloReportPanel";
+import PreHandoffPicker from "@/components/apollo/PreHandoffPicker";
 
 export default function ApolloPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = Number(searchParams.get("session"));
+  const pending = searchParams.get("pending") === "1";
 
   const returnLink = (
     <button
@@ -43,6 +47,25 @@ export default function ApolloPageClient() {
   const [progress, setProgress] = useState<StudentProgress | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+
+  async function handlePreHandoffStart(difficulty: Difficulty) {
+    setPendingError(null);
+    const transcript = sessionStorage.getItem("apollo_pending_transcript") ?? "";
+    const studentId = sessionStorage.getItem("apollo_pending_student_id") ?? "unknown";
+    try {
+      const res = await startSessionFromHoot(studentId, transcript, difficulty);
+      sessionStorage.removeItem("apollo_pending_transcript");
+      sessionStorage.removeItem("apollo_pending_student_id");
+      router.replace(`/apollo?session=${res.session_id}`);
+    } catch (err) {
+      if (err instanceof ApolloApiError && err.errorCode === "no_matching_concept") {
+        setPendingError("Apollo doesn't cover this topic yet.");
+      } else {
+        setPendingError((err as Error).message);
+      }
+    }
+  }
 
   useEffect(() => {
     if (!sessionId) return;
@@ -112,6 +135,20 @@ export default function ApolloPageClient() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!sessionId && pending) {
+    return (
+      <main className="apollo-page">
+        <nav className="apollo-page__nav">{returnLink}</nav>
+        <div className="apollo-page__main">
+          <PreHandoffPicker
+            onStart={handlePreHandoffStart}
+            errorMessage={pendingError}
+          />
+        </div>
+      </main>
+    );
   }
 
   if (!sessionId) {
