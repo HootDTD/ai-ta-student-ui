@@ -34,7 +34,7 @@ export default function RestartProblemButton({
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        className="apollo-secondary-btn"
+        className="ui-button ui-button--small"
       >
         Restart this problem
       </button>
@@ -64,7 +64,7 @@ export default function RestartProblemButton({
                   setError(null);
                 }}
                 disabled={busy}
-                className="apollo-ghost-btn"
+                className="ui-button ui-button--small"
               >
                 Cancel
               </button>
@@ -72,7 +72,7 @@ export default function RestartProblemButton({
                 type="button"
                 onClick={confirm}
                 disabled={busy}
-                className="apollo-danger-btn"
+                className="ui-button ui-button--primary ui-button--small"
               >
                 {busy ? "Restarting…" : "Restart"}
               </button>

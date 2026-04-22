@@ -112,7 +112,6 @@ export default function ApolloPageClient() {
   async function handleNextProblem(difficulty: Difficulty) {
     if (!sessionId) return;
     setBusy(true);
-    setError(null);
     try {
       const res = await nextProblem(sessionId, difficulty);
       // Reload session state to pick up the new problem + empty KG.
@@ -120,8 +119,6 @@ export default function ApolloPageClient() {
       setState(s);
       setKg(s.kg);
       setReport(null);
-    } catch (e) {
-      setError(e as Error);
     } finally {
       setBusy(false);
     }
@@ -130,15 +127,12 @@ export default function ApolloPageClient() {
   async function handleRestartProblem() {
     if (!sessionId) return;
     setBusy(true);
-    setError(null);
     try {
       await restartProblem(sessionId);
       const s = await getSessionState(sessionId);
       setState(s);
       setKg(s.kg);
       setReport(null);
-    } catch (e) {
-      setError(e as Error);
     } finally {
       setBusy(false);
     }
@@ -256,6 +250,7 @@ export default function ApolloPageClient() {
           />
         ) : (
           <ApolloChat
+            key={state.problem?.id ?? sessionId}
             sessionId={sessionId}
             initialMessages={state.messages.map((m) => ({ role: m.role, content: m.content }))}
             onKgUpdate={(newKg) => setKg(newKg)}

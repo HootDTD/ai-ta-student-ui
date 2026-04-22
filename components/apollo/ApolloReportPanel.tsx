@@ -175,7 +175,7 @@ export default function ApolloReportPanel({
             }
           }}
           disabled={nextBusy}
-          className="mt-4 apollo-primary-btn"
+          className="mt-4 ui-button ui-button--primary ui-button--small"
         >
           {nextBusy ? "Loading…" : "Next problem"}
         </button>

@@ -39,7 +39,7 @@ export default function SwitchProblemButton({
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        className="apollo-secondary-btn"
+        className="ui-button ui-button--small"
       >
         Switch problem
       </button>
@@ -78,7 +78,7 @@ export default function SwitchProblemButton({
                   setError(null);
                 }}
                 disabled={busy}
-                className="apollo-ghost-btn"
+                className="ui-button ui-button--small"
               >
                 Cancel
               </button>
@@ -86,7 +86,7 @@ export default function SwitchProblemButton({
                 type="button"
                 onClick={confirm}
                 disabled={!choice || busy}
-                className="apollo-danger-btn"
+                className="ui-button ui-button--primary ui-button--small"
               >
                 {busy ? "Switching…" : "Switch problem"}
               </button>
