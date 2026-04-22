@@ -21,7 +21,6 @@ import {
 } from './lib/auth';
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
 import SpecialCharsPalette from '@/components/SpecialCharsPalette';
-import { startSessionFromHoot, ApolloApiError } from '@/lib/apollo/api';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 type Message = {
@@ -586,14 +585,14 @@ export default function Page() {
     try {
       const transcript = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
       const studentId = session?.user_id ?? 'unknown';
-      const { session_id } = await startSessionFromHoot(studentId, transcript);
-      router.push(`/apollo?session=${session_id}`);
+      // Stash transcript + studentId for the Apollo-side picker screen.
+      // No backend call yet — /apollo renders a difficulty picker and fires
+      // startSessionFromHoot once the student picks.
+      sessionStorage.setItem('apollo_pending_transcript', transcript);
+      sessionStorage.setItem('apollo_pending_student_id', studentId);
+      router.push('/apollo?pending=1');
     } catch (err) {
-      if (err instanceof ApolloApiError && err.errorCode === 'no_matching_concept') {
-        setApolloError("Apollo doesn't cover this topic yet.");
-      } else {
-        setApolloError((err as Error).message);
-      }
+      setApolloError((err as Error).message);
     } finally {
       setApolloStarting(false);
     }
