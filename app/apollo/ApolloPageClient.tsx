@@ -9,6 +9,8 @@ import {
   finishTeaching,
   getSessionState,
   getStudentProgress,
+  nextProblem,
+  restartProblem,
   retryProblem,
   startSessionFromHoot,
   type ApolloKG,
@@ -24,6 +26,8 @@ import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
 import ApolloProgressCard from "@/components/apollo/ApolloProgressCard";
 import ApolloReportPanel from "@/components/apollo/ApolloReportPanel";
 import PreHandoffPicker from "@/components/apollo/PreHandoffPicker";
+import SwitchProblemButton from "@/components/apollo/SwitchProblemButton";
+import RestartProblemButton from "@/components/apollo/RestartProblemButton";
 
 export default function ApolloPageClient() {
   const router = useRouter();
@@ -98,6 +102,41 @@ export default function ApolloPageClient() {
     try {
       const r = await finishTeaching(sessionId);
       setReport(r);
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleNextProblem(difficulty: Difficulty) {
+    if (!sessionId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await nextProblem(sessionId, difficulty);
+      // Reload session state to pick up the new problem + empty KG.
+      const s = await getSessionState(res.session_id);
+      setState(s);
+      setKg(s.kg);
+      setReport(null);
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRestartProblem() {
+    if (!sessionId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await restartProblem(sessionId);
+      const s = await getSessionState(sessionId);
+      setState(s);
+      setKg(s.kg);
+      setReport(null);
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -199,9 +238,22 @@ export default function ApolloPageClient() {
       <div className="apollo-page__main">
         <ApolloProgressCard progress={progress} />
         <ApolloProblemPanel problem={state.problem} />
+        {state.phase !== "SOLVING" ? (
+          <div className="apollo-session-controls flex gap-2">
+            <SwitchProblemButton onSwitch={handleNextProblem} disabled={busy} />
+            <RestartProblemButton onRestart={handleRestartProblem} disabled={busy} />
+          </div>
+        ) : null}
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
         {report ? (
-          <ApolloReportPanel report={report} onRetry={handleRetry} onEnd={handleEnd} busy={busy} />
+          <ApolloReportPanel
+            report={report}
+            onRetry={handleRetry}
+            onEnd={handleEnd}
+            onNextProblem={handleNextProblem}
+            defaultDifficulty={(state.problem?.difficulty as Difficulty | undefined) ?? "intro"}
+            busy={busy}
+          />
         ) : (
           <ApolloChat
             sessionId={sessionId}
