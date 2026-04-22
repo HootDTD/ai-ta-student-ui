@@ -1,15 +1,18 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { InlineMath } from "react-katex";
 import "katex/dist/katex.min.css";
 
-import type { DoneResponse, Rubric, RubricAxis } from "@/lib/apollo/api";
+import DifficultyPicker from "./DifficultyPicker";
+import type { Difficulty, DoneResponse, Rubric, RubricAxis } from "@/lib/apollo/api";
 
 interface Props {
   report: DoneResponse;
   onRetry: () => void;
   onEnd: () => void;
+  onNextProblem: (difficulty: Difficulty) => Promise<void>;
+  defaultDifficulty: Difficulty;
   busy?: boolean;
 }
 
@@ -63,8 +66,18 @@ function solverOutcomeText(
   return `Apollo got stuck${missing}`;
 }
 
-export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Props) {
+export default function ApolloReportPanel({
+  report,
+  onRetry,
+  onEnd,
+  onNextProblem,
+  defaultDifficulty,
+  busy,
+}: Props) {
   const { rubric, solver_indicator, diagnostic_narrative } = report;
+  const [nextChoice, setNextChoice] = useState<Difficulty>(defaultDifficulty);
+  const [nextBusy, setNextBusy] = useState(false);
+  const [nextError, setNextError] = useState<string | null>(null);
   const tone = rubric.overall.score >= PASS_SCORE ? "success" : "danger";
 
   // Gamification fields are optional so older backend deploys still render.
@@ -132,6 +145,41 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
           End session
         </button>
       </div>
+
+      <section className="apollo-next-problem mt-6">
+        <h3 className="text-base font-semibold text-slate-900">Move on to a new problem</h3>
+        <p className="mt-1 text-sm text-slate-600">
+          Pick the difficulty of your next problem — you can always switch later.
+        </p>
+        <div className="mt-3">
+          <DifficultyPicker
+            value={nextChoice}
+            onChange={setNextChoice}
+            disabled={nextBusy}
+          />
+        </div>
+        {nextError ? (
+          <p className="mt-2 text-sm text-red-600" role="alert">{nextError}</p>
+        ) : null}
+        <button
+          type="button"
+          onClick={async () => {
+            setNextBusy(true);
+            setNextError(null);
+            try {
+              await onNextProblem(nextChoice);
+            } catch (e) {
+              setNextError((e as Error).message);
+            } finally {
+              setNextBusy(false);
+            }
+          }}
+          disabled={nextBusy}
+          className="mt-4 apollo-primary-btn"
+        >
+          {nextBusy ? "Loading…" : "Next problem"}
+        </button>
+      </section>
     </section>
   );
 }
