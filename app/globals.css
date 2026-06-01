@@ -1591,3 +1591,265 @@ html.dark .apollo-progress-card[data-level="5"] {
   100% { transform: scale(1) rotate(0deg); }
 }
 
+/* -------------------------------------------------------------------- */
+/* P3 — Negotiable OLM. KG entry pill + dispute / paraphrase / trace
+   cards. Designed to drop into ApolloKGPanel without breaking the
+   pre-P3 rendering when the FE consumer has not yet wrapped its
+   entries.                                                            */
+/* -------------------------------------------------------------------- */
+.kg-pill {
+  position: relative;
+  display: block;
+  padding: 0.25rem 0;
+  border-radius: 4px;
+  transition: background-color 200ms ease;
+}
+.kg-pill--disputed {
+  background: var(--danger-bg);
+  border-left: 2px solid var(--danger-border);
+  padding-left: 0.4rem;
+}
+.kg-pill--dual {
+  background: var(--warning-bg);
+  border-left: 2px solid var(--warning-border);
+  padding-left: 0.4rem;
+}
+.kg-pill--pulse {
+  animation: kgPillPulse 1.6s ease-in-out 2;
+}
+@keyframes kgPillPulse {
+  0%, 100% { background-color: transparent; }
+  50%      { background-color: var(--accent-soft); }
+}
+.kg-pill__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+}
+.kg-pill__dot {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.18);
+}
+.kg-pill__dot--green  { background: rgb(28, 96, 52); }
+.kg-pill__dot--yellow { background: rgb(184, 138, 28); }
+.kg-pill__dot--red    { background: rgb(160, 38, 18); }
+.kg-pill__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kg-pill__badge {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--accent-soft);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+}
+.kg-pill__actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 0.15rem;
+  opacity: 0.55;
+  transition: opacity 200ms ease;
+}
+.kg-pill:hover .kg-pill__actions { opacity: 1; }
+.kg-pill__btn,
+.kg-pill__btn-primary,
+.kg-pill__btn-secondary {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--btn-bg);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  line-height: 1.1;
+}
+.kg-pill__btn { font-size: 0.78rem; padding: 0.05rem 0.35rem; }
+.kg-pill__btn:hover:not(:disabled),
+.kg-pill__btn-primary:hover:not(:disabled),
+.kg-pill__btn-secondary:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.kg-pill__btn:disabled,
+.kg-pill__btn-primary:disabled,
+.kg-pill__btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.kg-pill__btn--muted { opacity: 0.6; }
+.kg-pill__btn-primary {
+  background: var(--accent);
+  color: var(--bg-panel);
+  border-color: var(--accent);
+}
+.kg-pill__error {
+  font-size: 0.78rem;
+  color: rgb(160, 38, 18);
+  margin-top: 0.2rem;
+}
+.kg-pill__card {
+  margin: 0.4rem 0 0.2rem 0.7rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.kg-pill__card-eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.kg-pill__trace-eyebrow { color: rgba(0, 0, 0, 0.42); }
+.kg-pill__textarea {
+  width: 100%;
+  font: inherit;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  resize: vertical;
+}
+.kg-pill__card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+.kg-pill__counter {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.kg-pill__counter--err { color: rgb(160, 38, 18); }
+.kg-pill__card-actions { display: inline-flex; gap: 0.3rem; }
+.kg-pill__trace-source { margin-bottom: 0.5rem; }
+.kg-pill__trace-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 0.15rem;
+}
+.kg-pill__trace-quote {
+  font-style: italic;
+  color: var(--muted);
+  border-left: 2px solid var(--border);
+  padding-left: 0.5rem;
+  font-size: 0.88rem;
+}
+.kg-pill__trace-moves {}
+.kg-pill__trace-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+}
+.kg-pill__trace-actor { font-weight: 500; }
+.kg-pill__trace-when  { color: var(--muted); font-size: 0.78rem; }
+.kg-pill__trace-payload { color: var(--muted); font-size: 0.82rem; }
+.kg-pill__trace-empty   { color: var(--muted); font-size: 0.82rem; }
+
+/* P3.8 — Done-gate modal */
+.done-gate-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+.done-gate-modal__card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 560px;
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-soft);
+}
+.done-gate-modal__header { margin-bottom: 1rem; }
+.done-gate-modal__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.done-gate-modal__title {
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin: 0.2rem 0;
+}
+.done-gate-modal__subtitle {
+  font-size: 0.92rem;
+  color: var(--muted);
+  margin: 0.5rem 0 0 0;
+}
+.done-gate-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.done-gate-modal__row {
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.done-gate-modal__row--done {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+.done-gate-modal__row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.done-gate-modal__row-type {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.done-gate-modal__row-summary {
+  font-size: 0.9rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.done-gate-modal__row-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.done-gate-modal__row-reason {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.done-gate-modal__row-status--done {
+  font-size: 0.82rem;
+  color: rgb(28, 96, 52);
+}
+.done-gate-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+

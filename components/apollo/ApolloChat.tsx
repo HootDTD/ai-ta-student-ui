@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ApolloApiError, sendChat } from "@/lib/apollo/api";
-import type { ApolloKG } from "@/lib/apollo/api";
+import type { ApolloKG, DoneResponse } from "@/lib/apollo/api";
 import SpecialCharsPalette from "@/components/SpecialCharsPalette";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 
@@ -12,6 +12,11 @@ interface Props {
   initialMessages: Array<{ role: string; content: string }>;
   onKgUpdate: (kg: ApolloKG) => void;
   onDoneClicked: () => void;
+  // Item #5: when chat detects a "done" intent and the student affirms,
+  // the backend executes handle_done inline and embeds the result in
+  // the chat response. We forward that pre-fetched result to the parent
+  // so it can render the report without a redundant API call.
+  onDoneFromChat?: (result: DoneResponse) => void;
   disabled?: boolean;
 }
 
@@ -34,6 +39,7 @@ export default function ApolloChat({
   initialMessages,
   onKgUpdate,
   onDoneClicked,
+  onDoneFromChat,
   disabled,
 }: Props) {
   const [messages, setMessages] = useState(initialMessages);
@@ -76,6 +82,9 @@ export default function ApolloChat({
       const resp = await sendChat(sessionId, myMsg);
       setMessages((m) => [...m, { role: "apollo", content: resp.apollo_reply }]);
       onKgUpdate(resp.kg);
+      if (resp.intent_executed?.intent === "done" && onDoneFromChat) {
+        onDoneFromChat(resp.intent_executed.result);
+      }
     } catch (err) {
       setError(err as Error);
       setMessages((m) => m.slice(0, -1));

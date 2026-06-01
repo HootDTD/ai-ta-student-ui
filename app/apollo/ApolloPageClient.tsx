@@ -171,6 +171,7 @@ export default function ApolloPageClient() {
             initialMessages={state.messages.map((m) => ({ role: m.role, content: m.content }))}
             onKgUpdate={(newKg) => setKg(newKg)}
             onDoneClicked={handleDone}
+            onDoneFromChat={(result) => setReport(result)}
             disabled={busy}
           />
         )}

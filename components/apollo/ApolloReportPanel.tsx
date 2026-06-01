@@ -67,10 +67,15 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
   const { rubric, solver_indicator, diagnostic_narrative } = report;
   const tone = rubric.overall.score >= PASS_SCORE ? "success" : "danger";
 
-  // Gamification fields are optional so older backend deploys still render.
-  const xpEarned = report.xp_earned;
-  const levelUp = report.level_up === true;
-  const levelAfter = report.level_after;
+  // Item #9: prefer the structured progress envelope; fall back to the
+  // flat fields only when an older backend is mid-deploy.
+  const progress = report.progress;
+  const xpEarned = progress?.xp_earned ?? report.xp_earned;
+  const levelUp = progress?.level_up ?? (report.level_up === true);
+  const levelAfter = progress?.level_after ?? report.level_after;
+  const titleAfter = progress?.title_after;
+  const levelProgressPct = progress?.level_progress_pct;
+  const xpToNext = progress?.xp_to_next_level;
 
   return (
     <section className="notice" data-tone={tone}>
@@ -90,14 +95,28 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
       </p>
 
       {typeof xpEarned === "number" && (
-        <p className="apollo-xp-line">+{xpEarned} XP earned</p>
+        <p className="apollo-xp-line">
+          +{xpEarned} XP earned
+          {typeof levelProgressPct === "number" && (
+            <span className="apollo-xp-line__bar" aria-hidden>
+              {" — "}
+              {Math.round(levelProgressPct)}% through level{" "}
+              {levelAfter ?? "?"}
+              {typeof xpToNext === "number" && xpToNext > 0
+                ? ` (${xpToNext} to next)`
+                : xpToNext === null
+                  ? " (max)"
+                  : ""}
+            </span>
+          )}
+        </p>
       )}
 
       {levelUp && typeof levelAfter === "number" && (
         <div className="apollo-level-up" role="status" aria-live="polite">
           <span className="apollo-level-up__confetti" aria-hidden>🎉</span>
           <span>
-            Level up! You&apos;re now <strong>level {levelAfter}</strong>.
+            Level up! You&apos;re now <strong>{titleAfter ?? `level ${levelAfter}`}</strong>.
           </span>
         </div>
       )}
