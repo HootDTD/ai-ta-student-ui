@@ -125,34 +125,6 @@ export interface ApolloSessionState {
   messages: Array<{ role: string; content: string; turn_index: number }>;
 }
 
-// P1 — sufficiency verdict for a chat turn (envelope-only).
-export interface SufficiencyEnvelope {
-  state: "sufficient" | "almost" | "insufficient";
-  missing_variables: string[];
-  missing_kg_nodes: string[];
-  next_premise_hint: string | null;
-  confidence: number;
-}
-
-// P2 — misconception inference signal (envelope-only).
-export interface MisconceptionEnvelope {
-  fired: boolean;
-  state: "default" | "probe" | "socratic";
-  bank_code: string | null;
-  confidence: number;
-  enabled: boolean;
-}
-
-// P3.5 — OLM clarification-invite signal.
-//   When fired=true, the FE pulses the entry pill identified by entry_id
-//   under the chat reply.
-export interface OlmInviteEnvelope {
-  fired: boolean;
-  entry_id: string | null;
-  summary: string | null;
-  enabled: boolean;
-}
-
 export interface ChatResponse {
   apollo_reply: string;
   kg_entries_added: number;
@@ -172,9 +144,6 @@ export interface ChatResponse {
     intent: "done";
     result: DoneResponse;
   };
-  sufficiency?: SufficiencyEnvelope;
-  misconception?: MisconceptionEnvelope;
-  olm_invite?: OlmInviteEnvelope;
 }
 
 export interface RubricAxis {
@@ -188,12 +157,6 @@ export interface Rubric {
   procedure: RubricAxis;
   justification: RubricAxis;
   simplification: RubricAxis;
-}
-
-export interface SolverIndicator {
-  reached: boolean;
-  value?: string;
-  missing?: string[];
 }
 
 export interface ProgressEnvelope {
@@ -212,7 +175,6 @@ export interface ProgressEnvelope {
 
 export interface DoneResponse {
   rubric: Rubric;
-  solver_indicator: SolverIndicator;
   diagnostic_narrative: string;
   coverage: {
     per_step: Record<string, string>;
