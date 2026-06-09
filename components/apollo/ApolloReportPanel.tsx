@@ -49,22 +49,8 @@ function AxisRow({ label, axis }: { label: string; axis: RubricAxis }) {
   );
 }
 
-function solverOutcomeText(
-  si: DoneResponse["solver_indicator"],
-): string {
-  if (si.reached) {
-    return si.value
-      ? `Apollo reached the answer: ${si.value} ✓`
-      : "Apollo reached the answer ✓";
-  }
-  const missing = si.missing && si.missing.length > 0
-    ? ` — missing: ${si.missing.join(", ")}`
-    : "";
-  return `Apollo got stuck${missing}`;
-}
-
 export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Props) {
-  const { rubric, solver_indicator, diagnostic_narrative } = report;
+  const { rubric, diagnostic_narrative } = report;
   const tone = rubric.overall.score >= PASS_SCORE ? "success" : "danger";
 
   // Item #9: prefer the structured progress envelope; fall back to the
@@ -89,10 +75,6 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
         <AxisRow label={AXIS_LABELS.justification} axis={rubric.justification} />
         <AxisRow label={AXIS_LABELS.simplification} axis={rubric.simplification} />
       </div>
-
-      <p className="note" style={{ margin: "0.5rem 0" }}>
-        {solverOutcomeText(solver_indicator)}
-      </p>
 
       {typeof xpEarned === "number" && (
         <p className="apollo-xp-line">
