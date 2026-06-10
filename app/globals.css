@@ -2,6 +2,8 @@
 
 :root {
   --bg: #e9dfcf;
+  --bg-soft: #e4d9c3;
+  --bg-panel: #fbf6ea;
   --text: #1e1a15;
   --muted: #4a4237;
   --border: #cdbfa8;
@@ -10,6 +12,9 @@
   --focus-ring: rgba(0, 0, 0, 0.16);
   --font-stack: system-ui, -apple-system, sans-serif;
   --font-prose: Georgia, "Times New Roman", serif;
+  --serif: var(--font-fraunces), "Fraunces", Georgia, "Times New Roman", serif;
+  --serif-body: Georgia, "Times New Roman", "Fraunces", serif;
+  --mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, Menlo, monospace;
   --surface-fill: rgba(233, 223, 207, 0.95);
   --card-fill: rgba(214, 205, 190, 0.55);
   --shadow-soft: 0 16px 32px rgba(0, 0, 0, 0.09);
@@ -33,6 +38,8 @@
   --danger-bg: rgba(136, 34, 14, 0.08);
   --warning-border: rgba(124, 92, 14, 0.28);
   --warning-bg: rgba(124, 92, 14, 0.08);
+  --success-border: rgba(28, 96, 52, 0.28);
+  --success-bg: rgba(28, 96, 52, 0.08);
   --owl-invert: 1;
   --owl-blend: multiply;
   --inset-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
@@ -44,6 +51,8 @@
 
 html.dark {
   --bg: #1a1915;
+  --bg-soft: #201e1a;
+  --bg-panel: #26231d;
   --text: #e8e4de;
   --muted: #9b9488;
   --border: #3d3a34;
@@ -71,6 +80,8 @@ html.dark {
   --danger-bg: rgba(220, 80, 60, 0.1);
   --warning-border: rgba(200, 160, 50, 0.3);
   --warning-bg: rgba(200, 160, 50, 0.1);
+  --success-border: rgba(90, 200, 130, 0.3);
+  --success-bg: rgba(90, 200, 130, 0.1);
   --owl-invert: 0;
   --owl-blend: screen;
   --inset-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -104,10 +115,15 @@ html.theme-transition *::after {
     box-shadow 0.4s ease, fill 0.4s ease, stroke 0.4s ease !important;
 }
 
+html,
+body {
+  font-family: var(--serif);
+  font-optical-sizing: auto;
+}
+
 body {
   margin: 0;
   color: var(--text);
-  font-family: var(--font-stack);
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -443,6 +459,327 @@ button:disabled {
 .notice[data-tone="warning"] {
   border-color: var(--warning-border);
   background: var(--warning-bg);
+}
+
+.notice[data-tone="success"] {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+}
+
+/* Apollo teach-scrollback: grows with messages, caps at max-height then
+   scrolls. No min-height — empty state is handled separately. */
+.apollo-scrollback {
+  display: grid;
+  gap: 0.9rem;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  background: var(--card-fill);
+}
+
+.apollo-turn {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.apollo-turn--apollo {
+  grid-template-columns: 2.25rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.apollo-turn__body {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.apollo-turn--student {
+  justify-items: start;
+}
+
+.apollo-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  object-fit: contain;
+  background: transparent;
+  filter: invert(var(--owl-invert));
+  mix-blend-mode: var(--owl-blend);
+}
+
+.apollo-empty {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.1rem 1.15rem;
+  border: 1px solid var(--border);
+  background: var(--card-fill);
+}
+
+.apollo-empty .apollo-avatar {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+.apollo-kg {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.apollo-kg__section {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.apollo-kg__section > strong {
+  font-size: 0.95rem;
+}
+
+.apollo-page {
+  width: var(--content-width);
+  margin: 0 auto;
+  padding: 0.75rem 0 2.5rem;
+  display: grid;
+  gap: 0.85rem 1.25rem;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  grid-template-areas:
+    "nav nav"
+    "main aside";
+  align-items: start;
+}
+
+.apollo-page__nav {
+  grid-area: nav;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.apollo-page__main {
+  grid-area: main;
+}
+
+.apollo-page__aside {
+  grid-area: aside;
+}
+
+.apollo-page__main,
+.apollo-page__aside {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.apollo-return-link {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.35rem;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.apollo-return-link:hover {
+  color: var(--text);
+}
+
+@media (max-width: 960px) {
+  .apollo-page {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "nav"
+      "main"
+      "aside";
+  }
+}
+
+/* ── Apollo progress card (mount-persistent XP/level banner) ─────────── */
+
+.apollo-progress-card {
+  /* Per-tier accent variables — overridden by data-level attrs below.
+     --acc is the bar fill color; --acc-soft is the track; --glow is the
+     optional outer shadow on higher tiers. */
+  --apollo-acc: var(--accent);
+  --apollo-acc-soft: var(--accent-soft);
+  --apollo-glow: transparent;
+
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-fill);
+  box-shadow:
+    var(--inset-shadow),
+    0 0 0 1px transparent,
+    0 0 0 4px var(--apollo-glow);
+  transition:
+    box-shadow 300ms ease-out,
+    border-color 300ms ease-out;
+}
+
+.apollo-progress-card[data-loading="true"] {
+  opacity: 0.72;
+}
+
+.apollo-progress-card__row {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 1fr) minmax(10rem, 2.2fr) minmax(9rem, 1fr);
+  align-items: center;
+  gap: 0.95rem;
+}
+
+@media (max-width: 720px) {
+  .apollo-progress-card__row {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+}
+
+.apollo-progress-card__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.apollo-progress-card__title {
+  font-family: var(--serif, inherit);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apollo-progress-card__level {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.apollo-progress-card__bar-track {
+  height: 0.55rem;
+  background: var(--apollo-acc-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.apollo-progress-card__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--apollo-acc), var(--apollo-acc));
+  border-radius: inherit;
+  transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.apollo-progress-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  align-items: flex-end;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .apollo-progress-card__meta {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+.apollo-progress-card__xp {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.apollo-progress-card__next {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+/* ── Tier accents — match the avatar cosmetic gradient. L1 uses
+   defaults; L2-L3 warm amber; L4-L5 gold with progressively stronger
+   outer glow. ────────────────────────────────────────────────────────── */
+.apollo-progress-card[data-level="2"] {
+  --apollo-acc: #c08a2a;
+  --apollo-acc-soft: rgba(192, 138, 42, 0.14);
+}
+.apollo-progress-card[data-level="3"] {
+  --apollo-acc: #b0731a;
+  --apollo-acc-soft: rgba(176, 115, 26, 0.16);
+}
+.apollo-progress-card[data-level="4"] {
+  --apollo-acc: #a25d0c;
+  --apollo-acc-soft: rgba(162, 93, 12, 0.18);
+  --apollo-glow: rgba(255, 215, 0, 0.10);
+  border-color: rgba(162, 93, 12, 0.35);
+}
+.apollo-progress-card[data-level="5"] {
+  --apollo-acc: #8a4a06;
+  --apollo-acc-soft: rgba(138, 74, 6, 0.20);
+  --apollo-glow: rgba(255, 215, 0, 0.16);
+  border-color: rgba(138, 74, 6, 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.06),
+    var(--card-fill) 60%
+  );
+}
+
+/* Dark-mode tier tweaks — warmer amber reads better on dark bg. */
+html.dark .apollo-progress-card[data-level="2"] {
+  --apollo-acc: #e0a84a;
+  --apollo-acc-soft: rgba(224, 168, 74, 0.18);
+}
+html.dark .apollo-progress-card[data-level="3"] {
+  --apollo-acc: #e8b55a;
+  --apollo-acc-soft: rgba(232, 181, 90, 0.20);
+}
+html.dark .apollo-progress-card[data-level="4"] {
+  --apollo-acc: #f0c060;
+  --apollo-acc-soft: rgba(240, 192, 96, 0.22);
+  --apollo-glow: rgba(255, 215, 0, 0.14);
+  border-color: rgba(240, 192, 96, 0.35);
+}
+html.dark .apollo-progress-card[data-level="5"] {
+  --apollo-acc: #ffcf6a;
+  --apollo-acc-soft: rgba(255, 207, 106, 0.26);
+  --apollo-glow: rgba(255, 215, 0, 0.22);
+  border-color: rgba(255, 207, 106, 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.10),
+    var(--card-fill) 60%
+  );
+}
+
+/* Avatar cosmetic accents per level tier. Asset swap is a follow-on; for
+   now we shift the hue/saturation of the existing owl image so higher
+   tiers look visibly distinct without requiring new art. */
+.apollo-page[data-apollo-level="2"] .apollo-avatar {
+  filter: invert(var(--owl-invert)) hue-rotate(12deg) saturate(1.05);
+}
+.apollo-page[data-apollo-level="3"] .apollo-avatar {
+  filter: invert(var(--owl-invert)) hue-rotate(25deg) saturate(1.10);
+}
+.apollo-page[data-apollo-level="4"] .apollo-avatar {
+  filter: invert(var(--owl-invert)) hue-rotate(40deg) saturate(1.15)
+          drop-shadow(0 0 3px rgba(255, 215, 0, 0.4));
+}
+.apollo-page[data-apollo-level="5"] .apollo-avatar {
+  filter: invert(var(--owl-invert)) hue-rotate(55deg) saturate(1.25)
+          drop-shadow(0 0 5px rgba(255, 215, 0, 0.65));
 }
 
 .ui-button {
@@ -885,32 +1222,133 @@ button:disabled {
 .citation-chip__label {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.55rem;
+  gap: 0.3rem;
+  padding: 0.2rem 0.45rem;
   border: 1px solid var(--border);
-  background: var(--citation-bg);
-  font-size: 0.74rem;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.citation-chip:hover .citation-chip__label {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
 }
 
 .citation-chip__preview {
   position: absolute;
   left: 0;
   top: calc(100% + 0.4rem);
-  z-index: 20;
+  z-index: 30;
   display: none;
-  width: 16rem;
-  padding: 0.85rem;
+  width: 18rem;
+  padding: 0.8rem;
   border: 1px solid var(--border);
-  background: var(--surface-fill);
-  box-shadow: var(--shadow-soft);
+  background: var(--bg-panel);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.14);
 }
 
 .citation-chip:hover .citation-chip__preview {
   display: grid;
   gap: 0.45rem;
+}
+
+.citation-chip__preview-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.citation-chip__preview-file {
+  font-family: var(--serif);
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.citation-chip__preview-page {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.citation-chip__preview-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.msg-ai {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  background: var(--bg-panel);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.06);
+}
+
+.msg-ai,
+.msg-ai p,
+.msg-ai li {
+  font-family: var(--serif-body);
+}
+
+.msg-ai .prose {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.msg-ai .prose p {
+  margin: 0 0 0.85rem;
+}
+
+.msg-ai .prose p:last-child {
+  margin-bottom: 0;
+}
+
+.msg-ai .prose code {
+  padding: 0.05rem 0.25rem;
+  border: 1px solid var(--border);
+  background: rgba(30, 22, 18, 0.08);
+}
+
+.msg-user {
+  display: inline-block;
+  padding: 0.7rem 0.9rem;
+  max-width: 75%;
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.msg-ai__sources {
+  margin-top: 0.85rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.msg-ai__sources-label {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .report-layout {
@@ -1024,3 +1462,394 @@ button:disabled {
     position: static;
   }
 }
+
+/* Special-characters palette — shared by Hoot chat and Apollo chat composers. */
+.char-palette {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.char-palette__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.char-palette__toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.char-palette__toggle-glyph {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.char-palette__grid {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--border);
+  background: var(--card-fill);
+  width: 100%;
+}
+
+.char-palette__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.char-palette__key {
+  min-width: 2rem;
+  padding: 0.3rem 0.55rem;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.char-palette__key:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.char-palette__key:active {
+  transform: translateY(1px);
+}
+
+/* Apollo teaching-rigor rubric card — structural styles.
+   Colors & opacity driven by data-present on the row. */
+.apollo-rubric {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--card-fill);
+  border-radius: 0.5rem;
+}
+
+.apollo-rubric__row {
+  display: grid;
+  grid-template-columns: 10rem 3rem 3rem 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.apollo-rubric__row[data-present="false"] {
+  opacity: 0.4;
+}
+
+.apollo-xp-line {
+  margin: 0.5rem 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--accent, currentColor);
+}
+
+.apollo-level-up {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.12), rgba(255, 215, 0, 0.02));
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  animation: apolloLevelUpSlide 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.apollo-level-up__confetti {
+  display: inline-block;
+  font-size: 1.15rem;
+  animation: apolloLevelUpPop 600ms ease-out 120ms both;
+}
+
+@keyframes apolloLevelUpSlide {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes apolloLevelUpPop {
+  0%   { transform: scale(0.4) rotate(-10deg); }
+  60%  { transform: scale(1.25) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* -------------------------------------------------------------------- */
+/* P3 — Negotiable OLM. KG entry pill + dispute / paraphrase / trace
+   cards. Designed to drop into ApolloKGPanel without breaking the
+   pre-P3 rendering when the FE consumer has not yet wrapped its
+   entries.                                                            */
+/* -------------------------------------------------------------------- */
+.kg-pill {
+  position: relative;
+  display: block;
+  padding: 0.25rem 0;
+  border-radius: 4px;
+  transition: background-color 200ms ease;
+}
+.kg-pill--disputed {
+  background: var(--danger-bg);
+  border-left: 2px solid var(--danger-border);
+  padding-left: 0.4rem;
+}
+.kg-pill--dual {
+  background: var(--warning-bg);
+  border-left: 2px solid var(--warning-border);
+  padding-left: 0.4rem;
+}
+.kg-pill--pulse {
+  animation: kgPillPulse 1.6s ease-in-out 2;
+}
+@keyframes kgPillPulse {
+  0%, 100% { background-color: transparent; }
+  50%      { background-color: var(--accent-soft); }
+}
+.kg-pill__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+}
+.kg-pill__dot {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.18);
+}
+.kg-pill__dot--green  { background: rgb(28, 96, 52); }
+.kg-pill__dot--yellow { background: rgb(184, 138, 28); }
+.kg-pill__dot--red    { background: rgb(160, 38, 18); }
+.kg-pill__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kg-pill__badge {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--accent-soft);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+}
+.kg-pill__actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 0.15rem;
+  opacity: 0.55;
+  transition: opacity 200ms ease;
+}
+.kg-pill:hover .kg-pill__actions { opacity: 1; }
+.kg-pill__btn,
+.kg-pill__btn-primary,
+.kg-pill__btn-secondary {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--btn-bg);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  line-height: 1.1;
+}
+.kg-pill__btn { font-size: 0.78rem; padding: 0.05rem 0.35rem; }
+.kg-pill__btn:hover:not(:disabled),
+.kg-pill__btn-primary:hover:not(:disabled),
+.kg-pill__btn-secondary:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.kg-pill__btn:disabled,
+.kg-pill__btn-primary:disabled,
+.kg-pill__btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.kg-pill__btn--muted { opacity: 0.6; }
+.kg-pill__btn-primary {
+  background: var(--accent);
+  color: var(--bg-panel);
+  border-color: var(--accent);
+}
+.kg-pill__error {
+  font-size: 0.78rem;
+  color: rgb(160, 38, 18);
+  margin-top: 0.2rem;
+}
+.kg-pill__card {
+  margin: 0.4rem 0 0.2rem 0.7rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.kg-pill__card-eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.kg-pill__trace-eyebrow { color: rgba(0, 0, 0, 0.42); }
+.kg-pill__textarea {
+  width: 100%;
+  font: inherit;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  resize: vertical;
+}
+.kg-pill__card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+.kg-pill__counter {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.kg-pill__counter--err { color: rgb(160, 38, 18); }
+.kg-pill__card-actions { display: inline-flex; gap: 0.3rem; }
+.kg-pill__trace-source { margin-bottom: 0.5rem; }
+.kg-pill__trace-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 0.15rem;
+}
+.kg-pill__trace-quote {
+  font-style: italic;
+  color: var(--muted);
+  border-left: 2px solid var(--border);
+  padding-left: 0.5rem;
+  font-size: 0.88rem;
+}
+.kg-pill__trace-moves {}
+.kg-pill__trace-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+}
+.kg-pill__trace-actor { font-weight: 500; }
+.kg-pill__trace-when  { color: var(--muted); font-size: 0.78rem; }
+.kg-pill__trace-payload { color: var(--muted); font-size: 0.82rem; }
+.kg-pill__trace-empty   { color: var(--muted); font-size: 0.82rem; }
+
+/* P3.8 — Done-gate modal */
+.done-gate-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+.done-gate-modal__card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 560px;
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-soft);
+}
+.done-gate-modal__header { margin-bottom: 1rem; }
+.done-gate-modal__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.done-gate-modal__title {
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin: 0.2rem 0;
+}
+.done-gate-modal__subtitle {
+  font-size: 0.92rem;
+  color: var(--muted);
+  margin: 0.5rem 0 0 0;
+}
+.done-gate-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.done-gate-modal__row {
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.done-gate-modal__row--done {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+.done-gate-modal__row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.done-gate-modal__row-type {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.done-gate-modal__row-summary {
+  font-size: 0.9rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.done-gate-modal__row-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.done-gate-modal__row-reason {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.done-gate-modal__row-status--done {
+  font-size: 0.82rem;
+  color: rgb(28, 96, 52);
+}
+.done-gate-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+

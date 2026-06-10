@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Dropzone from 'react-dropzone';
 import { Send, X, ImagePlus, Paperclip, ChevronDown, MoreVertical, Sun, Moon, Plus, MessageSquare, PanelLeftClose, PanelLeft, Trash2 } from 'lucide-react';
@@ -19,6 +20,8 @@ import {
   type StoredSession,
 } from './lib/auth';
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
+import SpecialCharsPalette from '@/components/SpecialCharsPalette';
+import { startSessionFromHoot, ApolloApiError } from '@/lib/apollo/api';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 type Message = {
@@ -202,6 +205,9 @@ export default function Page() {
   const [chatList, setChatList] = useState<ChatSummary[]>([]);
   const [chatListLoading, setChatListLoading] = useState(false);
   const [loadingChatId, setLoadingChatId] = useState<string | null>(null);
+  const [apolloError, setApolloError] = useState<string | null>(null);
+  const [apolloStarting, setApolloStarting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const stored = localStorage.getItem('theme');
@@ -224,6 +230,24 @@ export default function Page() {
   const SHOW_PREVIEWS =
     (process.env.NEXT_PUBLIC_SHOW_CITATION_PREVIEWS || '').toString().trim() === '1';
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  function insertChar(ch: string) {
+    const ta = inputRef.current;
+    if (!ta) {
+      setInput((d) => d + ch);
+      return;
+    }
+    const start = ta.selectionStart ?? input.length;
+    const end = ta.selectionEnd ?? input.length;
+    const next = input.slice(0, start) + ch + input.slice(end);
+    setInput(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + ch.length, start + ch.length);
+    });
+  }
+
   const selectedClassObj = classOptions.find((c) => c.id === selectedClassId);
   const accessToken = session?.access_token || '';
   const accountLabel = session?.user_email || session?.user_id || 'this account';
@@ -438,12 +462,14 @@ export default function Page() {
         content: string;
         created_at?: string;
         attachments?: Attachment[];
+        citations?: CitationMeta[];
       }>;
       const loadedMessages: Message[] = turns.map((t) => ({
         role: t.role as 'user' | 'assistant',
         content: t.content || '',
         created_at: t.created_at || '',
         attachments: t.attachments,
+        citations: Array.isArray(t.citations) ? t.citations : [],
       }));
       setChatId(targetChatId);
       setMessages(loadedMessages);
@@ -551,6 +577,25 @@ export default function Page() {
       setAuthError(msg);
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const startApollo = async () => {
+    setApolloError(null);
+    setApolloStarting(true);
+    try {
+      const transcript = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
+      const studentId = session?.user_id ?? 'unknown';
+      const { session_id } = await startSessionFromHoot(studentId, transcript);
+      router.push(`/apollo?session=${session_id}`);
+    } catch (err) {
+      if (err instanceof ApolloApiError && err.errorCode === 'no_matching_concept') {
+        setApolloError("Apollo doesn't cover this topic yet.");
+      } else {
+        setApolloError((err as Error).message);
+      }
+    } finally {
+      setApolloStarting(false);
     }
   };
 
@@ -1153,30 +1198,21 @@ export default function Page() {
                 key={idx}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`${
-                  m.role === 'user'
-                    ? 'flex justify-end'
-                    : ''
-                }`}
+                className={m.role === 'user' ? 'flex justify-end' : ''}
               >
-              <div
-                className={`p-3 border border-[var(--border)] ${
-                  m.role === 'user'
-                    ? 'bg-[var(--msg-user-bg)] text-right inline-block max-w-[75%]'
-                    : 'bg-[var(--msg-assistant-bg)] border-l-4 border-l-[var(--accent)] shadow-[var(--shadow-soft)]'
-                }`}
-              >
+              <div className={m.role === 'user' ? 'msg-user' : 'msg-ai'}>
                 <div className="prose max-w-none">
                   {m.role === 'assistant' ? (
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                       {normalizeMath(parseAnswer(m.content).answerText)}
                     </ReactMarkdown>
                   ) : (
-                    <span className="whitespace-pre-wrap" style={{ fontFamily: 'var(--font-stack)' }}>{m.content}</span>
+                    <span className="whitespace-pre-wrap">{m.content}</span>
                   )}
                 </div>
                 {SHOW_PREVIEWS && m.role === 'assistant' && Array.isArray(m.citations) && m.citations.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="msg-ai__sources">
+                    <span className="msg-ai__sources-label">Sources referenced</span>
                     {m.citations.map((c, i) => (
                       <CitationChip key={i} meta={c} />
                     ))}
@@ -1230,6 +1266,23 @@ export default function Page() {
 
       <div className="border-t border-[var(--border)] bg-[var(--bar-bg)]">
         <div className="mx-auto max-w-3xl px-4 py-3">
+          {apolloError && (
+            <div role="alert" className="mb-3 notice" data-tone="danger">
+              {apolloError}
+            </div>
+          )}
+          {messages.length > 0 && (
+            <div className="mb-3 flex justify-end">
+              <button
+                onClick={startApollo}
+                disabled={apolloStarting}
+                className="ui-button ui-button--primary ui-button--small"
+                type="button"
+              >
+                {apolloStarting ? 'Starting\u2026' : 'Teach Apollo what you just learned'}
+              </button>
+            </div>
+          )}
           {formError && (
             <div className="mb-3 notice" data-tone="danger">
               {formError}
@@ -1278,8 +1331,13 @@ export default function Page() {
             </div>
           )}
 
+          <div className="mb-2">
+            <SpecialCharsPalette onInsert={insertChar} />
+          </div>
+
           <div className="flex items-end gap-2">
             <textarea
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onPaste={onPaste}
