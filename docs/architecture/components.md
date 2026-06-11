@@ -49,7 +49,7 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 1. **Citations render**: `app/page.tsx` parses the SSE `answer` event's `citations` array into `CitationMeta[]` and maps them to `CitationChip`s in the message footer; hover reveals the preview card (pure CSS, no fetch).
 2. **Apollo teaching turn**: student types in `ApolloChat` (optionally inserting symbols via `SpecialCharsPalette`) → `sendChat` → reply appended, `onKgUpdate(resp.kg)` lifts the new KG to `ApolloPageClient`, which re-renders `ApolloKGPanel` so the student watches Apollo's understanding grow live.
 3. **Negotiation move (P3)**: inside `ApolloKGPanel` (when given a `sessionId`), a pill button POSTs challenge/paraphrase/skip → backend returns `{entry, kg, move}` → pill calls `onUpdated(entry, kg)` → panel bubbles `onKgUpdated(kg)` to the page → full KG re-render without a second fetch. Trace is a read-only GET shown inline.
-4. **Done → report**: "I'm done teaching" (`onDoneClicked`) or a chat-affirmed done intent (`onDoneFromChat`) produces a `DoneResponse`; `ApolloPageClient` swaps `ApolloChat` for `ApolloReportPanel` and refetches `getStudentProgress` so `ApolloProgressCard` reflects any level-up.
+4. **Done → report**: "I'm done teaching" (`onDoneClicked`) or a chat-affirmed done intent (`onDoneFromChat`) produces a `DoneResponse`; `ApolloPageClient` swaps `ApolloChat` for `ApolloReportPanel` and refetches `getStudentProgress()` (no argument — identity from Bearer token) so `ApolloProgressCard` reflects any level-up.
 
 ## Key dependencies
 
