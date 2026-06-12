@@ -685,7 +685,6 @@ export default function Page() {
       let answerText = '';
       let citations: CitationMeta[] = [];
       let streamedAnswer = '';
-      let reasoningText = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -711,8 +710,7 @@ export default function Page() {
             if (eventType === 'status') {
               setLoadingStatus(payload.message || '');
             } else if (eventType === 'reasoning') {
-              reasoningText += typeof payload.text === 'string' ? payload.text : '';
-              setLoadingStatus(reasoningText.slice(-160)); // show the latest "thinking"
+              // Reasoning deltas are intentionally not surfaced to students.
             } else if (eventType === 'token') {
               streamedAnswer += typeof payload.text === 'string' ? payload.text : '';
               setMessages((prev) =>
