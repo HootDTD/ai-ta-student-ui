@@ -21,6 +21,7 @@ import ApolloKGPanel from "@/components/apollo/ApolloKGPanel";
 import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
 import ApolloProgressCard from "@/components/apollo/ApolloProgressCard";
 import ApolloReportPanel from "@/components/apollo/ApolloReportPanel";
+import BootScreen from "@/components/BootScreen";
 
 export default function ApolloPageClient() {
   const router = useRouter();
@@ -130,12 +131,7 @@ export default function ApolloPageClient() {
   if (!state) {
     return (
       <div className="auth-screen">
-        <div className="boot-screen">
-          <video src="/thinking.mp4" autoPlay loop muted playsInline className="boot-screen__owl" aria-hidden />
-          <div className="boot-screen__wordmark">Hoot</div>
-          <div className="boot-screen__bar" />
-          <div className="boot-screen__label">Waking Apollo…</div>
-        </div>
+        <BootScreen label="Waking Apollo…" />
       </div>
     );
   }

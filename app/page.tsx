@@ -21,6 +21,9 @@ import {
 } from './lib/auth';
 import { CitationChip, type CitationMeta } from '@/components/CitationChip';
 import SpecialCharsPalette from '@/components/SpecialCharsPalette';
+import AuthBrand from '@/components/AuthBrand';
+import BootScreen from '@/components/BootScreen';
+import OwlVideo from '@/components/OwlVideo';
 import { startSessionFromHoot, ApolloApiError } from '@/lib/apollo/api';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
@@ -908,11 +911,7 @@ export default function Page() {
   if (!authReady) {
     return (
       <div className="auth-screen">
-        <div className="boot-screen">
-          <video src="/thinking.mp4" autoPlay loop muted playsInline className="boot-screen__owl" aria-hidden />
-          <div className="boot-screen__wordmark">Hoot</div>
-          <div className="boot-screen__bar" />
-        </div>
+        <BootScreen />
       </div>
     );
   }
@@ -921,11 +920,7 @@ export default function Page() {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-brand">
-            <video src="/thinking.mp4" autoPlay loop muted playsInline className="auth-brand__owl" aria-hidden />
-            <div className="auth-brand__wordmark">Hoot</div>
-            <div className="auth-brand__subtitle">AI Teaching Assistant</div>
-          </div>
+          <AuthBrand />
           <div className="notice" data-tone="danger">Hoot isn&apos;t fully set up yet. Please contact your administrator.</div>
         </div>
       </div>
@@ -936,11 +931,7 @@ export default function Page() {
     return (
       <div className="auth-screen">
         <form onSubmit={handleSignIn} className="auth-card">
-          <div className="auth-brand">
-            <video src="/thinking.mp4" autoPlay loop muted playsInline className="auth-brand__owl" aria-hidden />
-            <div className="auth-brand__wordmark">Hoot</div>
-            <div className="auth-brand__subtitle">AI Teaching Assistant</div>
-          </div>
+          <AuthBrand />
           {authError && <div className="notice" data-tone="danger">{authError}</div>}
           {authNotice && <div className="notice" data-tone="success">{authNotice}</div>}
           <label className="field-label">
@@ -1191,9 +1182,9 @@ export default function Page() {
                 {classesError}
               </div>
             )}
-            {messages.length === 0 && !classesError && !classesLoading && (
+            {messages.length === 0 && !classesError && !classesLoading && !loadingChatId && (
               <div className="empty-greeting">
-                <video src="/thinking.mp4" autoPlay loop muted playsInline className="empty-greeting__owl" aria-hidden />
+                <OwlVideo className="empty-greeting__owl" />
                 <div className="empty-greeting__title">What are we learning today?</div>
                 <p className="empty-greeting__note">Ask anything about your course — Hoot answers from your actual class materials, with citations.</p>
               </div>

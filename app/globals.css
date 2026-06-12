@@ -376,6 +376,10 @@ button:disabled {
   animation-delay: 360ms;
 }
 
+.auth-card > *:nth-child(n + 8) {
+  animation-delay: 420ms;
+}
+
 .auth-brand {
   display: grid;
   justify-items: center;

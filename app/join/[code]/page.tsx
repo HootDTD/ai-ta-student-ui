@@ -11,6 +11,8 @@ import {
   signUpWithPassword,
   type StoredSession,
 } from "../../lib/auth";
+import AuthBrand from "../../../components/AuthBrand";
+import BootScreen from "../../../components/BootScreen";
 
 type ResolvedLink = {
   search_space_id: number;
@@ -43,7 +45,6 @@ export default function JoinPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
-  const [, setRedeemLoading] = useState(false);
   const [redeemError, setRedeemError] = useState<string | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
 
@@ -89,7 +90,6 @@ export default function JoinPage() {
   const redeem = useCallback(
     async (token: string) => {
       if (!code || redeemSuccess) return;
-      setRedeemLoading(true);
       setRedeemError(null);
       try {
         const resp = await fetch(`/api/invite-links/redeem/${encodeURIComponent(code)}`, {
@@ -109,8 +109,6 @@ export default function JoinPage() {
         }
       } catch (err) {
         setRedeemError(err instanceof Error ? err.message : "Failed to redeem invite code");
-      } finally {
-        setRedeemLoading(false);
       }
     },
     [code, redeemSuccess, router]
@@ -161,11 +159,7 @@ export default function JoinPage() {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-brand">
-            <video src="/thinking.mp4" autoPlay loop muted playsInline className="auth-brand__owl" aria-hidden />
-            <div className="auth-brand__wordmark">Hoot</div>
-            <div className="auth-brand__subtitle">AI Teaching Assistant</div>
-          </div>
+          <AuthBrand />
           <div className="notice" data-tone="danger">Hoot isn&apos;t fully set up yet. Please contact your administrator.</div>
         </div>
       </div>
@@ -175,12 +169,7 @@ export default function JoinPage() {
   if (loading) {
     return (
       <div className="auth-screen">
-        <div className="boot-screen">
-          <video src="/thinking.mp4" autoPlay loop muted playsInline className="boot-screen__owl" aria-hidden />
-          <div className="boot-screen__wordmark">Hoot</div>
-          <div className="boot-screen__bar" />
-          <div className="boot-screen__label">Checking your invite…</div>
-        </div>
+        <BootScreen label="Checking your invite…" />
       </div>
     );
   }
@@ -206,16 +195,12 @@ export default function JoinPage() {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="auth-brand">
-            <video src="/thinking.mp4" autoPlay loop muted playsInline className="auth-brand__owl" aria-hidden />
-            <div className="auth-brand__wordmark">Hoot</div>
-            <div className="auth-brand__subtitle">AI Teaching Assistant</div>
-          </div>
+          <AuthBrand />
           <h1 className="section-title" style={{ fontSize: '1.4rem', textAlign: 'center' }}>You&apos;re in!</h1>
           <p className="note" style={{ textAlign: 'center', margin: 0 }}>
             Joined <strong>{resolved.course_name}</strong> as {resolved.role}.
           </p>
-          <p className="note" style={{ textAlign: 'center', margin: 0 }}>Redirecting to Hoot...</p>
+          <p className="note" style={{ textAlign: 'center', margin: 0 }}>Redirecting to Hoot…</p>
         </div>
       </div>
     );
@@ -226,13 +211,9 @@ export default function JoinPage() {
     return (
       <div className="auth-screen">
         <form onSubmit={handleSignIn} className="auth-card">
-          <div className="auth-brand">
-            <video src="/thinking.mp4" autoPlay loop muted playsInline className="auth-brand__owl" aria-hidden />
-            <div className="auth-brand__wordmark">Hoot</div>
-            <div className="auth-brand__subtitle">AI Teaching Assistant</div>
-          </div>
+          <AuthBrand />
           <div style={{ textAlign: 'center' }}>
-            <h1 className="section-title" style={{ fontSize: '1.3rem' }}>Join {resolved?.course_name}</h1>
+            <h1 className="section-title" style={{ fontSize: '1.3rem' }}>Join {resolved?.course_name ?? 'this course'}</h1>
             <p className="note" style={{ margin: '0.3rem 0 0' }}>Sign in or create an account to join this class.</p>
           </div>
           {authError && (
@@ -266,7 +247,7 @@ export default function JoinPage() {
             disabled={authLoading}
             className="ui-button ui-button--primary ui-button--full"
           >
-            {authLoading ? "Signing in..." : "Sign in"}
+            {authLoading ? "Signing in…" : "Sign in"}
           </button>
           <button
             type="button"
@@ -274,7 +255,7 @@ export default function JoinPage() {
             onClick={handleSignUp}
             className="ui-button ui-button--ghost ui-button--full"
           >
-            {authLoading ? "Working..." : "New here? Create an account"}
+            {authLoading ? "Working…" : "New here? Create an account"}
           </button>
         </form>
       </div>
@@ -284,17 +265,12 @@ export default function JoinPage() {
   // Logged in, redeeming in progress
   return (
     <div className="auth-screen">
-      <div className="boot-screen">
-        <video src="/thinking.mp4" autoPlay loop muted playsInline className="boot-screen__owl" aria-hidden />
-        <div className="boot-screen__wordmark">Hoot</div>
-        <div className="boot-screen__bar" />
-        <div className="boot-screen__label">Enrolling you in {resolved?.course_name ?? 'your class'}…</div>
-        {redeemError && (
-          <div className="notice" data-tone="danger">
-            {redeemError}
-          </div>
-        )}
-      </div>
+      <BootScreen label={`Enrolling you in ${resolved?.course_name ?? 'your class'}…`} />
+      {redeemError && (
+        <div className="notice" data-tone="danger">
+          {redeemError}
+        </div>
+      )}
     </div>
   );
 }
