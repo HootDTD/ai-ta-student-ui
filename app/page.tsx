@@ -285,8 +285,9 @@ export default function Page() {
     let cancelled = false;
     (async () => {
       if (!SUPABASE_AUTH_ENABLED) {
+        console.error('Auth is not configured: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.');
         if (!cancelled) {
-          setAuthError('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be configured.');
+          setAuthError("Hoot isn't fully set up yet. Please contact your administrator.");
           setSession(null);
           setAuthReady(true);
         }
@@ -436,25 +437,20 @@ export default function Page() {
   }, [createNewChatId]);
 
   const handleLoadChat = useCallback(async (targetChatId: string) => {
-    console.log('[handleLoadChat] called with:', targetChatId, 'current chatId:', chatId, 'hasToken:', !!accessToken);
     if (!accessToken) {
-      console.warn('[handleLoadChat] no access token');
       return;
     }
     if (targetChatId === chatId) {
-      console.log('[handleLoadChat] same chat, closing sidebar');
       setSidebarOpen(false);
       return;
     }
     setLoadingChatId(targetChatId);
     try {
       const url = `/api/chats/${encodeURIComponent(targetChatId)}`;
-      console.log('[handleLoadChat] fetching:', url);
       const resp = await fetch(url, {
         cache: 'no-store',
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      console.log('[handleLoadChat] response status:', resp.status);
       if (!resp.ok) throw new Error(`Failed to load chat (${resp.status})`);
       const data = await resp.json();
       const turns = (data.turns || []) as Array<{
@@ -482,14 +478,12 @@ export default function Page() {
   }, [accessToken, chatId]);
 
   const handleDeleteChat = useCallback(async (targetChatId: string) => {
-    console.log('[handleDeleteChat] called with:', targetChatId, 'hasToken:', !!accessToken);
     if (!accessToken) return;
     try {
       const resp = await fetch(`/api/chats/${encodeURIComponent(targetChatId)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      console.log('[handleDeleteChat] response status:', resp.status);
       if (resp.status !== 204 && !resp.ok) throw new Error('Failed to delete chat');
       // If we deleted the active chat, start a new one
       if (targetChatId === chatId) {
@@ -913,10 +907,11 @@ export default function Page() {
 
   if (!authReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="module w-full max-w-md">
-          <div className="eyebrow">Authentication</div>
-          <div>Checking authentication…</div>
+      <div className="auth-screen">
+        <div className="boot-screen">
+          <video src="/thinking.mp4" autoPlay loop muted playsInline className="boot-screen__owl" aria-hidden />
+          <div className="boot-screen__wordmark">Hoot</div>
+          <div className="boot-screen__bar" />
         </div>
       </div>
     );
@@ -924,13 +919,14 @@ export default function Page() {
 
   if (!SUPABASE_AUTH_ENABLED) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="module w-full max-w-md">
-          <div className="eyebrow">Configuration</div>
-          <div className="notice" data-tone="danger">
-            Supabase auth is not configured. Set `NEXT_PUBLIC_SUPABASE_URL` and
-            `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+      <div className="auth-screen">
+        <div className="auth-card">
+          <div className="auth-brand">
+            <video src="/thinking.mp4" autoPlay loop muted playsInline className="auth-brand__owl" aria-hidden />
+            <div className="auth-brand__wordmark">Hoot</div>
+            <div className="auth-brand__subtitle">AI Teaching Assistant</div>
           </div>
+          <div className="notice" data-tone="danger">Hoot isn&apos;t fully set up yet. Please contact your administrator.</div>
         </div>
       </div>
     );
@@ -938,18 +934,15 @@ export default function Page() {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <form onSubmit={handleSignIn} className="module w-full max-w-sm">
-          <div>
-            <h1 className="section-title">Sign in to Hoot</h1>
-            <p className="note mt-2">Use your Supabase account to access course data.</p>
+      <div className="auth-screen">
+        <form onSubmit={handleSignIn} className="auth-card">
+          <div className="auth-brand">
+            <video src="/thinking.mp4" autoPlay loop muted playsInline className="auth-brand__owl" aria-hidden />
+            <div className="auth-brand__wordmark">Hoot</div>
+            <div className="auth-brand__subtitle">AI Teaching Assistant</div>
           </div>
-          {authError && (
-            <div className="notice" data-tone="danger">
-              {authError}
-            </div>
-          )}
-          {authNotice && <div className="notice">{authNotice}</div>}
+          {authError && <div className="notice" data-tone="danger">{authError}</div>}
+          {authNotice && <div className="notice" data-tone="success">{authNotice}</div>}
           <label className="field-label">
             Email
             <input
@@ -973,10 +966,10 @@ export default function Page() {
           <button type="submit" disabled={authLoading} className="ui-button ui-button--primary ui-button--full">
             {authLoading ? 'Signing in…' : 'Sign in'}
           </button>
-          <button type="button" disabled={authLoading} onClick={handleSignUp} className="ui-button ui-button--full">
-            {authLoading ? 'Working…' : 'Create account'}
+          <button type="button" disabled={authLoading} onClick={handleSignUp} className="ui-button ui-button--ghost ui-button--full">
+            {authLoading ? 'Working…' : 'New here? Create an account'}
           </button>
-          <p className="note">After signing in, use a class join link from your instructor to enroll.</p>
+          <p className="note" style={{ textAlign: 'center', margin: 0 }}>Joining a class? Use the invite link from your instructor.</p>
         </form>
       </div>
     );
@@ -1044,7 +1037,6 @@ export default function Page() {
                 key={chat.chat_id}
                 className={`chat-sidebar-item ${isActive ? 'chat-sidebar-item--active' : ''}`}
                 onClick={() => {
-                  console.log('[sidebar] clicked chat:', chat.chat_id);
                   void handleLoadChat(chat.chat_id);
                 }}
                 role="button"
@@ -1062,7 +1054,6 @@ export default function Page() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('[sidebar] deleting chat:', chat.chat_id);
                     void handleDeleteChat(chat.chat_id);
                   }}
                   className="chat-sidebar-delete shrink-0 p-1 rounded-md hover:bg-[var(--danger-bg)] transition-colors"
@@ -1200,6 +1191,13 @@ export default function Page() {
                 {classesError}
               </div>
             )}
+            {messages.length === 0 && !classesError && !classesLoading && (
+              <div className="empty-greeting">
+                <video src="/thinking.mp4" autoPlay loop muted playsInline className="empty-greeting__owl" aria-hidden />
+                <div className="empty-greeting__title">What are we learning today?</div>
+                <p className="empty-greeting__note">Ask anything about your course — Hoot answers from your actual class materials, with citations.</p>
+              </div>
+            )}
             {messages.map((m, idx) => {
               if (m.role === 'assistant' && !m.content && !m.attachments?.length) return null;
               return (
@@ -1247,7 +1245,7 @@ export default function Page() {
               </motion.div>
               );
             })}
-            {loading && (
+            {loading && !messages[messages.length - 1]?.content && (
               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="thinking-indicator">
                 <video
                   src="/thinking.mp4"
@@ -1285,7 +1283,7 @@ export default function Page() {
               <button
                 onClick={startApollo}
                 disabled={apolloStarting}
-                className="ui-button ui-button--primary ui-button--small"
+                className="ui-button ui-button--apollo ui-button--small"
                 type="button"
               >
                 {apolloStarting ? 'Starting\u2026' : 'Teach Apollo what you just learned'}

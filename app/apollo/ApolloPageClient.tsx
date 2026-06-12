@@ -129,14 +129,14 @@ export default function ApolloPageClient() {
 
   if (!state) {
     return (
-      <main className="apollo-page">
-        <nav className="apollo-page__nav">{returnLink}</nav>
-        <div className="apollo-page__main">
-          <div className="card">
-            <span>Loading session…</span>
-          </div>
+      <div className="auth-screen">
+        <div className="boot-screen">
+          <video src="/thinking.mp4" autoPlay loop muted playsInline className="boot-screen__owl" aria-hidden />
+          <div className="boot-screen__wordmark">Hoot</div>
+          <div className="boot-screen__bar" />
+          <div className="boot-screen__label">Waking Apollo…</div>
         </div>
-      </main>
+      </div>
     );
   }
 
