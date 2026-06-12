@@ -687,6 +687,7 @@ export default function Page() {
       let buffer = '';
       let answerText = '';
       let citations: CitationMeta[] = [];
+      let streamedAnswer = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -711,6 +712,13 @@ export default function Page() {
             const payload = JSON.parse(eventData);
             if (eventType === 'status') {
               setLoadingStatus(payload.message || '');
+            } else if (eventType === 'reasoning') {
+              // Reasoning deltas are intentionally not surfaced to students.
+            } else if (eventType === 'token') {
+              streamedAnswer += typeof payload.text === 'string' ? payload.text : '';
+              setMessages((prev) =>
+                prev.map((m, idx) => (idx === aiIndex ? { ...m, content: streamedAnswer } : m)),
+              );
             } else if (eventType === 'answer') {
               answerText = typeof payload.answer === 'string' ? payload.answer : '';
               citations = Array.isArray(payload.citations) ? payload.citations : [];
@@ -723,8 +731,9 @@ export default function Page() {
         }
       }
 
+      const finalContent = answerText || streamedAnswer;
       setMessages((prev) =>
-        prev.map((m, idx) => (idx === aiIndex ? { ...m, content: answerText, citations } : m)),
+        prev.map((m, idx) => (idx === aiIndex ? { ...m, content: finalContent, citations } : m)),
       );
     } catch {
       setMessages((prev) =>
