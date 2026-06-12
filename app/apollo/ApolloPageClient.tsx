@@ -53,7 +53,7 @@ export default function ApolloPageClient() {
         setKg(s.kg);
         // Fetch progress for the greeting + avatar level. Non-blocking;
         // errors fall back silently (greeting renders level 1 defaults).
-        getStudentProgress(s.student_id)
+        getStudentProgress()
           .then(setProgress)
           .catch(() => setProgress(null));
       })
@@ -64,7 +64,7 @@ export default function ApolloPageClient() {
   // on a level-up without requiring a page reload.
   useEffect(() => {
     if (!report || !state) return;
-    getStudentProgress(state.student_id)
+    getStudentProgress()
       .then(setProgress)
       .catch(() => {});
   }, [report, state]);

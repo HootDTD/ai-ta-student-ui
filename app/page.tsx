@@ -581,9 +581,12 @@ export default function Page() {
     setApolloError(null);
     setApolloStarting(true);
     try {
+      if (!selectedClassId) {
+        setApolloError('Pick a class before starting Apollo.');
+        return;
+      }
       const transcript = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
-      const studentId = session?.user_id ?? 'unknown';
-      const { session_id } = await startSessionFromHoot(studentId, transcript);
+      const { session_id } = await startSessionFromHoot(selectedClassId, transcript);
       router.push(`/apollo?session=${session_id}`);
     } catch (err) {
       if (err instanceof ApolloApiError && err.errorCode === 'no_matching_concept') {
