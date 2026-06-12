@@ -21,6 +21,7 @@ import ApolloKGPanel from "@/components/apollo/ApolloKGPanel";
 import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
 import ApolloProgressCard from "@/components/apollo/ApolloProgressCard";
 import ApolloReportPanel from "@/components/apollo/ApolloReportPanel";
+import BootScreen from "@/components/BootScreen";
 
 export default function ApolloPageClient() {
   const router = useRouter();
@@ -129,14 +130,9 @@ export default function ApolloPageClient() {
 
   if (!state) {
     return (
-      <main className="apollo-page">
-        <nav className="apollo-page__nav">{returnLink}</nav>
-        <div className="apollo-page__main">
-          <div className="card">
-            <span>Loading session…</span>
-          </div>
-        </div>
-      </main>
+      <div className="auth-screen">
+        <BootScreen label="Waking Apollo…" />
+      </div>
     );
   }
 

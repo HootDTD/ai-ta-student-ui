@@ -13,14 +13,14 @@ related:
   - ai-ta-student-ui/components
   - ai-ta-backend/apollo
   - shared/product-context
-last_verified: 2026-06-10
+last_verified: 2026-06-12
 stub: false
 ---
 
 ## Module map and file landmarks
 
-- `app/page.tsx` (~1370 lines, `"use client"`) — the main Hoot chat page: auth gate, class picker, chat sidebar, streaming Q&A with citations, image attachments, theme toggle, printable AI-use report generator, and the "Teach Apollo" entry point.
-- `app/join/[code]/page.tsx` (`"use client"`) — invite-link landing page; resolves the code, signs the student in/up if needed, auto-redeems, redirects home.
+- `app/page.tsx` (~1370 lines, `"use client"`) — the main Hoot chat page: auth gate, class picker, chat sidebar, streaming Q&A with citations, image attachments, theme toggle, printable AI-use report generator, and the "Teach Apollo" entry point. Entry states (auth bootstrap, sign-in card, config error) use the shared `AuthBrand`/`BootScreen` components and `.auth-screen`/`.auth-card` classes; an empty-chat greeting shows when no messages are loaded; the thinking indicator hides as soon as the first streamed token fills the assistant placeholder.
+- `app/join/[code]/page.tsx` (`"use client"`) — invite-link landing page; resolves the code, signs the student in/up if needed, auto-redeems, redirects home. All branches (checking, sign-in, success, enrolling, errors) render on the shared `AuthBrand`/`BootScreen` entry-screen design.
 - `app/apollo/page.tsx` — server component that just wraps `ApolloPageClient` in `<Suspense>` (needed because the client uses `useSearchParams`).
 - `app/apollo/ApolloPageClient.tsx` (`"use client"`) — the Apollo session screen; orchestrates all `components/apollo/*`.
 - `app/report/[id]/page.tsx` (`"use client"`) — backend-generated AI-use report viewer with copy / .md / .json / PDF export.

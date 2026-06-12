@@ -8,7 +8,7 @@ related:
   - ai-ta-student-ui/pages
   - ai-ta-backend/apollo
   - shared/product-context
-last_verified: 2026-06-10
+last_verified: 2026-06-12
 stub: false
 ---
 
@@ -18,6 +18,9 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 
 - `components/CitationChip.tsx` — citation pill with hover preview.
 - `components/SpecialCharsPalette.tsx` — collapsible math-character keypad for textareas.
+- `components/AuthBrand.tsx` — entry-screen brand lockup (owl video + "Hoot" wordmark + subtitle prop, default "AI Teaching Assistant"); used by the sign-in/config-error cards on `app/page.tsx` and the join page.
+- `components/BootScreen.tsx` — branded full-page loading state (owl + wordmark + shimmer bar + optional `label`); used for auth bootstrap, invite checks, and the Apollo session load.
+- `components/OwlVideo.tsx` — decorative `/thinking.mp4` wrapper (`aria-hidden`, autoplay/loop/muted); hides itself via `onError` if the asset fails so the wordmark stands alone.
 - `components/apollo/ApolloChat.tsx` — Apollo teaching conversation + composer.
 - `components/apollo/ApolloErrorSurface.tsx` — error-code → human copy renderer.
 - `components/apollo/ApolloKGPanel.tsx` — "Apollo's understanding" knowledge-graph sidebar.
