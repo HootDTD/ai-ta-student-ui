@@ -527,7 +527,7 @@ button:disabled {
 .eyebrow {
   color: var(--muted);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2268,14 +2268,13 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 .apollo-browse__difficulty {
-  padding: 0.32rem 0.7rem;
+  padding: 0.32rem 0.8rem;
   border: 1px solid var(--border);
   background: var(--chip-bg);
-  color: var(--text);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-transform: capitalize;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }

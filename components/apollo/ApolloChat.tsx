@@ -130,17 +130,7 @@ export default function ApolloChat({
             </div>
           )}
         </div>
-      ) : (
-        <div className="apollo-empty">
-          <ApolloAvatar />
-          <div>
-            <div className="eyebrow">Apollo</div>
-            <p className="prose" style={{ margin: 0 }}>
-              I need you to walk me through the steps to solve this — not just give me formulas. Explain what to do first, why it applies here, and how to get from there to the answer.
-            </p>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
 
