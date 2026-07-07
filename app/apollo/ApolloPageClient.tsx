@@ -292,16 +292,13 @@ export default function ApolloPageClient() {
         onBack={() => router.push(`/apollo?class=${classId}`)}
         backLabel="Back to problems"
         maxWidthClassName="max-w-4xl"
-        menuExtra={(close) =>
+        actions={
           !report ? (
             <button
               type="button"
-              className="dropdown-item text-sm"
+              className="apollo-topbar__action"
               disabled={busy}
-              onClick={() => {
-                close();
-                void handleRestart();
-              }}
+              onClick={() => void handleRestart()}
             >
               Start over
             </button>
