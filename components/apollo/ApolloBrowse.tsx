@@ -18,6 +18,7 @@ import {
 } from "@/lib/apollo/api";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 import ApolloSidebar from "./ApolloSidebar";
+import OwlVideo from "@/components/OwlVideo";
 import ApolloTopBar from "./ApolloTopBar";
 
 const DIFFICULTIES: ApolloDifficulty[] = ["intro", "standard", "hard"];
@@ -102,18 +103,10 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
           )}
 
           {concepts !== null && concepts.length > 0 && conceptId === null && (
-            <div className="apollo-browse__welcome">
-              <video
-                className="apollo-browse__welcome-owl"
-                src="/thinking.mp4"
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-hidden
-              />
-              <h2 className="apollo-browse__welcome-title">What are we teaching today?</h2>
-              <p className="lede">Pick a concept from the sidebar to get started.</p>
+            <div className="empty-greeting">
+              <OwlVideo className="empty-greeting__owl" />
+              <div className="empty-greeting__title">What are we teaching today?</div>
+              <p className="empty-greeting__note">Pick a concept from the sidebar to get started.</p>
               <button
                 type="button"
                 className="ui-button ui-button--small apollo-browse__welcome-btn"
