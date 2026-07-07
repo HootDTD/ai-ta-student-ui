@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   if (authHeader) headers.Authorization = authHeader;
 
   const search = new URL(req.url).search;
-  const resp = await fetch(`${backend}/apollo/progress${search}`, { headers });
+  const resp = await fetch(`${backend}/apollo/progress${search}`, { headers, cache: 'no-store' });
   return new Response(resp.body, {
     status: resp.status,
     headers: {
