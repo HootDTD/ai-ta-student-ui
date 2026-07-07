@@ -9,7 +9,10 @@ import {
   finishTeaching,
   getSessionState,
   getStudentProgress,
+  nextProblem,
+  restartProblem,
   retryProblem,
+  type ApolloDifficulty,
   type ApolloKG,
   type ApolloSessionState,
   type DoneResponse,
@@ -116,6 +119,54 @@ export default function ApolloPageClient() {
     }
   }
 
+  async function handleNext() {
+    if (!sessionId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const difficulty = (state?.problem?.difficulty ?? "intro") as ApolloDifficulty;
+      await nextProblem(sessionId, difficulty);
+      const fresh = await getSessionState(sessionId);
+      setState(fresh);
+      setKg(fresh.kg);
+      setReport(null);
+      setGateEntries(null);
+      setTouched(new Set());
+      setPulseEntryId(null);
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRestart() {
+    if (!sessionId) return;
+    if (
+      !window.confirm(
+        "Start this problem over? Apollo forgets everything you taught it for this attempt.",
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await restartProblem(sessionId);
+      const fresh = await getSessionState(sessionId);
+      setState(fresh);
+      setKg(fresh.kg);
+      setReport(null);
+      setGateEntries(null);
+      setTouched(new Set());
+      setPulseEntryId(null);
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleEnd() {
     if (!sessionId) return;
     setBusy(true);
@@ -180,7 +231,19 @@ export default function ApolloPageClient() {
 
   return (
     <main className="apollo-page" data-apollo-level={levelForAvatar}>
-      <nav className="apollo-page__nav">{returnLink}</nav>
+      <nav className="apollo-page__nav">
+        {returnLink}
+        {!report && (
+          <button
+            type="button"
+            className="apollo-restart-btn"
+            onClick={handleRestart}
+            disabled={busy}
+          >
+            Start over
+          </button>
+        )}
+      </nav>
       <div className="apollo-page__main">
         <ApolloProgressCard progress={progress} />
         <ApolloProblemPanel problem={state.problem} />
@@ -210,7 +273,13 @@ export default function ApolloPageClient() {
           </button>
         )}
         {report ? (
-          <ApolloReportPanel report={report} onRetry={handleRetry} onEnd={handleEnd} busy={busy} />
+          <ApolloReportPanel
+            report={report}
+            onRetry={handleRetry}
+            onEnd={handleEnd}
+            onNext={handleNext}
+            busy={busy}
+          />
         ) : (
           <ApolloChat
             sessionId={sessionId}

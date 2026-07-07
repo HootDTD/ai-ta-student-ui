@@ -1877,3 +1877,5 @@ html.dark .apollo-progress-card[data-level="5"] {
 .apollo-browse-entry { margin-left: 8px; }
 
 .apollo-gate-resume { position: fixed; bottom: 20px; right: 20px; z-index: 40; padding: 10px 16px; border-radius: 999px; background: var(--accent, #4a6cf7); color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+
+.apollo-restart-btn { margin-left: auto; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border, #dcdce4); background: transparent; cursor: pointer; font-size: 0.85rem; }
