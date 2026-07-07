@@ -3,6 +3,8 @@
 // `errorCode` matches the backend's `error_code` field. UI components
 // render each code explicitly (NO FALLBACKS).
 
+import { authHeaders, loadStoredSession } from "@/app/lib/auth";
+
 export type ApolloErrorCode =
   | "parser_could_not_extract"
   | "filter_rejected"
@@ -268,11 +270,13 @@ export async function getStudentProgress(studentId: string): Promise<StudentProg
 // Standalone entry + browse surface (2026-07-07 e2e baseline)
 // ---------------------------------------------------------------------------
 
-// Header helper for the standalone surface. GET calls send no body headers;
-// POST calls (pass `true`) set content-type to application/json — matching the
-// repo's existing inline proxy-client convention.
+// Header helper for the standalone surface. Attaches the stored Supabase
+// session's bearer token (the backend requires one on every new endpoint;
+// the proxy routes only forward an incoming Authorization header). POST
+// calls (pass `true`) also set Content-Type: application/json.
 function apolloHeaders(withBody = false): Record<string, string> {
-  return withBody ? { "content-type": "application/json" } : {};
+  const session = loadStoredSession();
+  return authHeaders(session?.access_token, withBody) as Record<string, string>;
 }
 
 export type ApolloDifficulty = "intro" | "standard" | "hard";
