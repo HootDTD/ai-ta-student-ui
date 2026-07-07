@@ -28,9 +28,9 @@ export default function ApolloProblemPanel({ problem }: Props) {
       <p className="prose" style={{ margin: 0 }}>
         {problem.problem_text}
       </p>
-      <div className="note">
-        <strong>Teach Apollo enough to solve for {problem.target_unknown}.</strong>
-      </div>
+      <p className="note" style={{ margin: 0 }}>
+        Teach Apollo enough to solve for {problem.target_unknown}.
+      </p>
     </section>
   );
 }

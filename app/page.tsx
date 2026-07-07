@@ -1283,6 +1283,9 @@ export default function Page() {
               {apolloError}
             </div>
           )}
+          {/* Temporarily removed \u2014 kept for a possible future re-add. The
+              "Teach Apollo what you just learned" hand-off from a chat into an
+              Apollo session:
           {messages.length > 0 && (
             <div className="mb-3 flex justify-end">
               <button
@@ -1295,6 +1298,7 @@ export default function Page() {
               </button>
             </div>
           )}
+          */}
           {formError && (
             <div className="mb-3 notice" data-tone="danger">
               {formError}

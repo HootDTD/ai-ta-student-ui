@@ -164,16 +164,47 @@ export default function ApolloKGPanel({
     }
   }, [pulseEntryId]);
 
+  const total =
+    equations.length + conditions.length + simplifications.length +
+    definitions.length + variableMappings.length + procedureSteps.length;
+
   return (
     <aside ref={asideRef} className="card apollo-kg">
-      <div className="eyebrow">Apollo&apos;s understanding</div>
+      <div className="apollo-kg__title">Apollo&apos;s understanding</div>
 
-      <div className="apollo-kg__section">
-        <strong>Equations</strong>
-        {bulletList(equations, (n) => {
-          const tex = n.content.latex ?? n.content.symbolic;
-          const label = n.content.label ?? "";
-          return (
+      {total === 0 && (
+        <p className="note apollo-kg__empty">
+          Nothing yet — as you teach, what Apollo understands shows up here.
+        </p>
+      )}
+
+      {equations.length > 0 && (
+        <div className="apollo-kg__section">
+          <div className="eyebrow">Equations</div>
+          {bulletList(equations, (n) => {
+            const tex = n.content.latex ?? n.content.symbolic;
+            const label = n.content.label ?? "";
+            return (
+              <MaybePill
+                sessionId={sessionId} node={n}
+                pulse={pulseEntryId === n.node_id}
+                onUpdated={onKgUpdated}
+                onEntryTouched={onEntryTouched}
+              >
+                <span>
+                  {label && <span>{label}: </span>}
+                  <InlineMath math={tex} />
+                </span>
+              </MaybePill>
+            );
+          })}
+        </div>
+      )}
+
+      {conditions.length > 0 && (
+        <div className="apollo-kg__section">
+          <div className="eyebrow">Conditions</div>
+          {bulletList(conditions, (n) => (
             <MaybePill
               sessionId={sessionId} node={n}
               pulse={pulseEntryId === n.node_id}
@@ -181,84 +212,18 @@ export default function ApolloKGPanel({
               onEntryTouched={onEntryTouched}
             >
               <span>
-                {label && <span>{label}: </span>}
-                <InlineMath math={tex} />
+                {n.content.label ? `${n.content.label} — ` : ""}
+                {n.content.applies_when}
               </span>
             </MaybePill>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
-      <div className="apollo-kg__section">
-        <strong>Conditions</strong>
-        {bulletList(conditions, (n) => (
-          <MaybePill
-            sessionId={sessionId} node={n}
-            pulse={pulseEntryId === n.node_id}
-            onUpdated={onKgUpdated}
-            onEntryTouched={onEntryTouched}
-          >
-            <span>
-              {n.content.label ? `${n.content.label} — ` : ""}
-              {n.content.applies_when}
-            </span>
-          </MaybePill>
-        ))}
-      </div>
-
-      <div className="apollo-kg__section">
-        <strong>Simplifications</strong>
-        {bulletList(simplifications, (n) => (
-          <MaybePill
-            sessionId={sessionId} node={n}
-            pulse={pulseEntryId === n.node_id}
-            onUpdated={onKgUpdated}
-            onEntryTouched={onEntryTouched}
-          >
-            <span>
-              when {n.content.applies_when}, {n.content.transformation}
-            </span>
-          </MaybePill>
-        ))}
-      </div>
-
-      <div className="apollo-kg__section">
-        <strong>Definitions</strong>
-        {bulletList(definitions, (n) => (
-          <MaybePill
-            sessionId={sessionId} node={n}
-            pulse={pulseEntryId === n.node_id}
-            onUpdated={onKgUpdated}
-            onEntryTouched={onEntryTouched}
-          >
-            <span>
-              {n.content.concept} = {n.content.meaning}
-            </span>
-          </MaybePill>
-        ))}
-      </div>
-
-      <div className="apollo-kg__section">
-        <strong>Variable mappings</strong>
-        {bulletList(variableMappings, (n) => (
-          <MaybePill
-            sessionId={sessionId} node={n}
-            pulse={pulseEntryId === n.node_id}
-            onUpdated={onKgUpdated}
-            onEntryTouched={onEntryTouched}
-          >
-            <span>
-              {n.content.term} → {n.content.symbol}
-            </span>
-          </MaybePill>
-        ))}
-      </div>
-
-      <div className="apollo-kg__section">
-        <strong>Procedure steps</strong>
-        {bulletList(procedureSteps, (n, i) => {
-          const targets = usesTargets(kg, n.node_id);
-          return (
+      {simplifications.length > 0 && (
+        <div className="apollo-kg__section">
+          <div className="eyebrow">Simplifications</div>
+          {bulletList(simplifications, (n) => (
             <MaybePill
               sessionId={sessionId} node={n}
               pulse={pulseEntryId === n.node_id}
@@ -266,18 +231,75 @@ export default function ApolloKGPanel({
               onEntryTouched={onEntryTouched}
             >
               <span>
-                {i + 1}. {n.content.action}
-                {targets.length > 0 && (
-                  <span className="note">
-                    {" "}
-                    → uses {targets.map((t) => t.content.label || t.node_id).join(", ")}
-                  </span>
-                )}
+                when {n.content.applies_when}, {n.content.transformation}
               </span>
             </MaybePill>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {definitions.length > 0 && (
+        <div className="apollo-kg__section">
+          <div className="eyebrow">Definitions</div>
+          {bulletList(definitions, (n) => (
+            <MaybePill
+              sessionId={sessionId} node={n}
+              pulse={pulseEntryId === n.node_id}
+              onUpdated={onKgUpdated}
+              onEntryTouched={onEntryTouched}
+            >
+              <span>
+                {n.content.concept} = {n.content.meaning}
+              </span>
+            </MaybePill>
+          ))}
+        </div>
+      )}
+
+      {variableMappings.length > 0 && (
+        <div className="apollo-kg__section">
+          <div className="eyebrow">Variable mappings</div>
+          {bulletList(variableMappings, (n) => (
+            <MaybePill
+              sessionId={sessionId} node={n}
+              pulse={pulseEntryId === n.node_id}
+              onUpdated={onKgUpdated}
+              onEntryTouched={onEntryTouched}
+            >
+              <span>
+                {n.content.term} → {n.content.symbol}
+              </span>
+            </MaybePill>
+          ))}
+        </div>
+      )}
+
+      {procedureSteps.length > 0 && (
+        <div className="apollo-kg__section">
+          <div className="eyebrow">Procedure steps</div>
+          {bulletList(procedureSteps, (n, i) => {
+            const targets = usesTargets(kg, n.node_id);
+            return (
+              <MaybePill
+                sessionId={sessionId} node={n}
+                pulse={pulseEntryId === n.node_id}
+                onUpdated={onKgUpdated}
+                onEntryTouched={onEntryTouched}
+              >
+                <span>
+                  {i + 1}. {n.content.action}
+                  {targets.length > 0 && (
+                    <span className="note">
+                      {" "}
+                      → uses {targets.map((t) => t.content.label || t.node_id).join(", ")}
+                    </span>
+                  )}
+                </span>
+              </MaybePill>
+            );
+          })}
+        </div>
+      )}
     </aside>
   );
 }

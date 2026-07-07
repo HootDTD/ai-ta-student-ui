@@ -739,8 +739,18 @@ button:disabled {
   gap: 0.35rem;
 }
 
-.apollo-kg__section > strong {
-  font-size: 0.95rem;
+/* Panel heading uses the same serif-accent treatment as the home titles;
+   section labels below it use the muted .eyebrow — a quiet title → label
+   hierarchy instead of a stack of bold headers. */
+.apollo-kg__title {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.apollo-kg__empty {
+  margin: 0;
 }
 
 /* Apollo's top bar reuses .site-header + .site-brand directly (see
@@ -1903,14 +1913,19 @@ html.dark .apollo-progress-card[data-level="5"] {
   background: var(--accent-soft);
   padding: 0.05rem 0.35rem;
 }
+/* Negotiation controls stay out of the way until you engage a row — the
+   panel at rest reads as a clean list, not a wall of buttons. Revealed on
+   hover and keyboard focus (focus-within keeps them reachable without a
+   mouse). */
 .kg-pill__actions {
   flex: 0 0 auto;
   display: inline-flex;
   gap: 0.15rem;
-  opacity: 0.55;
+  opacity: 0;
   transition: opacity 200ms ease;
 }
-.kg-pill:hover .kg-pill__actions { opacity: 1; }
+.kg-pill:hover .kg-pill__actions,
+.kg-pill:focus-within .kg-pill__actions { opacity: 1; }
 .kg-pill__btn,
 .kg-pill__btn-primary,
 .kg-pill__btn-secondary {
