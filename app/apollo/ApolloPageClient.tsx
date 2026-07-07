@@ -301,7 +301,6 @@ export default function ApolloPageClient() {
     <div className="apollo-session-shell">
       <ApolloTopBar
         classId={classId}
-        progress={progress}
         onBack={() => router.push(`/apollo?class=${classId}`)}
         backLabel="Back to problems"
         maxWidthClassName="max-w-3xl"

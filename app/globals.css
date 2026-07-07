@@ -820,13 +820,6 @@ button:disabled {
   }
 }
 
-.apollo-topbar__stat {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.88rem;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
 /* Visible secondary action in the top-bar right cluster (e.g. "Start over"),
    matching the subtle outlined treatment of the back/menu chrome. */
 .apollo-topbar__action {

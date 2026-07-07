@@ -14,14 +14,8 @@ import { ChevronDown, ChevronLeft, MoreVertical, PanelLeft } from "lucide-react"
 
 import { listMyClasses, type ApolloClassOption } from "@/lib/apollo/api";
 
-interface ApolloTopBarProgress {
-  level: number;
-  xp_total: number;
-}
-
 interface Props {
   classId?: number | null;
-  progress?: ApolloTopBarProgress | null;
   onBack?: () => void;
   backLabel?: string;
   // Present only on the browse page — reveals the mobile concepts drawer.
@@ -38,7 +32,6 @@ interface Props {
 
 export default function ApolloTopBar({
   classId,
-  progress,
   onBack,
   backLabel = "Back",
   onToggleSidebar,
@@ -151,11 +144,6 @@ export default function ApolloTopBar({
         </div>
 
         <div className="flex items-center gap-2 relative z-[1]">
-          {progress && (
-            <span className="apollo-topbar__stat">
-              Lv {progress.level} · {progress.xp_total.toLocaleString()} XP
-            </span>
-          )}
           {actions}
           <div ref={menuRef} className="relative">
             <button
