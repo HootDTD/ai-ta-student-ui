@@ -587,7 +587,8 @@ export default function Page() {
       const transcript = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
       const studentId = session?.user_id ?? 'unknown';
       const { session_id } = await startSessionFromHoot(studentId, transcript);
-      router.push(`/apollo?session=${session_id}`);
+      const classSuffix = selectedClassId != null ? `&class=${selectedClassId}` : '';
+      router.push(`/apollo?session=${session_id}${classSuffix}`);
     } catch (err) {
       if (err instanceof ApolloApiError && err.errorCode === 'no_matching_concept') {
         setApolloError("Apollo doesn't cover this topic yet.");
@@ -1136,7 +1137,17 @@ export default function Page() {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="site-brand">Hoot</div>
           </div>
-          <div ref={headerMenuRef} className="relative z-[1]">
+          <div className="flex items-center gap-2 relative z-[1]">
+            {selectedClassId != null && (
+              <button
+                onClick={() => router.push(`/apollo?class=${selectedClassId}`)}
+                className="ui-button ui-button--small !h-8 !min-h-8 !px-3 !py-1.5 text-sm whitespace-nowrap"
+                type="button"
+              >
+                Practice with Apollo
+              </button>
+            )}
+          <div ref={headerMenuRef} className="relative">
             <button
               onClick={() => setHeaderMenuOpen((prev) => !prev)}
               className="header-menu-trigger"
@@ -1179,6 +1190,7 @@ export default function Page() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
           </div>
         </div>
       </header>
@@ -1280,14 +1292,6 @@ export default function Page() {
                 type="button"
               >
                 {apolloStarting ? 'Starting\u2026' : 'Teach Apollo what you just learned'}
-              </button>
-              <button
-                type="button"
-                className="apollo-browse-entry"
-                onClick={() => router.push(`/apollo?class=${selectedClassId}`)}
-                disabled={!selectedClassId}
-              >
-                Practice with Apollo
               </button>
             </div>
           )}

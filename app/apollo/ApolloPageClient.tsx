@@ -25,24 +25,14 @@ import ApolloChat from "@/components/apollo/ApolloChat";
 import ApolloErrorSurface from "@/components/apollo/ApolloErrorSurface";
 import ApolloKGPanel from "@/components/apollo/ApolloKGPanel";
 import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
-import ApolloProgressCard from "@/components/apollo/ApolloProgressCard";
 import ApolloReportPanel from "@/components/apollo/ApolloReportPanel";
+import ApolloTopBar from "@/components/apollo/ApolloTopBar";
 
 export default function ApolloPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = Number(searchParams.get("session"));
   const classId = Number(searchParams.get("class"));
-
-  const returnLink = (
-    <button
-      type="button"
-      className="apollo-return-link"
-      onClick={() => router.push("/")}
-    >
-      ← Return to Hoot
-    </button>
-  );
 
   const [state, setState] = useState<ApolloSessionState | null>(null);
   const [kg, setKg] = useState<ApolloKG | null>(null);
@@ -174,6 +164,12 @@ export default function ApolloPageClient() {
     setBusy(true);
     try {
       await endSession(sessionId);
+      // Close the loop: land back on the course's problem browse. Without
+      // a class id (old deep link) fall back to the ended-session view.
+      if (classId) {
+        router.push(`/apollo?class=${classId}`);
+        return;
+      }
       setReport(null);
       const fresh = await getSessionState(sessionId);
       setState(fresh);
@@ -187,71 +183,133 @@ export default function ApolloPageClient() {
   if (!sessionId) {
     if (classId) {
       return (
-        <main className="apollo-page">
-          <ApolloBrowse
-            classId={classId}
-            onStarted={(sid) => router.replace(`/apollo?session=${sid}&class=${classId}`)}
-          />
-        </main>
+        <ApolloBrowse
+          classId={classId}
+          onStarted={(sid) => router.replace(`/apollo?session=${sid}&class=${classId}`)}
+        />
       );
     }
     return (
-      <main className="apollo-page">
-        <p>Open Apollo from your class page so we know which course you&apos;re in.</p>
-      </main>
+      <>
+        <ApolloTopBar maxWidthClassName="max-w-4xl" />
+        <main className="apollo-page">
+          <div className="apollo-page__main">
+            <div className="module">
+              <p className="lede">
+                Open Apollo from your class page so we know which course you&apos;re in.
+              </p>
+            </div>
+          </div>
+        </main>
+      </>
     );
   }
 
   if (!state) {
     return (
-      <main className="apollo-page">
-        <nav className="apollo-page__nav">{returnLink}</nav>
-        <div className="apollo-page__main">
-          {error ? (
-            <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
-          ) : (
-            <div className="card">
-              <span>Loading session…</span>
-            </div>
-          )}
-        </div>
-      </main>
+      <>
+        <ApolloTopBar
+          classId={classId}
+          onBack={() => router.push(`/apollo?class=${classId}`)}
+          backLabel="Back to problems"
+          maxWidthClassName="max-w-4xl"
+        />
+        <main className="apollo-page">
+          <div className="apollo-page__main">
+            {error ? (
+              <>
+                <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
+                {classId ? (
+                  <div>
+                    <button
+                      type="button"
+                      className="ui-button ui-button--primary ui-button--small"
+                      onClick={() => router.push(`/apollo?class=${classId}`)}
+                    >
+                      Back to problems
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="card">
+                <span>Loading session…</span>
+              </div>
+            )}
+          </div>
+        </main>
+      </>
     );
   }
 
   if (state.status === "ended") {
     return (
-      <main className="apollo-page">
-        <nav className="apollo-page__nav">{returnLink}</nav>
-        <div className="apollo-page__main">
-          <div className="module">
-            <h1 className="section-title">Session ended</h1>
-            <p className="lede">You&apos;ve ended this Apollo session.</p>
+      <>
+        <ApolloTopBar
+          classId={classId}
+          onBack={() => router.push(`/apollo?class=${classId}`)}
+          backLabel="Back to problems"
+          maxWidthClassName="max-w-4xl"
+        />
+        <main className="apollo-page">
+          <div className="apollo-page__main">
+            <div className="module">
+              <h1 className="section-title">Session ended</h1>
+              <p className="lede">You&apos;ve ended this Apollo session.</p>
+              <div className="apollo-page__exit-actions">
+                {classId ? (
+                  <button
+                    type="button"
+                    className="ui-button ui-button--primary ui-button--small"
+                    onClick={() => router.push(`/apollo?class=${classId}`)}
+                  >
+                    Browse more problems
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ui-button ui-button--primary ui-button--small"
+                    onClick={() => router.push("/")}
+                  >
+                    Return to Hoot
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </>
     );
   }
 
   const levelForAvatar = progress?.level ?? 1;
 
   return (
-    <main className="apollo-page" data-apollo-level={levelForAvatar}>
-      <nav className="apollo-page__nav">
-        {returnLink}
-        {!report && (
-          <button
-            type="button"
-            className="apollo-restart-btn"
-            onClick={handleRestart}
-            disabled={busy}
-          >
-            Start over
-          </button>
-        )}
-      </nav>
+    <>
+      <ApolloTopBar
+        classId={classId}
+        progress={progress}
+        onBack={() => router.push(`/apollo?class=${classId}`)}
+        backLabel="Back to problems"
+        maxWidthClassName="max-w-4xl"
+        menuExtra={(close) =>
+          !report ? (
+            <button
+              type="button"
+              className="dropdown-item text-sm"
+              disabled={busy}
+              onClick={() => {
+                close();
+                void handleRestart();
+              }}
+            >
+              Start over
+            </button>
+          ) : null
+        }
+      />
+      <main className="apollo-page" data-apollo-level={levelForAvatar}>
       <div className="apollo-page__main">
-        <ApolloProgressCard progress={progress} />
         <ApolloProblemPanel problem={state.problem} />
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
         {gateEntries && gateOpen && (
@@ -314,6 +372,7 @@ export default function ApolloPageClient() {
           />
         )}
       </aside>
-    </main>
+      </main>
+    </>
   );
 }
