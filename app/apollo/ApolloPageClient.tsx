@@ -285,7 +285,7 @@ export default function ApolloPageClient() {
   const levelForAvatar = progress?.level ?? 1;
 
   return (
-    <>
+    <div className="apollo-session-shell">
       <ApolloTopBar
         classId={classId}
         progress={progress}
@@ -370,6 +370,6 @@ export default function ApolloPageClient() {
         )}
       </aside>
       </main>
-    </>
+    </div>
   );
 }
