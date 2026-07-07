@@ -22,6 +22,8 @@ function titleFor(err: ApolloApiError | Error): string {
       return "No more problems at that difficulty";
     case "session_frozen":
       return "This session is frozen";
+    case "review_required":
+      return "A quick review is needed before grading";
     default:
       return "Something went wrong";
   }
@@ -43,6 +45,8 @@ function detailFor(err: ApolloApiError | Error): string {
       return `Apollo has no more ${extra.difficulty ?? ""} problems for ${extra.concept_cluster_id ?? "this topic"}. Pick a different difficulty or end the session.`;
     case "session_frozen":
       return "This session has already been finalized; you can't make changes.";
+    case "review_required":
+      return "Some things Apollo heard need your confirmation. Use the ? ✎ ↩ buttons in “Apollo’s understanding” to review them, then press Done again.";
     default:
       return message;
   }

@@ -1875,3 +1875,5 @@ html.dark .apollo-progress-card[data-level="5"] {
 .apollo-browse__tried { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.07); }
 .apollo-browse__loading, .apollo-browse__empty { padding: 24px 0; color: var(--muted, #667); }
 .apollo-browse-entry { margin-left: 8px; }
+
+.apollo-gate-resume { position: fixed; bottom: 20px; right: 20px; z-index: 40; padding: 10px 16px; border-radius: 999px; background: var(--accent, #4a6cf7); color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
