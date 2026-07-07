@@ -2415,10 +2415,10 @@ html.dark .apollo-progress-card[data-level="5"] {
 .apollo-progress-page__title {
   margin: 0;
   color: var(--accent);
-  font-size: clamp(1.6rem, 2.2vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 0.96;
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
 .apollo-progress-page__section {
@@ -2523,7 +2523,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 .apollo-attempts__grade {
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
