@@ -1133,6 +1133,11 @@ export default function Page() {
                 )}
               </AnimatePresence>
             </div>
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="site-brand">Hoot</div>
+          </div>
+          <div className="flex items-center gap-2 relative z-[1]">
             {selectedClassId != null && (
               <button
                 onClick={() => router.push(`/apollo?class=${selectedClassId}`)}
@@ -1142,11 +1147,7 @@ export default function Page() {
                 Practice with Apollo
               </button>
             )}
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="site-brand">Hoot</div>
-          </div>
-          <div ref={headerMenuRef} className="relative z-[1]">
+          <div ref={headerMenuRef} className="relative">
             <button
               onClick={() => setHeaderMenuOpen((prev) => !prev)}
               className="header-menu-trigger"
@@ -1189,6 +1190,7 @@ export default function Page() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
           </div>
         </div>
       </header>
