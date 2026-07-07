@@ -31,6 +31,10 @@ interface Props {
   // Bubbled when a negotiation move succeeds — parent updates its KG
   // state and may clear `pulseEntryId`.
   onKgUpdated?: (kg: ApolloKG) => void;
+  // Fired with the touched entry's node_id on every successful
+  // negotiation move — parent tracks the set of entries the student
+  // has engaged with (Task 8 done-gate consumes it).
+  onEntryTouched?: (entryId: string) => void;
 }
 
 function nodesByType<T extends ApolloNode>(
@@ -110,12 +114,13 @@ function usesTargets(kg: ApolloKG, fromId: string): EquationNode[] {
 // Helper: pill-or-bare wrapper. When sessionId is missing we render the
 // child unwrapped — preserves pre-P3 panel rendering for read-only contexts.
 function MaybePill({
-  sessionId, node, pulse, onUpdated, children,
+  sessionId, node, pulse, onUpdated, onEntryTouched, children,
 }: {
   sessionId?: number;
   node: ApolloNode;
   pulse: boolean;
   onUpdated?: (kg: ApolloKG) => void;
+  onEntryTouched?: (entryId: string) => void;
   children: React.ReactNode;
 }) {
   if (sessionId === undefined) return <>{children}</>;
@@ -124,7 +129,10 @@ function MaybePill({
       sessionId={sessionId}
       node={node}
       pulseHint={pulse}
-      onUpdated={(_, kg) => onUpdated?.(kg)}
+      onUpdated={(entry, kg) => {
+        onEntryTouched?.(entry.node_id);
+        onUpdated?.(kg);
+      }}
     >
       {children}
     </KGEntryPill>
@@ -132,7 +140,7 @@ function MaybePill({
 }
 
 export default function ApolloKGPanel({
-  kg, sessionId, pulseEntryId, onKgUpdated,
+  kg, sessionId, pulseEntryId, onKgUpdated, onEntryTouched,
 }: Props) {
   const equations = nodesByType<EquationNode>(kg, "equation");
   const conditions = nodesByType<ConditionNode>(kg, "condition");
@@ -170,6 +178,7 @@ export default function ApolloKGPanel({
               sessionId={sessionId} node={n}
               pulse={pulseEntryId === n.node_id}
               onUpdated={onKgUpdated}
+              onEntryTouched={onEntryTouched}
             >
               <span>
                 {label && <span>{label}: </span>}
@@ -187,6 +196,7 @@ export default function ApolloKGPanel({
             sessionId={sessionId} node={n}
             pulse={pulseEntryId === n.node_id}
             onUpdated={onKgUpdated}
+            onEntryTouched={onEntryTouched}
           >
             <span>
               {n.content.label ? `${n.content.label} — ` : ""}
@@ -203,6 +213,7 @@ export default function ApolloKGPanel({
             sessionId={sessionId} node={n}
             pulse={pulseEntryId === n.node_id}
             onUpdated={onKgUpdated}
+            onEntryTouched={onEntryTouched}
           >
             <span>
               when {n.content.applies_when}, {n.content.transformation}
@@ -218,6 +229,7 @@ export default function ApolloKGPanel({
             sessionId={sessionId} node={n}
             pulse={pulseEntryId === n.node_id}
             onUpdated={onKgUpdated}
+            onEntryTouched={onEntryTouched}
           >
             <span>
               {n.content.concept} = {n.content.meaning}
@@ -233,6 +245,7 @@ export default function ApolloKGPanel({
             sessionId={sessionId} node={n}
             pulse={pulseEntryId === n.node_id}
             onUpdated={onKgUpdated}
+            onEntryTouched={onEntryTouched}
           >
             <span>
               {n.content.term} → {n.content.symbol}
@@ -250,6 +263,7 @@ export default function ApolloKGPanel({
               sessionId={sessionId} node={n}
               pulse={pulseEntryId === n.node_id}
               onUpdated={onKgUpdated}
+              onEntryTouched={onEntryTouched}
             >
               <span>
                 {i + 1}. {n.content.action}

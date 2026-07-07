@@ -41,6 +41,8 @@ export default function ApolloPageClient() {
 
   const [state, setState] = useState<ApolloSessionState | null>(null);
   const [kg, setKg] = useState<ApolloKG | null>(null);
+  const [pulseEntryId, setPulseEntryId] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Set<string>>(new Set());
   const [report, setReport] = useState<DoneResponse | null>(null);
   const [progress, setProgress] = useState<StudentProgress | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
@@ -183,7 +185,23 @@ export default function ApolloPageClient() {
           />
         )}
       </div>
-      <aside className="apollo-page__aside">{kg && <ApolloKGPanel kg={kg} />}</aside>
+      <aside className="apollo-page__aside">
+        {kg && (
+          <ApolloKGPanel
+            kg={kg}
+            sessionId={sessionId}
+            pulseEntryId={pulseEntryId}
+            onKgUpdated={(newKg) => setKg(newKg)}
+            onEntryTouched={(id) =>
+              setTouched((prev) => {
+                const next = new Set(prev);
+                next.add(id);
+                return next;
+              })
+            }
+          />
+        )}
+      </aside>
     </main>
   );
 }
