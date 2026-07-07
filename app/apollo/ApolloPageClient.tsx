@@ -34,13 +34,25 @@ export default function ApolloPageClient() {
   const sessionId = Number(searchParams.get("session"));
   const classId = Number(searchParams.get("class"));
 
+  // Primary way out of a session: back to the course's problem browse.
+  // "Return to Hoot" stays as the single secondary exit.
+  const browseLink = classId ? (
+    <button
+      type="button"
+      className="apollo-return-link apollo-return-link--browse"
+      onClick={() => router.push(`/apollo?class=${classId}`)}
+    >
+      ← All problems
+    </button>
+  ) : null;
+
   const returnLink = (
     <button
       type="button"
       className="apollo-return-link"
       onClick={() => router.push("/")}
     >
-      ← Return to Hoot
+      Return to Hoot
     </button>
   );
 
@@ -174,6 +186,12 @@ export default function ApolloPageClient() {
     setBusy(true);
     try {
       await endSession(sessionId);
+      // Close the loop: land back on the course's problem browse. Without
+      // a class id (old deep link) fall back to the ended-session view.
+      if (classId) {
+        router.push(`/apollo?class=${classId}`);
+        return;
+      }
       setReport(null);
       const fresh = await getSessionState(sessionId);
       setState(fresh);
@@ -197,7 +215,22 @@ export default function ApolloPageClient() {
     }
     return (
       <main className="apollo-page">
-        <p>Open Apollo from your class page so we know which course you&apos;re in.</p>
+        <div className="apollo-page__main">
+          <div className="module">
+            <p className="lede">
+              Open Apollo from your class page so we know which course you&apos;re in.
+            </p>
+            <div>
+              <button
+                type="button"
+                className="ui-button ui-button--primary ui-button--small"
+                onClick={() => router.push("/")}
+              >
+                Return to Hoot
+              </button>
+            </div>
+          </div>
+        </div>
       </main>
     );
   }
@@ -205,10 +238,26 @@ export default function ApolloPageClient() {
   if (!state) {
     return (
       <main className="apollo-page">
-        <nav className="apollo-page__nav">{returnLink}</nav>
+        <nav className="apollo-page__nav">
+          {browseLink}
+          <div className="apollo-page__nav-actions">{returnLink}</div>
+        </nav>
         <div className="apollo-page__main">
           {error ? (
-            <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
+            <>
+              <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
+              {classId ? (
+                <div>
+                  <button
+                    type="button"
+                    className="ui-button ui-button--primary ui-button--small"
+                    onClick={() => router.push(`/apollo?class=${classId}`)}
+                  >
+                    Back to problems
+                  </button>
+                </div>
+              ) : null}
+            </>
           ) : (
             <div className="card">
               <span>Loading session…</span>
@@ -222,11 +271,33 @@ export default function ApolloPageClient() {
   if (state.status === "ended") {
     return (
       <main className="apollo-page">
-        <nav className="apollo-page__nav">{returnLink}</nav>
+        <nav className="apollo-page__nav">
+          {browseLink}
+          <div className="apollo-page__nav-actions">{returnLink}</div>
+        </nav>
         <div className="apollo-page__main">
           <div className="module">
             <h1 className="section-title">Session ended</h1>
             <p className="lede">You&apos;ve ended this Apollo session.</p>
+            <div className="apollo-page__exit-actions">
+              {classId ? (
+                <button
+                  type="button"
+                  className="ui-button ui-button--primary ui-button--small"
+                  onClick={() => router.push(`/apollo?class=${classId}`)}
+                >
+                  Browse more problems
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="ui-button ui-button--primary ui-button--small"
+                  onClick={() => router.push("/")}
+                >
+                  Return to Hoot
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </main>
@@ -238,17 +309,20 @@ export default function ApolloPageClient() {
   return (
     <main className="apollo-page" data-apollo-level={levelForAvatar}>
       <nav className="apollo-page__nav">
-        {returnLink}
-        {!report && (
-          <button
-            type="button"
-            className="apollo-restart-btn"
-            onClick={handleRestart}
-            disabled={busy}
-          >
-            Start over
-          </button>
-        )}
+        {browseLink}
+        <div className="apollo-page__nav-actions">
+          {returnLink}
+          {!report && (
+            <button
+              type="button"
+              className="apollo-restart-btn"
+              onClick={handleRestart}
+              disabled={busy}
+            >
+              Start over
+            </button>
+          )}
+        </div>
       </nav>
       <div className="apollo-page__main">
         <ApolloProgressCard progress={progress} />

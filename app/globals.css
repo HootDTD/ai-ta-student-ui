@@ -553,7 +553,22 @@ button:disabled {
 .apollo-page__nav {
   grid-area: nav;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Right-aligned cluster (Return to Hoot, Start over); the browse
+   back-link, when present, sits alone on the left. */
+.apollo-page__nav-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.apollo-page__exit-actions {
+  display: flex;
+  gap: 0.6rem;
 }
 
 .apollo-page__main {
