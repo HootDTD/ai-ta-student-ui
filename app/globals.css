@@ -330,6 +330,200 @@ button:disabled {
   white-space: nowrap;
 }
 
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: radial-gradient(ellipse 120% 80% at 50% -10%, var(--bg-soft), var(--bg) 70%);
+}
+
+.auth-card {
+  width: min(24.5rem, 100%);
+  display: grid;
+  gap: 1.05rem;
+  padding: clamp(1.6rem, 4vw, 2.1rem);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  background: var(--surface-fill);
+  box-shadow: var(--shadow-soft);
+}
+
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The owl video dissolves into the card via mix-blend-mode; an animated
+   (opacity/transform) ancestor would create a stacking context that
+   isolates the blend and exposes the video's raw background. So the
+   brand block itself never animates — its text children carry the
+   entrance instead. */
+.auth-card > *:not(.auth-brand) {
+  animation: auth-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-brand__wordmark,
+.auth-brand__subtitle {
+  animation: auth-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-brand__subtitle {
+  animation-delay: 60ms;
+}
+
+.auth-card > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.auth-card > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.auth-card > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.auth-card > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+.auth-card > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+
+.auth-card > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+
+.auth-card > *:nth-child(n + 8) {
+  animation-delay: 420ms;
+}
+
+.auth-brand {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  padding-bottom: 0.35rem;
+}
+
+.auth-brand__owl {
+  width: 4.25rem;
+  height: 4.25rem;
+  object-fit: contain;
+  filter: invert(var(--owl-invert));
+  mix-blend-mode: var(--owl-blend);
+}
+
+.auth-brand__wordmark {
+  font-family: var(--serif);
+  font-size: 2.35rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.auth-brand__subtitle {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.boot-screen {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  text-align: center;
+}
+
+.boot-screen__owl {
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: contain;
+  filter: invert(var(--owl-invert));
+  mix-blend-mode: var(--owl-blend);
+}
+
+.boot-screen__wordmark {
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.boot-screen__bar {
+  width: 8.5rem;
+  height: 2px;
+  background: var(--accent-soft);
+  overflow: hidden;
+  position: relative;
+}
+
+.boot-screen__bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  background: var(--accent);
+  animation: boot-slide 1.3s ease-in-out infinite;
+}
+
+@keyframes boot-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(380%);
+  }
+}
+
+.boot-screen__label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.empty-greeting {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  text-align: center;
+  padding: clamp(2.5rem, 10vh, 5rem) 1rem 1rem;
+}
+
+.empty-greeting__owl {
+  width: 5rem;
+  height: 5rem;
+  object-fit: contain;
+  filter: invert(var(--owl-invert));
+  mix-blend-mode: var(--owl-blend);
+}
+
+.empty-greeting__title {
+  font-family: var(--serif);
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.empty-greeting__note {
+  max-width: 26rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
 .eyebrow {
   color: var(--muted);
   font-size: 0.75rem;
@@ -848,6 +1042,35 @@ html.dark .apollo-progress-card[data-level="5"] {
 .ui-button--primary:hover:not(:disabled) {
   background: var(--btn-primary-hover);
   color: var(--bg);
+}
+
+.ui-button--apollo {
+  border-color: var(--border);
+  background: var(--card-fill);
+  color: var(--text);
+}
+
+.ui-button--apollo:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.ui-button--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--border);
+}
+
+.ui-button--ghost:hover:not(:disabled) {
+  color: var(--text);
+  background: transparent;
+  border-color: transparent;
+  transform: none;
+  text-decoration-color: var(--accent);
 }
 
 .ui-button--small {

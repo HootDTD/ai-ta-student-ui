@@ -8,7 +8,7 @@ related:
   - ai-ta-student-ui/pages
   - ai-ta-backend/apollo
   - shared/product-context
-last_verified: 2026-06-10
+last_verified: 2026-06-12
 stub: false
 ---
 
@@ -18,6 +18,9 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 
 - `components/CitationChip.tsx` — citation pill with hover preview.
 - `components/SpecialCharsPalette.tsx` — collapsible math-character keypad for textareas.
+- `components/AuthBrand.tsx` — entry-screen brand lockup (owl video + "Hoot" wordmark + subtitle prop, default "AI Teaching Assistant"); used by the sign-in/config-error cards on `app/page.tsx` and the join page.
+- `components/BootScreen.tsx` — branded full-page loading state (owl + wordmark + shimmer bar + optional `label`); used for auth bootstrap, invite checks, and the Apollo session load.
+- `components/OwlVideo.tsx` — decorative `/thinking.mp4` wrapper (`aria-hidden`, autoplay/loop/muted); hides itself via `onError` if the asset fails so the wordmark stands alone.
 - `components/apollo/ApolloChat.tsx` — Apollo teaching conversation + composer.
 - `components/apollo/ApolloErrorSurface.tsx` — error-code → human copy renderer.
 - `components/apollo/ApolloKGPanel.tsx` — "Apollo's understanding" knowledge-graph sidebar.
@@ -49,7 +52,7 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 1. **Citations render**: `app/page.tsx` parses the SSE `answer` event's `citations` array into `CitationMeta[]` and maps them to `CitationChip`s in the message footer; hover reveals the preview card (pure CSS, no fetch).
 2. **Apollo teaching turn**: student types in `ApolloChat` (optionally inserting symbols via `SpecialCharsPalette`) → `sendChat` → reply appended, `onKgUpdate(resp.kg)` lifts the new KG to `ApolloPageClient`, which re-renders `ApolloKGPanel` so the student watches Apollo's understanding grow live.
 3. **Negotiation move (P3)**: inside `ApolloKGPanel` (when given a `sessionId`), a pill button POSTs challenge/paraphrase/skip → backend returns `{entry, kg, move}` → pill calls `onUpdated(entry, kg)` → panel bubbles `onKgUpdated(kg)` to the page → full KG re-render without a second fetch. Trace is a read-only GET shown inline.
-4. **Done → report**: "I'm done teaching" (`onDoneClicked`) or a chat-affirmed done intent (`onDoneFromChat`) produces a `DoneResponse`; `ApolloPageClient` swaps `ApolloChat` for `ApolloReportPanel` and refetches `getStudentProgress` so `ApolloProgressCard` reflects any level-up.
+4. **Done → report**: "I'm done teaching" (`onDoneClicked`) or a chat-affirmed done intent (`onDoneFromChat`) produces a `DoneResponse`; `ApolloPageClient` swaps `ApolloChat` for `ApolloReportPanel` and refetches `getStudentProgress()` (no argument — identity from Bearer token) so `ApolloProgressCard` reflects any level-up.
 
 ## Key dependencies
 

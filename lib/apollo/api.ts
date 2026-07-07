@@ -119,7 +119,8 @@ export interface ApolloKG {
 
 export interface ApolloSessionState {
   session_id: number;
-  student_id: string;
+  user_id: string;
+  search_space_id: number;
   concept_cluster_id: string;
   status: "active" | "paused" | "ended";
   phase: "INIT" | "TEACHING" | "PROBLEM_REVEAL" | "SOLVING" | "REPORT" | "BETWEEN";
@@ -200,7 +201,7 @@ export interface DoneResponse {
 }
 
 export interface StudentProgress {
-  student_id: string;
+  user_id: string;
   xp_total: number;
   level: number;
   title: string;
@@ -220,14 +221,14 @@ async function _handle(res: Response): Promise<unknown> {
   throw new ApolloApiError(message, code, res.status, body);
 }
 
-export async function startSessionFromHoot(studentId: string, hootTranscript: string): Promise<{
-  session_id: number;
-  problem: ApolloProblem;
-}> {
+export async function startSessionFromHoot(
+  searchSpaceId: number,
+  hootTranscript: string,
+): Promise<{ session_id: number; problem: ApolloProblem }> {
   const res = await fetch("/api/apollo/sessions/from_hoot", {
     method: "POST",
     headers: apolloHeaders(true),
-    body: JSON.stringify({ student_id: studentId, hoot_transcript: hootTranscript }),
+    body: JSON.stringify({ search_space_id: searchSpaceId, hoot_transcript: hootTranscript }),
   });
   return (await _handle(res)) as { session_id: number; problem: ApolloProblem };
 }
@@ -272,10 +273,8 @@ export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
   return (await _handle(res)) as { ok: boolean };
 }
 
-export async function getStudentProgress(studentId: string): Promise<StudentProgress> {
-  const res = await fetch(`/api/apollo/progress/${encodeURIComponent(studentId)}`, {
-    headers: apolloHeaders(),
-  });
+export async function getStudentProgress(): Promise<StudentProgress> {
+  const res = await fetch("/api/apollo/progress", { headers: apolloHeaders() });
   return (await _handle(res)) as StudentProgress;
 }
 
