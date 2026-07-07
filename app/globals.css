@@ -2105,24 +2105,34 @@ html.dark .apollo-progress-card[data-level="5"] {
 /* --- Apollo browse shell (2026-07-07) --------------------------------
    Persistent concepts sidebar + centered content column, mirroring
    Hoot's chat-sidebar/main split. Sidebar is in-flow on desktop; below
-   1024px it becomes an off-canvas drawer toggled from the top bar.
-   48rem matches Hoot's own max-w-3xl reading column exactly (see
-   ApolloTopBar's default maxWidthClassName) so chrome and body stay
-   flush at every viewport width. */
+   1024px it becomes an off-canvas drawer toggled from the top bar. The
+   outer .apollo-layout/.apollo-layout__main split mirrors Hoot's own
+   `min-h-screen flex` + `.chat-sidebar` shell exactly (see app/page.tsx's
+   top-level markup): the sidebar is a real full-height column on the
+   actual side of the page, and .apollo-shell (48rem, matching Hoot's
+   max-w-3xl reading column / ApolloTopBar's default maxWidthClassName)
+   centers in whatever space is left over, so the topbar brand and the
+   welcome copy center against the same remaining width. */
+.apollo-layout {
+  min-height: 100vh;
+  display: flex;
+}
+
+.apollo-layout__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .apollo-shell {
+  flex: 1;
   width: 100%;
   max-width: 48rem;
   margin: 0 auto;
-  padding: 1rem 0 2.6rem;
+  padding: 1.4rem 1rem 2.6rem;
   display: flex;
-  align-items: flex-start;
-  gap: 1.4rem;
-}
-
-.apollo-shell__content {
-  flex: 1;
-  min-width: 0;
-  display: grid;
+  flex-direction: column;
   gap: 0.9rem;
 }
 
@@ -2159,16 +2169,14 @@ html.dark .apollo-progress-card[data-level="5"] {
 @media (min-width: 1024px) {
   .apollo-sidebar {
     position: sticky;
-    top: calc(3.5rem + 1.25rem);
-    flex: 0 0 220px;
+    top: 0;
+    height: 100vh;
+    flex: 0 0 240px;
     width: auto;
-    max-height: calc(100vh - 5rem);
+    max-height: none;
     z-index: 1;
     transform: none;
-    background: transparent;
-    backdrop-filter: none;
-    border-right: none;
-    padding: 0;
+    padding: 1.25rem 1rem;
   }
 
   .apollo-sidebar-overlay {
@@ -2211,22 +2219,18 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 /* The centered prompt shown until a concept is chosen — the "little
-   message in the middle" the browse page opens on. Fills the available
-   viewport height so it reads as a deliberate centered moment, not a
-   stray line floating near the top. */
-.apollo-browse__welcome {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.85rem;
-  min-height: 60vh;
-  padding: 1rem;
-  text-align: center;
-}
-
+   message in the middle" the browse page opens on. flex: 1 inside the
+   flex-column .apollo-shell so it claims the full remaining viewport
+   height below the topbar and centers truly in that space (same
+   min-h-screen-flex-center pattern Hoot uses for its own centered
+   screens), not just within a fixed min-height guess. */
+/* Apollo's browse welcome reuses Hoot's shared .empty-greeting + <OwlVideo>
+   (see app/page.tsx) verbatim so it's pixel-identical to the chat home — only
+   the copy differs. The mobile-only "Browse concepts" button is the one
+   Apollo-specific addition (the sidebar is a drawer below 1024px). */
 .apollo-browse__welcome-btn {
   display: none;
+  margin-top: 0.5rem;
 }
 
 @media (max-width: 1023px) {

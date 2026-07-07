@@ -12,7 +12,7 @@ related:
   - ai-ta-student-ui/pages
   - ai-ta-student-ui/components
   - shared/product-context
-last_verified: 2026-06-10
+last_verified: 2026-07-07
 stub: false
 ---
 
@@ -44,7 +44,7 @@ stub: false
 - `ensureActiveSession(session)` — returns session as-is if it expires more than 30s from now, otherwise refreshes via refresh_token; returns null on failure.
 - `authHeaders(accessToken, includeJsonContentType?)` — Bearer header builder (falls back to anon key).
 
-`lib/apollo/api.ts` exports the Apollo fetch functions (all hit same-origin `/api/apollo/*` proxy routes): `startSessionFromHoot`, `getSessionState`, `sendChat`, `finishTeaching` (Done), `retryProblem`, `endSession`, `getStudentProgress`, and the P3 negotiation moves `challengeEntry`, `paraphraseEntry`, `skipEntry`, `getEntryTrace`. All funnel non-2xx responses through `_handle()` which throws `ApolloApiError(message, errorCode, status, extra)`.
+`lib/apollo/api.ts` exports the Apollo fetch functions (all hit same-origin `/api/apollo/*` proxy routes): `startSessionFromHoot`, `getSessionState`, `sendChat`, `finishTeaching` (Done), `retryProblem`, `endSession`, `getStudentProgress`, the standalone browse surface (`listConcepts`, `listProblems`, `startSession`, `nextProblem`, `restartProblem`, `getStudentProgressDetailed`), and the P3 negotiation moves `challengeEntry`, `paraphraseEntry`, `skipEntry`, `getEntryTrace`. All funnel non-2xx responses through `_handle()` which throws `ApolloApiError(message, errorCode, status, extra)` — **except** `listMyClasses()`, which hits Hoot's shared `/api/my-classes` route (not `/api/apollo/*`) for `ApolloTopBar`'s class switcher and hand-rolls its own `res.ok` check instead, since that route doesn't return the `{error_code, message}` shape. All Apollo fetches attach the Supabase bearer token via the module-private `apolloHeaders()` (built from `loadStoredSession()` + `authHeaders()`) — unlike the note this doc previously carried, Apollo fetches are **not** unauthenticated.
 
 ## Main data flows
 

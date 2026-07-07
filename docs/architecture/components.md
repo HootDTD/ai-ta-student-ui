@@ -1,6 +1,6 @@
 ---
 doc: ai-ta-student-ui/components
-description: Shared UI components — CitationChip, SpecialCharsPalette, and the components/apollo/ subtree (chat, KG panel, negotiation pills, report, progress, done-gate)
+description: Shared UI components — CitationChip, SpecialCharsPalette, and the components/apollo/ subtree (chrome/browse, chat, KG panel, negotiation pills, report, progress, done-gate)
 owns:
   - components/**
 related:
@@ -8,7 +8,7 @@ related:
   - ai-ta-student-ui/pages
   - ai-ta-backend/apollo
   - shared/product-context
-last_verified: 2026-06-12
+last_verified: 2026-07-07
 stub: false
 ---
 
@@ -18,6 +18,9 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 
 - `components/CitationChip.tsx` — citation pill with hover preview.
 - `components/SpecialCharsPalette.tsx` — collapsible math-character keypad for textareas.
+- `components/apollo/ApolloTopBar.tsx` — chrome shared by every Apollo page: back/sidebar-toggle, class switcher, centered "Apollo" wordmark, XP stat, overflow menu.
+- `components/apollo/ApolloBrowse.tsx` — the standalone concept → difficulty → problem picker at `/apollo?class=N`.
+- `components/apollo/ApolloSidebar.tsx` — the concepts nav rendered by `ApolloBrowse`.
 - `components/AuthBrand.tsx` — entry-screen brand lockup (owl video + "Hoot" wordmark + subtitle prop, default "AI Teaching Assistant"); used by the sign-in/config-error cards on `app/page.tsx` and the join page.
 - `components/BootScreen.tsx` — branded full-page loading state (owl + wordmark + shimmer bar + optional `label`); used for auth bootstrap, invite checks, and the Apollo session load.
 - `components/OwlVideo.tsx` — decorative `/thinking.mp4` wrapper (`aria-hidden`, autoplay/loop/muted); hides itself via `onError` if the asset fails so the wordmark stands alone.
@@ -35,6 +38,9 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 
 - **`CitationChip`** (named export) — props `{ meta: CitationMeta }` where `CitationMeta = { label, doc_type?, file?, page?, ocr_conf?, bbox?, thumb? }` (type also exported from this file). Renders the label plus a CSS-driven hover preview (`citation-chip__preview`) showing doc type, file, `p. N`, `OCR NN%`, and an optional thumbnail (`next/image`, unoptimized). Consumed by `app/page.tsx` under assistant messages when `NEXT_PUBLIC_SHOW_CITATION_PREVIEWS=1`.
 - **`SpecialCharsPalette`** (default) — props `{ onInsert: (ch: string) => void }`. Toggle button (Σ) reveals rows of Greek letters, super/subscripts, operators, relations, brackets; keys use `onMouseDown preventDefault` so the textarea keeps focus and the consumer inserts at the caret. Consumed by `app/page.tsx` and `ApolloChat`.
+- **`ApolloTopBar`** (default) — props `{ classId?, progress?, onBack?, backLabel?, onToggleSidebar?, hideProgressLink?, menuExtra?(close), maxWidthClassName? }`. Renders Hoot's own `.site-header`/`.site-brand` classes directly. Left cluster: sidebar-toggle button (browse only) or back button (session/progress), then a class-switcher dropdown — fetches `listMyClasses()` on mount (independent of the `classId` prop, so it still renders on "no class in URL" error screens) and `router.push`es to `/apollo?class={id}` on selection, dropping any session/concept state. Right cluster: optional XP stat, then the `⋮` overflow menu ("My progress" link unless `hideProgressLink`, `menuExtra` render-prop slot, "Return to Hoot"). Consumed by `ApolloBrowse`, `ApolloPageClient`, `ProgressClient`.
+- **`ApolloBrowse`** (default) — props `{ classId, onStarted(sessionId) }`. Fetches `listConcepts`/`listProblems`, renders `ApolloTopBar` + `ApolloSidebar` in a real two-column `.apollo-layout` (sidebar is a persistent full-height page-side column on desktop, an off-canvas drawer on mobile — see Non-obvious conventions) with a welcome state that reuses Hoot's shared `.empty-greeting` + `<OwlVideo>` verbatim (owl + "What are we teaching today?" title + "Pick a concept…" note, plus a mobile-only "Browse concepts" button) until one is chosen, then a difficulty tablist + problem cards ("Start teaching" → `startSession` → `onStarted`).
+- **`ApolloSidebar`** (default) — props `{ concepts, conceptId, onSelect(id), open, onClose }`. Concept list nav; `aria-current="true"` on the active item; closes on outside-click or Escape when `open`.
 - **`ApolloChat`** (default) — props `{ sessionId, initialMessages: {role, content}[], onKgUpdate(kg), onDoneClicked(), onDoneFromChat?(result: DoneResponse), disabled? }`. Owns local `messages`/`draft`/`sending`/`error` state. `handleSend` calls `sendChat(sessionId, msg)`; appends Apollo's reply, calls `onKgUpdate(resp.kg)`, and if `resp.intent_executed?.intent === "done"` forwards the embedded `DoneResponse` via `onDoneFromChat` (the chat-affirmed-done shortcut). On error it pops the optimistic student turn and renders `ApolloErrorSurface` inline. Empty state shows the Apollo avatar (`/thinking.mp4`) with the "walk me through the steps" prompt; footer has Send + "I'm done teaching" (→ `onDoneClicked`). Consumed by `ApolloPageClient`.
 - **`ApolloErrorSurface`** (default) — props `{ error: ApolloApiError | Error | null, onDismiss? }`. Maps each `errorCode` to a title and a detail sentence interpolating `err.extra` (e.g. `parser_could_not_extract` quotes `extra.utterance`; `pool_exhausted` quotes `extra.difficulty`/`concept_cluster_id`). Non-`ApolloApiError`s get a generic title + `err.message`. Consumed by `ApolloPageClient` and `ApolloChat`.
 - **`ApolloKGPanel`** (default) — props `{ kg: ApolloKG, sessionId?: number, pulseEntryId?: string | null, onKgUpdated?(kg) }`. Buckets `kg.nodes` into six sections (Equations via KaTeX `InlineMath` on `content.latex ?? content.symbolic`; Conditions; Simplifications; Definitions; Variable mappings as `term → symbol`; Procedure steps topologically ordered by `PRECEDES` edges with cycle/orphan fallback, annotated with "uses {equation labels}" from `USES` edges). When `sessionId` is provided each entry is wrapped in `KGEntryPill` (negotiation UI); when absent entries render bare (pre-P3 read-only behavior). `pulseEntryId` scrolls the matching `[data-entry-id]` into view. Consumed by `ApolloPageClient` (currently with only `kg` — see Non-obvious conventions).
@@ -69,6 +75,7 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 - Char limits (500 dispute / 1000 paraphrase) and the XP tier table are duplicated frontend copies of backend contracts — change both sides together.
 - `ApolloReportPanel` keeps fallbacks to flat `xp_*` fields for a backend migration window; prefer `report.progress.*` (Item #9 in source comments).
 - Private helpers inside components use a leading-underscore naming style (`_confidenceClass`, `_onChallenge`, `_reasonLabel`).
+- `ApolloBrowse` (concept/difficulty/problem picker at `/apollo?class=N`) renders `.apollo-layout` (`min-h-screen flex`) with `ApolloSidebar` as a true full-height page-side column and `.apollo-layout__main` (topbar + `.apollo-shell`) as the flex-1 sibling — the same split as Hoot's own `.chat-sidebar` + flex-1 shell in `app/page.tsx`, not a sidebar nested inside the centered content column. `.apollo-shell` is a flex column so `.apollo-browse__welcome` (`flex: 1`) truly centers in the remaining viewport height below the topbar, matching Hoot's `min-h-screen flex items-center justify-center` centered screens.
 
 ## Product context
 

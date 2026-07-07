@@ -79,7 +79,7 @@ Supabase: pages never call Supabase data APIs; only auth via `app/lib/auth.ts` (
 
 ## Non-obvious conventions
 
-- Apollo's `lib/apollo/api.ts` fetches **do** attach the Supabase Bearer token via `apolloHeaders()` / `apolloHeaders(true)` (built from `loadStoredSession()` + `authHeaders()`). All `/api/apollo/*` proxy handlers already forward Authorization if present — the client now always sends it.
+- Apollo's `lib/apollo/api.ts` fetches **do** attach the Supabase Bearer token, via the module-private `apolloHeaders()` / `apolloHeaders(true)` (`loadStoredSession()` + `authHeaders()`) — every exported function including the class-switcher's `listMyClasses()` uses it; the `/api/apollo/*` proxies forward Authorization only if present.
 - `chat_id` is generated client-side, not by the backend; the backend persists turns under it (sidebar list filters to `turn_count > 0`).
 - Route params are `Promise`-typed (`ctx.params` awaited) — Next 15 convention; keep it when adding handlers.
 - `app/page.tsx` contains `console.log` debugging in `handleLoadChat`/`handleDeleteChat`/sidebar handlers (left in intentionally or pending cleanup).

@@ -291,6 +291,36 @@ function apolloHeaders(withBody = false): Record<string, string> {
   return authHeaders(session?.access_token, withBody) as Record<string, string>;
 }
 
+// The class switcher (ApolloTopBar) reuses Hoot's own /api/my-classes route,
+// which is not an /api/apollo/* proxy and doesn't return the {error_code,
+// message} shape _handle() expects — so this hand-rolls its own response
+// handling instead of going through _handle()/ApolloApiError.
+export interface ApolloClassOption {
+  id: number;
+  name: string;
+}
+
+export async function listMyClasses(): Promise<ApolloClassOption[]> {
+  const res = await fetch("/api/my-classes", {
+    cache: "no-store",
+    headers: apolloHeaders(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Failed to load classes (${res.status})`);
+  }
+  const data = await res.json();
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((row: unknown) => {
+      const obj = row as { id?: number | string; name?: string };
+      const id = Number(obj.id);
+      if (!Number.isFinite(id) || id <= 0) return null;
+      return { id, name: String(obj.name || "") };
+    })
+    .filter((row): row is ApolloClassOption => row !== null);
+}
+
 export type ApolloDifficulty = "intro" | "standard" | "hard";
 
 export interface ApolloConceptSummary {

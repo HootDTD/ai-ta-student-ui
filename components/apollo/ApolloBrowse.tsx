@@ -18,6 +18,7 @@ import {
 } from "@/lib/apollo/api";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 import ApolloSidebar from "./ApolloSidebar";
+import OwlVideo from "@/components/OwlVideo";
 import ApolloTopBar from "./ApolloTopBar";
 
 const DIFFICULTIES: ApolloDifficulty[] = ["intro", "standard", "hard"];
@@ -73,22 +74,22 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
   );
 
   return (
-    <>
-      <ApolloTopBar
-        classId={classId}
-        progress={progress}
-        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+    <div className="apollo-layout">
+      <ApolloSidebar
+        concepts={concepts ?? []}
+        conceptId={conceptId}
+        onSelect={setConceptId}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
-      <div className="apollo-shell">
-        <ApolloSidebar
-          concepts={concepts ?? []}
-          conceptId={conceptId}
-          onSelect={setConceptId}
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
 
-        <div className="apollo-shell__content">
+      <div className="apollo-layout__main">
+        <ApolloTopBar
+          classId={classId}
+          progress={progress}
+          onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        />
+        <div className="apollo-shell">
           <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
 
           {concepts === null && error === null && (
@@ -102,8 +103,10 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
           )}
 
           {concepts !== null && concepts.length > 0 && conceptId === null && (
-            <div className="apollo-browse__welcome">
-              <p className="lede">Pick a concept from the sidebar to get started.</p>
+            <div className="empty-greeting">
+              <OwlVideo className="empty-greeting__owl" />
+              <div className="empty-greeting__title">What are we teaching today?</div>
+              <p className="empty-greeting__note">Pick a concept from the sidebar to get started.</p>
               <button
                 type="button"
                 className="ui-button ui-button--small apollo-browse__welcome-btn"
@@ -170,6 +173,6 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

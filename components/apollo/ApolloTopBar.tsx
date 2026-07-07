@@ -10,7 +10,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, MoreVertical, PanelLeft } from "lucide-react";
+import { ChevronDown, ChevronLeft, MoreVertical, PanelLeft } from "lucide-react";
+
+import { listMyClasses, type ApolloClassOption } from "@/lib/apollo/api";
 
 interface ApolloTopBarProgress {
   level: number;
@@ -47,10 +49,31 @@ export default function ApolloTopBar({
   const menuRef = useRef<HTMLDivElement>(null);
   const closeMenu = () => setMenuOpen(false);
 
+  // Class switcher — mirrors Hoot's own header dropdown (app/page.tsx) so
+  // students can hop between courses from anywhere in Apollo, not just from
+  // Hoot. Fetched independently of the `classId` prop (which is only ever
+  // the *current* course) so it still renders on the "no class in URL"
+  // error screens and lets the student fix that themselves.
+  const [classes, setClasses] = useState<ApolloClassOption[]>([]);
+  const [classDropdownOpen, setClassDropdownOpen] = useState(false);
+  const classDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    listMyClasses()
+      .then(setClasses)
+      .catch(() => setClasses([]));
+  }, []);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         closeMenu();
+      }
+      if (
+        classDropdownRef.current &&
+        !classDropdownRef.current.contains(e.target as Node)
+      ) {
+        setClassDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -82,6 +105,42 @@ export default function ApolloTopBar({
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
+          )}
+          {classes.length > 0 && (
+            <div ref={classDropdownRef} className="dropdown">
+              <button
+                type="button"
+                onClick={() => setClassDropdownOpen((v) => !v)}
+                className="dropdown-trigger !h-8 !min-h-8 !w-auto !px-3 !py-1.5 text-sm"
+              >
+                <span className="max-w-[160px] truncate">
+                  {classes.find((c) => c.id === classId)?.name || "Select class"}
+                </span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${
+                    classDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {classDropdownOpen && (
+                <div className="dropdown-menu">
+                  {classes.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setClassDropdownOpen(false);
+                        if (c.id !== classId) router.push(`/apollo?class=${c.id}`);
+                      }}
+                      className="dropdown-item text-sm"
+                      data-active={c.id === classId}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
 
