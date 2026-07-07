@@ -73,14 +73,19 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
   );
 
   if (concepts === null && error === null) {
-    return <div className="apollo-browse__loading">Loading concepts…</div>;
+    return (
+      <div className="apollo-browse">
+        <div className="apollo-browse__loading">Loading concepts…</div>
+      </div>
+    );
   }
 
   return (
     <div className="apollo-browse">
       <header className="apollo-browse__header">
-        <h1 className="apollo-browse__title">Teach Apollo</h1>
-        <p className="apollo-browse__subtitle">
+        <div className="eyebrow">Apollo · Learn by teaching</div>
+        <h1 className="section-title">Teach Apollo</h1>
+        <p className="lede">
           Pick a concept and a problem, then teach Apollo how to solve it.
         </p>
         <ApolloProgressCard progress={progress} />
@@ -99,19 +104,22 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
 
       {concepts !== null && concepts.length > 0 && (
         <div className="apollo-browse__columns">
-          <nav className="apollo-browse__concepts" aria-label="Concepts">
-            {concepts.map((c) => (
-              <button
-                key={c.concept_id}
-                className={`apollo-browse__concept ${
-                  c.concept_id === conceptId ? "apollo-browse__concept--active" : ""
-                }`}
-                onClick={() => setConceptId(c.concept_id)}
-              >
-                {c.display_name}
-              </button>
-            ))}
-          </nav>
+          <div className="apollo-browse__rail">
+            <div className="eyebrow">Concepts</div>
+            <nav className="apollo-browse__concepts" aria-label="Concepts">
+              {concepts.map((c) => (
+                <button
+                  key={c.concept_id}
+                  className={`apollo-browse__concept ${
+                    c.concept_id === conceptId ? "apollo-browse__concept--active" : ""
+                  }`}
+                  onClick={() => setConceptId(c.concept_id)}
+                >
+                  {c.display_name}
+                </button>
+              ))}
+            </nav>
+          </div>
 
           <section className="apollo-browse__problems">
             <div className="apollo-browse__difficulties" role="tablist">
@@ -129,7 +137,7 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                 </button>
               ))}
               <button
-                className="apollo-browse__surprise kg-pill__btn-secondary"
+                className="apollo-browse__surprise ui-button ui-button--small"
                 disabled={busy || conceptId === null}
                 onClick={() => start()}
               >
@@ -152,9 +160,9 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                       : p.problem_text}
                   </p>
                   <div className="apollo-browse__card-footer">
-                    {p.attempted && <span className="apollo-browse__tried">tried</span>}
+                    {p.attempted && <span className="apollo-browse__tried">Tried</span>}
                     <button
-                      className="kg-pill__btn-primary"
+                      className="ui-button ui-button--primary ui-button--small"
                       disabled={busy}
                       onClick={() => start(p.id)}
                     >

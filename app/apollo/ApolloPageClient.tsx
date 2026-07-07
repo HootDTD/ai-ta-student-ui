@@ -205,7 +205,7 @@ export default function ApolloPageClient() {
   if (!sessionId) {
     if (classId) {
       return (
-        <main className="apollo-page">
+        <main className="apollo-page apollo-page--browse">
           <ApolloBrowse
             classId={classId}
             onStarted={(sid) => router.replace(`/apollo?session=${sid}&class=${classId}`)}

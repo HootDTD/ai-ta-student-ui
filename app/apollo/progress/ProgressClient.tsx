@@ -42,9 +42,14 @@ export default function ProgressClient() {
   return (
     <main className="apollo-progress-page">
       <nav className="apollo-page__nav">
-        <Link href={`/apollo?class=${classId}`}>← Back to Apollo</Link>
+        <Link className="apollo-return-link apollo-return-link--browse" href={`/apollo?class=${classId}`}>
+          ← Back to Apollo
+        </Link>
       </nav>
-      <h1 className="apollo-progress-page__title">My progress</h1>
+      <header className="apollo-progress-page__header">
+        <div className="eyebrow">Apollo · Learn by teaching</div>
+        <h1 className="section-title">My progress</h1>
+      </header>
       <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
       <ApolloProgressCard progress={data} />
 
