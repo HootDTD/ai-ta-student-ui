@@ -73,22 +73,22 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
   );
 
   return (
-    <>
-      <ApolloTopBar
-        classId={classId}
-        progress={progress}
-        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+    <div className="apollo-layout">
+      <ApolloSidebar
+        concepts={concepts ?? []}
+        conceptId={conceptId}
+        onSelect={setConceptId}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
-      <div className="apollo-shell">
-        <ApolloSidebar
-          concepts={concepts ?? []}
-          conceptId={conceptId}
-          onSelect={setConceptId}
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
 
-        <div className="apollo-shell__content">
+      <div className="apollo-layout__main">
+        <ApolloTopBar
+          classId={classId}
+          progress={progress}
+          onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        />
+        <div className="apollo-shell">
           <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
 
           {concepts === null && error === null && (
@@ -170,6 +170,6 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
