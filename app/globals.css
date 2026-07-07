@@ -524,12 +524,19 @@ button:disabled {
   color: var(--muted);
 }
 
+/* ── Canonical label ───────────────────────────────────────────────────
+   There is exactly ONE label treatment in this app: quiet, muted, sentence
+   case. It matches the serif/light home aesthetic instead of shouting.
+   DO NOT hand-roll `font-weight: 700; text-transform: uppercase;
+   letter-spacing: …` labels in component CSS — that bold-UPPERCASE-gray
+   "eyebrow" motif was the source of repeated off-style drift. Reach for
+   `.eyebrow`. (The only intentional exceptions are the mono technical
+   labels on citation chips and the auth brand subtitle — a distinct,
+   deliberate typographic voice, not this label.) */
 .eyebrow {
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .hero-title,
@@ -893,9 +900,7 @@ button:disabled {
 }
 
 .apollo-progress-card__level {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -1906,9 +1911,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .kg-pill__badge {
   flex: 0 0 auto;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.75rem;
   color: var(--muted);
   background: var(--accent-soft);
   padding: 0.05rem 0.35rem;
@@ -1967,9 +1970,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   border: 1px solid var(--border);
 }
 .kg-pill__card-eyebrow {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
   margin-bottom: 0.3rem;
 }
@@ -2041,9 +2042,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .done-gate-modal__header { margin-bottom: 1rem; }
 .done-gate-modal__eyebrow {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 .done-gate-modal__title {
@@ -2084,9 +2083,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   gap: 0.5rem;
 }
 .done-gate-modal__row-type {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 .done-gate-modal__row-summary {
@@ -2341,14 +2338,11 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 .apollo-browse__tried {
-  padding: 0.14rem 0.45rem;
+  padding: 0.14rem 0.5rem;
   border: 1px solid var(--border);
   background: var(--chip-bg);
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
 .apollo-browse__loading,
@@ -2411,10 +2405,8 @@ html.dark .apollo-progress-card[data-level="5"] {
   padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--border);
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .apollo-progress-page__empty {
@@ -2500,10 +2492,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .apollo-attempts__difficulty {
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
 .apollo-attempts__grade {

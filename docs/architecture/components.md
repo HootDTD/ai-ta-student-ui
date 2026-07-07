@@ -69,6 +69,7 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 
 ## Non-obvious conventions
 
+- **One label style — `.eyebrow`.** There is a single label treatment in `app/globals.css`: `.eyebrow` (quiet, muted, sentence case), matching the serif/light home. Do **not** hand-roll `font-weight: 700; text-transform: uppercase; letter-spacing: …` labels in component CSS — that bold-UPPERCASE-gray motif was copy-pasted into ~10 rules and repeatedly drifted off-style. Reach for `.eyebrow`. The only intentional exceptions (a distinct mono "technical" voice, not this label) are the citation-chip labels and the auth brand subtitle.
 - **Wiring gap to know about**: `DoneGateModal` is defined but not imported by any page or component, and `ApolloPageClient` renders `<ApolloKGPanel kg={kg} />` without `sessionId`/`pulseEntryId`/`onKgUpdated` — so in the current page wiring KG entries render bare (no negotiation pills) and the done-gate/pulse flows (P3.5–P3.8) are dormant frontend capability awaiting hookup. The components and proxy routes are complete; only the page-level props are missing.
 - `MaybePill` in `ApolloKGPanel` is the intentional toggle: `sessionId === undefined` ⇒ pre-P3 read-only rendering preserved for report/legacy contexts.
 - `KGEntryPill` is type-agnostic by design — the parent panel decides how each node type's surface form renders and passes it as `children` (render-prop comment in source).
