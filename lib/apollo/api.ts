@@ -3,12 +3,7 @@
 // `errorCode` matches the backend's `error_code` field. UI components
 // render each code explicitly (NO FALLBACKS).
 
-import { authHeaders, loadStoredSession } from '../../app/lib/auth';
-
-function apolloHeaders(json: boolean = false): HeadersInit {
-  const session = loadStoredSession();
-  return authHeaders(session?.access_token, json);
-}
+import { authHeaders, loadStoredSession } from "@/app/lib/auth";
 
 export type ApolloErrorCode =
   | "parser_could_not_extract"
@@ -21,6 +16,7 @@ export type ApolloErrorCode =
   // P3 — Negotiable OLM
   | "kg_entry_not_found"
   | "review_required"
+  | "problem_not_found"
   | "unknown";
 
 export class ApolloApiError extends Error {
@@ -238,7 +234,9 @@ export async function startSessionFromHoot(
 }
 
 export async function getSessionState(sessionId: number): Promise<ApolloSessionState> {
-  const res = await fetch(`/api/apollo/sessions/${sessionId}`, { headers: apolloHeaders() });
+  const res = await fetch(`/api/apollo/sessions/${sessionId}`, {
+    headers: apolloHeaders(),
+  });
   return (await _handle(res)) as ApolloSessionState;
 }
 
@@ -276,8 +274,145 @@ export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
 }
 
 export async function getStudentProgress(): Promise<StudentProgress> {
-  const res = await fetch('/api/apollo/progress', { headers: apolloHeaders() });
+  const res = await fetch("/api/apollo/progress", { headers: apolloHeaders() });
   return (await _handle(res)) as StudentProgress;
+}
+
+// ---------------------------------------------------------------------------
+// Standalone entry + browse surface (2026-07-07 e2e baseline)
+// ---------------------------------------------------------------------------
+
+// Header helper for the standalone surface. Attaches the stored Supabase
+// session's bearer token (the backend requires one on every new endpoint;
+// the proxy routes only forward an incoming Authorization header). POST
+// calls (pass `true`) also set Content-Type: application/json.
+function apolloHeaders(withBody = false): Record<string, string> {
+  const session = loadStoredSession();
+  return authHeaders(session?.access_token, withBody) as Record<string, string>;
+}
+
+export type ApolloDifficulty = "intro" | "standard" | "hard";
+
+export interface ApolloConceptSummary {
+  concept_id: number;
+  slug: string;
+  display_name: string;
+}
+
+export interface ApolloProblemSummary {
+  id: string;
+  difficulty: string;
+  problem_text: string;
+  attempted: boolean;
+}
+
+export interface StartSessionResponse {
+  session_id: number;
+  attempt_id: number;
+  problem: ApolloProblem;
+}
+
+export interface ConceptMastery {
+  concept_id: number;
+  display_name: string;
+  mastery_avg: number;
+  entity_count: number;
+}
+
+export interface RecentAttempt {
+  attempt_id: number;
+  problem_id: string;
+  concept_id: number | null;
+  concept_display_name: string | null;
+  difficulty: string;
+  score: number | null;
+  letter: string | null;
+  created_at: string;
+}
+
+export interface ProgressDetail {
+  mastery: ConceptMastery[];
+  recent_attempts: RecentAttempt[];
+}
+
+export interface StudentProgressDetailed extends StudentProgress {
+  detail: ProgressDetail;
+}
+
+export async function listConcepts(
+  searchSpaceId: number,
+): Promise<{ concepts: ApolloConceptSummary[] }> {
+  const res = await fetch(`/api/apollo/concepts?search_space_id=${searchSpaceId}`, {
+    headers: apolloHeaders(),
+  });
+  return (await _handle(res)) as { concepts: ApolloConceptSummary[] };
+}
+
+export async function listProblems(
+  searchSpaceId: number,
+  conceptId: number,
+  difficulty?: ApolloDifficulty,
+): Promise<{ problems: ApolloProblemSummary[] }> {
+  const qs = new URLSearchParams({
+    search_space_id: String(searchSpaceId),
+    concept_id: String(conceptId),
+  });
+  if (difficulty) qs.set("difficulty", difficulty);
+  const res = await fetch(`/api/apollo/problems?${qs.toString()}`, {
+    headers: apolloHeaders(),
+  });
+  return (await _handle(res)) as { problems: ApolloProblemSummary[] };
+}
+
+export async function startSession(
+  searchSpaceId: number,
+  conceptId: number,
+  difficulty: ApolloDifficulty,
+  problemId?: string,
+): Promise<StartSessionResponse> {
+  const res = await fetch("/api/apollo/sessions", {
+    method: "POST",
+    headers: apolloHeaders(true),
+    body: JSON.stringify({
+      search_space_id: searchSpaceId,
+      concept_id: conceptId,
+      difficulty,
+      ...(problemId ? { problem_id: problemId } : {}),
+    }),
+  });
+  return (await _handle(res)) as StartSessionResponse;
+}
+
+export async function nextProblem(
+  sessionId: number,
+  difficulty: ApolloDifficulty,
+): Promise<StartSessionResponse> {
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/next`, {
+    method: "POST",
+    headers: apolloHeaders(true),
+    body: JSON.stringify({ difficulty }),
+  });
+  return (await _handle(res)) as StartSessionResponse;
+}
+
+export async function restartProblem(
+  sessionId: number,
+): Promise<Record<string, unknown>> {
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/restart_problem`, {
+    method: "POST",
+    headers: apolloHeaders(true),
+    body: "{}",
+  });
+  return (await _handle(res)) as Record<string, unknown>;
+}
+
+export async function getStudentProgressDetailed(
+  searchSpaceId: number,
+): Promise<StudentProgressDetailed> {
+  const res = await fetch(`/api/apollo/progress?search_space_id=${searchSpaceId}`, {
+    headers: apolloHeaders(),
+  });
+  return (await _handle(res)) as StudentProgressDetailed;
 }
 
 // ---------------------------------------------------------------------
@@ -371,7 +506,9 @@ export async function getEntryTrace(
 ): Promise<NegotiationTrace> {
   const res = await fetch(
     `/api/apollo/sessions/${sessionId}/kg/${encodeURIComponent(entryId)}/trace`,
-    { headers: apolloHeaders() },
+    {
+      headers: apolloHeaders(),
+    },
   );
   return (await _handle(res)) as NegotiationTrace;
 }

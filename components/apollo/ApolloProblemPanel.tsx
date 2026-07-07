@@ -7,10 +7,9 @@ interface Props {
 }
 
 const DIFFICULTY_LABELS: Record<string, string> = {
-  intro: "Beginner",
-  easy: "Easy",
-  medium: "Intermediate",
-  hard: "Challenging",
+  intro: "Intro",
+  standard: "Standard",
+  hard: "Hard",
 };
 
 export default function ApolloProblemPanel({ problem }: Props) {
