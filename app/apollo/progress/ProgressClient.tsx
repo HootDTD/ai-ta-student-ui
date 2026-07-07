@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   ApolloApiError,
@@ -11,8 +10,10 @@ import {
 } from "@/lib/apollo/api";
 import ApolloProgressCard from "@/components/apollo/ApolloProgressCard";
 import ApolloErrorSurface from "@/components/apollo/ApolloErrorSurface";
+import ApolloTopBar from "@/components/apollo/ApolloTopBar";
 
 export default function ProgressClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const classId = Number(searchParams.get("class"));
   const [data, setData] = useState<StudentProgressDetailed | null>(null);
@@ -27,9 +28,12 @@ export default function ProgressClient() {
 
   if (!classId) {
     return (
-      <main className="apollo-progress-page">
-        <p>Open your progress from the Apollo page so we know which course you&apos;re in.</p>
-      </main>
+      <>
+        <ApolloTopBar />
+        <main className="apollo-progress-page">
+          <p>Open your progress from the Apollo page so we know which course you&apos;re in.</p>
+        </main>
+      </>
     );
   }
 
@@ -40,16 +44,15 @@ export default function ProgressClient() {
     detail.recent_attempts.length === 0;
 
   return (
-    <main className="apollo-progress-page">
-      <nav className="apollo-page__nav">
-        <Link className="apollo-return-link apollo-return-link--browse" href={`/apollo?class=${classId}`}>
-          ← Back to Apollo
-        </Link>
-      </nav>
-      <header className="apollo-progress-page__header">
-        <div className="eyebrow">Apollo · Learn by teaching</div>
-        <h1 className="section-title">My progress</h1>
-      </header>
+    <>
+      <ApolloTopBar
+        classId={classId}
+        onBack={() => router.push(`/apollo?class=${classId}`)}
+        backLabel="Back to Apollo"
+        hideProgressLink
+      />
+      <main className="apollo-progress-page">
+      <h1 className="apollo-progress-page__title">My progress</h1>
       <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
       <ApolloProgressCard progress={data} />
 
@@ -104,6 +107,7 @@ export default function ProgressClient() {
           </ul>
         </section>
       )}
-    </main>
+      </main>
+    </>
   );
 }

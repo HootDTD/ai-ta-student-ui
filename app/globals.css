@@ -537,16 +537,82 @@ button:disabled {
   font-size: 0.95rem;
 }
 
+/* Chrome shared by every Apollo page — mirrors .site-header: sticky,
+   blurred bar, centered brand, actions tucked into a menu instead of a
+   row of buttons. */
+.apollo-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  border-bottom: 1px solid var(--border);
+  background: var(--bar-bg);
+  backdrop-filter: blur(18px);
+}
+
+.apollo-topbar__inner {
+  width: var(--content-width);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(2.5rem, auto) minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.apollo-topbar__left {
+  display: flex;
+  align-items: center;
+}
+
+.apollo-topbar__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.apollo-topbar__back:hover {
+  border-color: var(--border);
+  background: var(--accent-soft);
+}
+
+.apollo-topbar__brand {
+  font-family: var(--font-prose);
+  font-size: 1.15rem;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  text-align: center;
+  color: var(--text);
+}
+
+.apollo-topbar__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.apollo-topbar__stat {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .apollo-page {
   width: var(--content-width);
   margin: 0 auto;
-  padding: 0.75rem 0 2.5rem;
+  padding: 1rem 0 2.5rem;
   display: grid;
   gap: 0.85rem 1.25rem;
   grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-  grid-template-areas:
-    "nav nav"
-    "main aside";
+  grid-template-areas: "main aside";
   align-items: start;
 }
 
@@ -554,22 +620,6 @@ button:disabled {
    main/aside split doesn't apply. */
 .apollo-page--browse {
   display: block;
-}
-
-.apollo-page__nav {
-  grid-area: nav;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Right-aligned cluster (Return to Hoot, Start over); the browse
-   back-link, when present, sits alone on the left. */
-.apollo-page__nav-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .apollo-page__exit-actions {
@@ -592,26 +642,10 @@ button:disabled {
   min-width: 0;
 }
 
-.apollo-return-link {
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.9rem;
-  padding: 0.25rem 0.35rem;
-  cursor: pointer;
-  transition: color 140ms ease;
-}
-
-.apollo-return-link:hover {
-  color: var(--text);
-}
-
 @media (max-width: 960px) {
   .apollo-page {
     grid-template-columns: 1fr;
     grid-template-areas:
-      "nav"
       "main"
       "aside";
   }
@@ -1878,33 +1912,11 @@ html.dark .apollo-progress-card[data-level="5"] {
   padding: 1.25rem 0 2.6rem;
 }
 
-.apollo-browse__header {
-  display: grid;
-  gap: 0.55rem;
-  justify-items: start;
-}
-
-.apollo-browse__header .apollo-progress-card {
-  width: 100%;
-  margin: 0.5rem 0 0;
-}
-
-.apollo-browse__progress-link {
-  font-size: 0.9rem;
-  color: var(--muted);
-  transition: color 140ms ease;
-}
-
-.apollo-browse__progress-link:hover {
-  color: var(--text);
-}
-
 .apollo-browse__columns {
   display: grid;
   grid-template-columns: minmax(200px, 250px) minmax(0, 1fr);
   gap: 1.4rem;
   align-items: start;
-  margin-top: 1.6rem;
 }
 
 .apollo-browse__rail {
@@ -1985,6 +1997,17 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .apollo-browse__surprise {
   margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.apollo-browse__surprise:hover:not(:disabled) {
+  color: var(--text);
 }
 
 .apollo-browse__cards {
@@ -2066,27 +2089,6 @@ html.dark .apollo-progress-card[data-level="5"] {
   background: var(--btn-primary-hover);
 }
 
-.apollo-restart-btn {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--border);
-  background: var(--btn-bg);
-  color: var(--text);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease;
-}
-
-.apollo-restart-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.apollo-return-link--browse {
-  color: var(--text);
-  font-weight: 600;
-  text-decoration: none;
-}
-
 /* --- Apollo progress dashboard --------------------------------------- */
 .apollo-progress-page {
   width: var(--content-width);
@@ -2099,15 +2101,12 @@ html.dark .apollo-progress-card[data-level="5"] {
   align-content: start;
 }
 
-.apollo-progress-page .apollo-page__nav {
-  /* Outside the session grid the named area would mint implicit tracks. */
-  grid-area: auto;
-  justify-content: flex-start;
-}
-
-.apollo-progress-page__header {
-  display: grid;
-  gap: 0.45rem;
+.apollo-progress-page__title {
+  margin: 0;
+  color: var(--accent);
+  font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 .apollo-progress-page__section {

@@ -5,7 +5,6 @@
 // browse over the course's teachable pool.
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import {
   ApolloApiError,
   ApolloConceptSummary,
@@ -18,7 +17,7 @@ import {
   startSession,
 } from "@/lib/apollo/api";
 import ApolloErrorSurface from "./ApolloErrorSurface";
-import ApolloProgressCard from "./ApolloProgressCard";
+import ApolloTopBar from "./ApolloTopBar";
 
 const DIFFICULTIES: ApolloDifficulty[] = ["intro", "standard", "hard"];
 const PREVIEW_CHARS = 180;
@@ -74,26 +73,19 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
 
   if (concepts === null && error === null) {
     return (
-      <div className="apollo-browse">
-        <div className="apollo-browse__loading">Loading concepts…</div>
-      </div>
+      <>
+        <ApolloTopBar classId={classId} progress={progress} />
+        <div className="apollo-browse">
+          <div className="apollo-browse__loading">Loading concepts…</div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="apollo-browse">
-      <header className="apollo-browse__header">
-        <div className="eyebrow">Apollo · Learn by teaching</div>
-        <h1 className="section-title">Teach Apollo</h1>
-        <p className="lede">
-          Pick a concept and a problem, then teach Apollo how to solve it.
-        </p>
-        <ApolloProgressCard progress={progress} />
-        <Link className="apollo-browse__progress-link" href={`/apollo/progress?class=${classId}`}>
-          View my progress →
-        </Link>
-      </header>
-
+    <>
+      <ApolloTopBar classId={classId} progress={progress} />
+      <div className="apollo-browse">
       <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
 
       {concepts !== null && concepts.length === 0 && (
@@ -137,7 +129,7 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                 </button>
               ))}
               <button
-                className="apollo-browse__surprise ui-button ui-button--small"
+                className="apollo-browse__surprise"
                 disabled={busy || conceptId === null}
                 onClick={() => start()}
               >
@@ -175,6 +167,7 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
           </section>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
