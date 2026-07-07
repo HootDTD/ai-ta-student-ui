@@ -1879,3 +1879,21 @@ html.dark .apollo-progress-card[data-level="5"] {
 .apollo-gate-resume { position: fixed; bottom: 20px; right: 20px; z-index: 40; padding: 10px 16px; border-radius: 999px; background: var(--accent, #4a6cf7); color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
 
 .apollo-restart-btn { margin-left: auto; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border, #dcdce4); background: transparent; cursor: pointer; font-size: 0.85rem; }
+
+/* --- Apollo progress dashboard --------------------------------------- */
+.apollo-progress-page { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+.apollo-progress-page__title { font-size: 1.4rem; font-weight: 700; margin: 12px 0; }
+.apollo-progress-page__section { margin-top: 28px; }
+.apollo-progress-page__empty { margin-top: 24px; color: var(--muted, #667); }
+.apollo-mastery { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.apollo-mastery__row { display: flex; align-items: center; gap: 12px; }
+.apollo-mastery__name { flex: 0 0 220px; }
+.apollo-mastery__bar { flex: 1; height: 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.08); overflow: hidden; }
+.apollo-mastery__fill { display: block; height: 100%; border-radius: 999px; background: var(--accent, #4a6cf7); }
+.apollo-mastery__pct { flex: 0 0 48px; text-align: right; font-variant-numeric: tabular-nums; }
+.apollo-attempts { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.apollo-attempts__row { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border, #dcdce4); }
+.apollo-attempts__concept { flex: 1; }
+.apollo-attempts__difficulty { text-transform: capitalize; color: var(--muted, #667); }
+.apollo-attempts__grade { font-weight: 600; }
+.apollo-attempts__date { color: var(--muted, #667); font-size: 0.85rem; }
