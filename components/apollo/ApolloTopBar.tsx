@@ -14,21 +14,17 @@ import { ChevronDown, ChevronLeft, MoreVertical, PanelLeft } from "lucide-react"
 
 import { listMyClasses, type ApolloClassOption } from "@/lib/apollo/api";
 
-interface ApolloTopBarProgress {
-  level: number;
-  xp_total: number;
-}
-
 interface Props {
   classId?: number | null;
-  progress?: ApolloTopBarProgress | null;
   onBack?: () => void;
   backLabel?: string;
   // Present only on the browse page — reveals the mobile concepts drawer.
   // Hidden by CSS at desktop widths, where the sidebar is always visible.
   onToggleSidebar?: () => void;
   hideProgressLink?: boolean;
-  menuExtra?: (close: () => void) => React.ReactNode;
+  // Visible action(s) in the right cluster (e.g. session's "Start over"),
+  // shown as real buttons rather than buried in the overflow menu.
+  actions?: React.ReactNode;
   // The session view's two-column (problem + KG) grid needs more room
   // than Hoot's single reading column; browse/progress match it exactly.
   maxWidthClassName?: string;
@@ -36,12 +32,11 @@ interface Props {
 
 export default function ApolloTopBar({
   classId,
-  progress,
   onBack,
   backLabel = "Back",
   onToggleSidebar,
   hideProgressLink,
-  menuExtra,
+  actions,
   maxWidthClassName = "max-w-3xl",
 }: Props) {
   const router = useRouter();
@@ -132,7 +127,7 @@ export default function ApolloTopBar({
                         setClassDropdownOpen(false);
                         if (c.id !== classId) router.push(`/apollo?class=${c.id}`);
                       }}
-                      className="dropdown-item text-sm"
+                      className="dropdown-item"
                       data-active={c.id === classId}
                     >
                       {c.name}
@@ -149,11 +144,7 @@ export default function ApolloTopBar({
         </div>
 
         <div className="flex items-center gap-2 relative z-[1]">
-          {progress && (
-            <span className="apollo-topbar__stat">
-              Lv {progress.level} · {progress.xp_total.toLocaleString()} XP
-            </span>
-          )}
+          {actions}
           <div ref={menuRef} className="relative">
             <button
               type="button"
@@ -168,16 +159,15 @@ export default function ApolloTopBar({
                 {!hideProgressLink && classId ? (
                   <Link
                     href={`/apollo/progress?class=${classId}`}
-                    className="dropdown-item text-sm"
+                    className="dropdown-item"
                     onClick={closeMenu}
                   >
                     My progress
                   </Link>
                 ) : null}
-                {menuExtra?.(closeMenu)}
                 <button
                   type="button"
-                  className="dropdown-item text-sm"
+                  className="dropdown-item"
                   onClick={() => {
                     closeMenu();
                     router.push("/");

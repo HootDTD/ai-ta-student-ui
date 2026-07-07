@@ -524,12 +524,19 @@ button:disabled {
   color: var(--muted);
 }
 
+/* ── Canonical label ───────────────────────────────────────────────────
+   There is exactly ONE label treatment in this app: quiet, muted, sentence
+   case. It matches the serif/light home aesthetic instead of shouting.
+   DO NOT hand-roll `font-weight: 700; text-transform: uppercase;
+   letter-spacing: …` labels in component CSS — that bold-UPPERCASE-gray
+   "eyebrow" motif was the source of repeated off-style drift. Reach for
+   `.eyebrow`. (The only intentional exceptions are the mono technical
+   labels on citation chips and the auth brand subtitle — a distinct,
+   deliberate typographic voice, not this label.) */
 .eyebrow {
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .hero-title,
@@ -672,16 +679,47 @@ button:disabled {
   background: var(--success-bg);
 }
 
-/* Apollo teach-scrollback: grows with messages, caps at max-height then
-   scrolls. No min-height — empty state is handled separately. */
+/* Apollo chat: fills the main column, message list scrolls, composer pins
+   to the bottom — the same shell as Hoot's chat home. */
+.apollo-chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.apollo-chat__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Empty state: the owl centered in the space above the composer, so the
+   session reads as "Apollo is waiting for you" rather than a blank panel. */
+.apollo-chat__welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.apollo-chat__composer {
+  display: grid;
+  gap: 0.7rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
 .apollo-scrollback {
   display: grid;
   gap: 0.9rem;
-  max-height: 55vh;
-  overflow-y: auto;
-  padding: 1rem 1.1rem;
-  border: 1px solid var(--border);
-  background: var(--card-fill);
+  padding: 0.5rem 0.15rem;
 }
 
 .apollo-turn {
@@ -739,8 +777,18 @@ button:disabled {
   gap: 0.35rem;
 }
 
-.apollo-kg__section > strong {
-  font-size: 0.95rem;
+/* Panel heading uses the same serif-accent treatment as the home titles;
+   section labels below it use the muted .eyebrow — a quiet title → label
+   hierarchy instead of a stack of bold headers. */
+.apollo-kg__title {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.apollo-kg__empty {
+  margin: 0;
 }
 
 /* Apollo's top bar reuses .site-header + .site-brand directly (see
@@ -772,26 +820,53 @@ button:disabled {
   }
 }
 
-.apollo-topbar__stat {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.88rem;
-  color: var(--muted);
+/* Visible secondary action in the top-bar right cluster (e.g. "Start over"),
+   matching the subtle outlined treatment of the back/menu chrome. */
+.apollo-topbar__action {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
   white-space: nowrap;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.apollo-topbar__action:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.apollo-topbar__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* The session view's two-column (problem + KG) grid needs more room than
    Hoot's 768px reading column — matched to the wider max-w-4xl the
    top bar renders with on this page only (see ApolloPageClient.tsx). */
+/* Session view fills the viewport as a flex column (header + body) so the
+   composer can pin to the bottom, mirroring Hoot's chat shell. */
+.apollo-session-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* Single centered reading column (like Hoot's chat + the browse shell) so
+   the problem/chat/composer sit in the middle of the page. "Apollo's
+   understanding" is a toggle drawer (below), not a side column. */
 .apollo-page {
   width: 100%;
-  max-width: 56rem;
+  max-width: 48rem;
   margin: 0 auto;
-  padding: 1rem 0 2.6rem;
-  display: grid;
-  gap: 0.85rem 1.25rem;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-  grid-template-areas: "main aside";
-  align-items: start;
+  padding: 1rem 1rem 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
 .apollo-page__exit-actions {
@@ -800,27 +875,49 @@ button:disabled {
 }
 
 .apollo-page__main {
-  grid-area: main;
-}
-
-.apollo-page__aside {
-  grid-area: aside;
-}
-
-.apollo-page__main,
-.apollo-page__aside {
-  display: grid;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 0.85rem;
   min-width: 0;
+  min-height: 0;
 }
 
-@media (max-width: 960px) {
-  .apollo-page {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "main"
-      "aside";
-  }
+/* "Apollo's understanding" off-canvas drawer (right side), toggled from the
+   top bar. Sizes to its own content and scrolls — never stretches. */
+.apollo-kg-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 65;
+  width: min(24rem, 92vw);
+  padding: 1.25rem 1rem;
+  background: var(--surface-fill);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  overflow-y: auto;
+}
+
+.apollo-kg-drawer--open {
+  transform: translateX(0);
+}
+
+.apollo-kg-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  background: var(--modal-backdrop);
+}
+
+/* Inside the drawer the KG content is flush — the drawer is the surface, so
+   drop the panel's own card border/fill/padding. */
+.apollo-kg-drawer .apollo-kg {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 /* ── Apollo progress card (mount-persistent XP/level banner) ─────────── */
@@ -883,9 +980,7 @@ button:disabled {
 }
 
 .apollo-progress-card__level {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -1173,12 +1268,16 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 .dropdown-item {
+  display: block;
   width: 100%;
-  padding: 0.75rem 0.9rem;
+  padding: 0.6rem 0.9rem;
   border: 0;
   border-bottom: 1px solid var(--dropdown-divider);
   background: transparent;
+  color: var(--text);
+  font-size: 0.9rem;
   text-align: left;
+  text-decoration: none;
   transition: background 140ms ease, color 140ms ease;
 }
 
@@ -1896,21 +1995,24 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .kg-pill__badge {
   flex: 0 0 auto;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.75rem;
   color: var(--muted);
   background: var(--accent-soft);
   padding: 0.05rem 0.35rem;
 }
+/* Negotiation controls stay out of the way until you engage a row — the
+   panel at rest reads as a clean list, not a wall of buttons. Revealed on
+   hover and keyboard focus (focus-within keeps them reachable without a
+   mouse). */
 .kg-pill__actions {
   flex: 0 0 auto;
   display: inline-flex;
   gap: 0.15rem;
-  opacity: 0.55;
+  opacity: 0;
   transition: opacity 200ms ease;
 }
-.kg-pill:hover .kg-pill__actions { opacity: 1; }
+.kg-pill:hover .kg-pill__actions,
+.kg-pill:focus-within .kg-pill__actions { opacity: 1; }
 .kg-pill__btn,
 .kg-pill__btn-primary,
 .kg-pill__btn-secondary {
@@ -1952,9 +2054,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   border: 1px solid var(--border);
 }
 .kg-pill__card-eyebrow {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
   margin-bottom: 0.3rem;
 }
@@ -2026,9 +2126,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .done-gate-modal__header { margin-bottom: 1rem; }
 .done-gate-modal__eyebrow {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 .done-gate-modal__title {
@@ -2069,9 +2167,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   gap: 0.5rem;
 }
 .done-gate-modal__row-type {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 .done-gate-modal__row-summary {
@@ -2253,14 +2349,13 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 .apollo-browse__difficulty {
-  padding: 0.32rem 0.7rem;
+  padding: 0.32rem 0.8rem;
   border: 1px solid var(--border);
   background: var(--chip-bg);
-  color: var(--text);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-transform: capitalize;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
@@ -2327,14 +2422,11 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 .apollo-browse__tried {
-  padding: 0.14rem 0.45rem;
+  padding: 0.14rem 0.5rem;
   border: 1px solid var(--border);
   background: var(--chip-bg);
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
 .apollo-browse__loading,
@@ -2380,10 +2472,10 @@ html.dark .apollo-progress-card[data-level="5"] {
 .apollo-progress-page__title {
   margin: 0;
   color: var(--accent);
-  font-size: clamp(1.6rem, 2.2vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 0.96;
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
 .apollo-progress-page__section {
@@ -2397,10 +2489,8 @@ html.dark .apollo-progress-card[data-level="5"] {
   padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--border);
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .apollo-progress-page__empty {
@@ -2486,14 +2576,11 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .apollo-attempts__difficulty {
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
 .apollo-attempts__grade {
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 

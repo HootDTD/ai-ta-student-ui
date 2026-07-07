@@ -44,6 +44,9 @@ export default function ApolloPageClient() {
   const [progress, setProgress] = useState<StudentProgress | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
+  // "Apollo's understanding" is a toggle drawer, not a stretched side column,
+  // so the teaching chat gets a single centered column like Hoot's chat.
+  const [kgOpen, setKgOpen] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -70,6 +73,16 @@ export default function ApolloPageClient() {
       .then(setProgress)
       .catch(() => {});
   }, [report, classId]);
+
+  // Close the understanding drawer on Escape.
+  useEffect(() => {
+    if (!kgOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setKgOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [kgOpen]);
 
   async function handleDone() {
     if (!sessionId) return;
@@ -285,31 +298,38 @@ export default function ApolloPageClient() {
   const levelForAvatar = progress?.level ?? 1;
 
   return (
-    <>
+    <div className="apollo-session-shell">
       <ApolloTopBar
         classId={classId}
-        progress={progress}
         onBack={() => router.push(`/apollo?class=${classId}`)}
         backLabel="Back to problems"
-        maxWidthClassName="max-w-4xl"
-        menuExtra={(close) =>
-          !report ? (
-            <button
-              type="button"
-              className="dropdown-item text-sm"
-              disabled={busy}
-              onClick={() => {
-                close();
-                void handleRestart();
-              }}
-            >
-              Start over
-            </button>
-          ) : null
+        maxWidthClassName="max-w-3xl"
+        actions={
+          <>
+            {kg && (
+              <button
+                type="button"
+                className="apollo-topbar__action"
+                onClick={() => setKgOpen((v) => !v)}
+                aria-expanded={kgOpen}
+              >
+                Understanding
+              </button>
+            )}
+            {!report && (
+              <button
+                type="button"
+                className="apollo-topbar__action"
+                disabled={busy}
+                onClick={() => void handleRestart()}
+              >
+                Start over
+              </button>
+            )}
+          </>
         }
       />
       <main className="apollo-page" data-apollo-level={levelForAvatar}>
-      <div className="apollo-page__main">
         <ApolloProblemPanel problem={state.problem} />
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
         {gateEntries && gateOpen && (
@@ -354,25 +374,36 @@ export default function ApolloPageClient() {
             disabled={busy}
           />
         )}
-      </div>
-      <aside className="apollo-page__aside">
-        {kg && (
-          <ApolloKGPanel
-            kg={kg}
-            sessionId={sessionId}
-            pulseEntryId={pulseEntryId}
-            onKgUpdated={(newKg) => setKg(newKg)}
-            onEntryTouched={(id) =>
-              setTouched((prev) => {
-                const next = new Set(prev);
-                next.add(id);
-                return next;
-              })
-            }
-          />
-        )}
-      </aside>
       </main>
-    </>
+      {kg && (
+        <>
+          {kgOpen && (
+            <div
+              className="apollo-kg-drawer-overlay"
+              onClick={() => setKgOpen(false)}
+              aria-hidden
+            />
+          )}
+          <aside
+            className={`apollo-kg-drawer ${kgOpen ? "apollo-kg-drawer--open" : ""}`}
+            aria-hidden={!kgOpen}
+          >
+            <ApolloKGPanel
+              kg={kg}
+              sessionId={sessionId}
+              pulseEntryId={pulseEntryId}
+              onKgUpdated={(newKg) => setKg(newKg)}
+              onEntryTouched={(id) =>
+                setTouched((prev) => {
+                  const next = new Set(prev);
+                  next.add(id);
+                  return next;
+                })
+              }
+            />
+          </aside>
+        </>
+      )}
+    </div>
   );
 }

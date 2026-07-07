@@ -10,8 +10,6 @@ import {
   ApolloConceptSummary,
   ApolloDifficulty,
   ApolloProblemSummary,
-  StudentProgressDetailed,
-  getStudentProgressDetailed,
   listConcepts,
   listProblems,
   startSession,
@@ -36,12 +34,9 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
   const [problems, setProblems] = useState<ApolloProblemSummary[] | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<StudentProgressDetailed | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Compact progress header (spec §UI) — non-blocking, browse renders without it.
-    getStudentProgressDetailed(classId).then(setProgress).catch(() => {});
     // No auto-select: the browse page opens on a centered prompt until the
     // student picks a concept from the sidebar.
     listConcepts(classId)
@@ -86,7 +81,6 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
       <div className="apollo-layout__main">
         <ApolloTopBar
           classId={classId}
-          progress={progress}
           onToggleSidebar={() => setSidebarOpen((v) => !v)}
         />
         <div className="apollo-shell">
