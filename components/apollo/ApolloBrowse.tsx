@@ -103,6 +103,16 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
 
           {concepts !== null && concepts.length > 0 && conceptId === null && (
             <div className="apollo-browse__welcome">
+              <video
+                className="apollo-browse__welcome-owl"
+                src="/thinking.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-hidden
+              />
+              <h2 className="apollo-browse__welcome-title">What are we teaching today?</h2>
               <p className="lede">Pick a concept from the sidebar to get started.</p>
               <button
                 type="button"

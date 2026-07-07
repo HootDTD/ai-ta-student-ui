@@ -2012,6 +2012,26 @@ html.dark .apollo-progress-card[data-level="5"] {
   text-align: center;
 }
 
+/* The Hoot owl (the same /thinking.mp4 loop used as the Apollo avatar),
+   blended into the page with the shared owl invert/blend tokens so it sits
+   flush in light and dark. */
+.apollo-browse__welcome-owl {
+  width: clamp(5rem, 12vw, 7.5rem);
+  height: clamp(5rem, 12vw, 7.5rem);
+  object-fit: contain;
+  filter: invert(var(--owl-invert));
+  mix-blend-mode: var(--owl-blend);
+}
+
+.apollo-browse__welcome-title {
+  margin: 0 0 -0.35rem;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+}
+
 .apollo-browse__welcome-btn {
   display: none;
 }
