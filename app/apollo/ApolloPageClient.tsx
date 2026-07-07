@@ -207,9 +207,13 @@ export default function ApolloPageClient() {
       <main className="apollo-page">
         <nav className="apollo-page__nav">{returnLink}</nav>
         <div className="apollo-page__main">
-          <div className="card">
-            <span>Loading session…</span>
-          </div>
+          {error ? (
+            <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
+          ) : (
+            <div className="card">
+              <span>Loading session…</span>
+            </div>
+          )}
         </div>
       </main>
     );

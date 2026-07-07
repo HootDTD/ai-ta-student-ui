@@ -226,43 +226,56 @@ export async function startSessionFromHoot(studentId: string, hootTranscript: st
 }> {
   const res = await fetch("/api/apollo/sessions/from_hoot", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: apolloHeaders(true),
     body: JSON.stringify({ student_id: studentId, hoot_transcript: hootTranscript }),
   });
   return (await _handle(res)) as { session_id: number; problem: ApolloProblem };
 }
 
 export async function getSessionState(sessionId: number): Promise<ApolloSessionState> {
-  const res = await fetch(`/api/apollo/sessions/${sessionId}`);
+  const res = await fetch(`/api/apollo/sessions/${sessionId}`, {
+    headers: apolloHeaders(),
+  });
   return (await _handle(res)) as ApolloSessionState;
 }
 
 export async function sendChat(sessionId: number, message: string): Promise<ChatResponse> {
   const res = await fetch(`/api/apollo/sessions/${sessionId}/chat`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: apolloHeaders(true),
     body: JSON.stringify({ message }),
   });
   return (await _handle(res)) as ChatResponse;
 }
 
 export async function finishTeaching(sessionId: number): Promise<DoneResponse> {
-  const res = await fetch(`/api/apollo/sessions/${sessionId}/done`, { method: "POST" });
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/done`, {
+    method: "POST",
+    headers: apolloHeaders(),
+  });
   return (await _handle(res)) as DoneResponse;
 }
 
 export async function retryProblem(sessionId: number): Promise<{ ok: boolean }> {
-  const res = await fetch(`/api/apollo/sessions/${sessionId}/retry`, { method: "POST" });
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/retry`, {
+    method: "POST",
+    headers: apolloHeaders(),
+  });
   return (await _handle(res)) as { ok: boolean };
 }
 
 export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
-  const res = await fetch(`/api/apollo/sessions/${sessionId}/end`, { method: "POST" });
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/end`, {
+    method: "POST",
+    headers: apolloHeaders(),
+  });
   return (await _handle(res)) as { ok: boolean };
 }
 
 export async function getStudentProgress(studentId: string): Promise<StudentProgress> {
-  const res = await fetch(`/api/apollo/progress/${encodeURIComponent(studentId)}`);
+  const res = await fetch(`/api/apollo/progress/${encodeURIComponent(studentId)}`, {
+    headers: apolloHeaders(),
+  });
   return (await _handle(res)) as StudentProgress;
 }
 
@@ -450,7 +463,7 @@ export async function challengeEntry(
     `/api/apollo/sessions/${sessionId}/kg/${encodeURIComponent(entryId)}/challenge`,
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: apolloHeaders(true),
       body: JSON.stringify({ reason }),
     },
   );
@@ -466,7 +479,7 @@ export async function paraphraseEntry(
     `/api/apollo/sessions/${sessionId}/kg/${encodeURIComponent(entryId)}/paraphrase`,
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: apolloHeaders(true),
       body: JSON.stringify({ surface_form: surfaceForm }),
     },
   );
@@ -481,7 +494,7 @@ export async function skipEntry(
     `/api/apollo/sessions/${sessionId}/kg/${encodeURIComponent(entryId)}/skip`,
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: apolloHeaders(true),
       body: "{}",
     },
   );
@@ -494,6 +507,9 @@ export async function getEntryTrace(
 ): Promise<NegotiationTrace> {
   const res = await fetch(
     `/api/apollo/sessions/${sessionId}/kg/${encodeURIComponent(entryId)}/trace`,
+    {
+      headers: apolloHeaders(),
+    },
   );
   return (await _handle(res)) as NegotiationTrace;
 }
