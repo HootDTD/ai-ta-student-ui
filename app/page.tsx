@@ -1281,6 +1281,14 @@ export default function Page() {
               >
                 {apolloStarting ? 'Starting\u2026' : 'Teach Apollo what you just learned'}
               </button>
+              <button
+                type="button"
+                className="apollo-browse-entry"
+                onClick={() => router.push(`/apollo?class=${selectedClassId}`)}
+                disabled={!selectedClassId}
+              >
+                Practice with Apollo
+              </button>
             </div>
           )}
           {formError && (

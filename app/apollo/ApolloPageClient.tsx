@@ -15,6 +15,7 @@ import {
   type DoneResponse,
   type StudentProgress,
 } from "@/lib/apollo/api";
+import ApolloBrowse from "@/components/apollo/ApolloBrowse";
 import ApolloChat from "@/components/apollo/ApolloChat";
 import ApolloErrorSurface from "@/components/apollo/ApolloErrorSurface";
 import ApolloKGPanel from "@/components/apollo/ApolloKGPanel";
@@ -26,6 +27,7 @@ export default function ApolloPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = Number(searchParams.get("session"));
+  const classId = Number(searchParams.get("class"));
 
   const returnLink = (
     <button
@@ -115,14 +117,19 @@ export default function ApolloPageClient() {
   }
 
   if (!sessionId) {
+    if (classId) {
+      return (
+        <main className="apollo-page">
+          <ApolloBrowse
+            classId={classId}
+            onStarted={(sid) => router.replace(`/apollo?session=${sid}&class=${classId}`)}
+          />
+        </main>
+      );
+    }
     return (
       <main className="apollo-page">
-        <nav className="apollo-page__nav">{returnLink}</nav>
-        <div className="apollo-page__main">
-          <div className="notice" data-tone="danger">
-            Missing ?session=N query parameter.
-          </div>
-        </div>
+        <p>Open Apollo from your class page so we know which course you&apos;re in.</p>
       </main>
     );
   }
