@@ -14,6 +14,7 @@ export type ApolloErrorCode =
   // P3 — Negotiable OLM
   | "kg_entry_not_found"
   | "review_required"
+  | "problem_not_found"
   | "unknown";
 
 export class ApolloApiError extends Error {
@@ -261,6 +262,141 @@ export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
 export async function getStudentProgress(studentId: string): Promise<StudentProgress> {
   const res = await fetch(`/api/apollo/progress/${encodeURIComponent(studentId)}`);
   return (await _handle(res)) as StudentProgress;
+}
+
+// ---------------------------------------------------------------------------
+// Standalone entry + browse surface (2026-07-07 e2e baseline)
+// ---------------------------------------------------------------------------
+
+// Header helper for the standalone surface. GET calls send no body headers;
+// POST calls (pass `true`) set content-type to application/json — matching the
+// repo's existing inline proxy-client convention.
+function apolloHeaders(withBody = false): Record<string, string> {
+  return withBody ? { "content-type": "application/json" } : {};
+}
+
+export type ApolloDifficulty = "intro" | "standard" | "hard";
+
+export interface ApolloConceptSummary {
+  concept_id: number;
+  slug: string;
+  display_name: string;
+}
+
+export interface ApolloProblemSummary {
+  id: string;
+  difficulty: string;
+  problem_text: string;
+  attempted: boolean;
+}
+
+export interface StartSessionResponse {
+  session_id: number;
+  attempt_id: number;
+  problem: ApolloProblem;
+}
+
+export interface ConceptMastery {
+  concept_id: number;
+  display_name: string;
+  mastery_avg: number;
+  entity_count: number;
+}
+
+export interface RecentAttempt {
+  attempt_id: number;
+  problem_id: string;
+  concept_id: number | null;
+  concept_display_name: string | null;
+  difficulty: string;
+  score: number | null;
+  letter: string | null;
+  created_at: string;
+}
+
+export interface ProgressDetail {
+  mastery: ConceptMastery[];
+  recent_attempts: RecentAttempt[];
+}
+
+export interface StudentProgressDetailed extends StudentProgress {
+  detail: ProgressDetail;
+}
+
+export async function listConcepts(
+  searchSpaceId: number,
+): Promise<{ concepts: ApolloConceptSummary[] }> {
+  const res = await fetch(`/api/apollo/concepts?search_space_id=${searchSpaceId}`, {
+    headers: apolloHeaders(),
+  });
+  return (await _handle(res)) as { concepts: ApolloConceptSummary[] };
+}
+
+export async function listProblems(
+  searchSpaceId: number,
+  conceptId: number,
+  difficulty?: ApolloDifficulty,
+): Promise<{ problems: ApolloProblemSummary[] }> {
+  const qs = new URLSearchParams({
+    search_space_id: String(searchSpaceId),
+    concept_id: String(conceptId),
+  });
+  if (difficulty) qs.set("difficulty", difficulty);
+  const res = await fetch(`/api/apollo/problems?${qs.toString()}`, {
+    headers: apolloHeaders(),
+  });
+  return (await _handle(res)) as { problems: ApolloProblemSummary[] };
+}
+
+export async function startSession(
+  searchSpaceId: number,
+  conceptId: number,
+  difficulty: ApolloDifficulty,
+  problemId?: string,
+): Promise<StartSessionResponse> {
+  const res = await fetch("/api/apollo/sessions", {
+    method: "POST",
+    headers: apolloHeaders(true),
+    body: JSON.stringify({
+      search_space_id: searchSpaceId,
+      concept_id: conceptId,
+      difficulty,
+      ...(problemId ? { problem_id: problemId } : {}),
+    }),
+  });
+  return (await _handle(res)) as StartSessionResponse;
+}
+
+export async function nextProblem(
+  sessionId: number,
+  difficulty: ApolloDifficulty,
+): Promise<StartSessionResponse> {
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/next`, {
+    method: "POST",
+    headers: apolloHeaders(true),
+    body: JSON.stringify({ difficulty }),
+  });
+  return (await _handle(res)) as StartSessionResponse;
+}
+
+export async function restartProblem(
+  sessionId: number,
+): Promise<Record<string, unknown>> {
+  const res = await fetch(`/api/apollo/sessions/${sessionId}/restart_problem`, {
+    method: "POST",
+    headers: apolloHeaders(true),
+    body: "{}",
+  });
+  return (await _handle(res)) as Record<string, unknown>;
+}
+
+export async function getStudentProgressDetailed(
+  searchSpaceId: number,
+): Promise<StudentProgressDetailed> {
+  const res = await fetch(`/api/apollo/progress?search_space_id=${searchSpaceId}`, {
+    headers: apolloHeaders(),
+  });
+  return (await _handle(res)) as StudentProgressDetailed;
 }
 
 // ---------------------------------------------------------------------
