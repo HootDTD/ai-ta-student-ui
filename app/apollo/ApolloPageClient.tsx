@@ -8,7 +8,7 @@ import {
   endSession,
   finishTeaching,
   getSessionState,
-  getStudentProgress,
+  getStudentProgressDetailed,
   nextProblem,
   restartProblem,
   retryProblem,
@@ -63,21 +63,23 @@ export default function ApolloPageClient() {
         setKg(s.kg);
         // Fetch progress for the greeting + avatar level. Non-blocking;
         // errors fall back silently (greeting renders level 1 defaults).
-        getStudentProgress(s.student_id)
+        // Course-scoped endpoint — skip entirely without a class id.
+        if (!classId) return;
+        getStudentProgressDetailed(classId)
           .then(setProgress)
           .catch(() => setProgress(null));
       })
       .catch((e) => setError(e as Error));
-  }, [sessionId]);
+  }, [sessionId, classId]);
 
   // After any Done event, refresh progress so the greeting/avatar update
   // on a level-up without requiring a page reload.
   useEffect(() => {
-    if (!report || !state) return;
-    getStudentProgress(state.student_id)
+    if (!report || !classId) return;
+    getStudentProgressDetailed(classId)
       .then(setProgress)
       .catch(() => {});
-  }, [report, state]);
+  }, [report, classId]);
 
   async function handleDone() {
     if (!sessionId) return;
