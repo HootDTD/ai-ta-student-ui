@@ -183,17 +183,15 @@ export default function ApolloPageClient() {
   if (!sessionId) {
     if (classId) {
       return (
-        <main className="apollo-page apollo-page--browse">
-          <ApolloBrowse
-            classId={classId}
-            onStarted={(sid) => router.replace(`/apollo?session=${sid}&class=${classId}`)}
-          />
-        </main>
+        <ApolloBrowse
+          classId={classId}
+          onStarted={(sid) => router.replace(`/apollo?session=${sid}&class=${classId}`)}
+        />
       );
     }
     return (
       <>
-        <ApolloTopBar />
+        <ApolloTopBar maxWidthClassName="max-w-4xl" />
         <main className="apollo-page">
           <div className="apollo-page__main">
             <div className="module">
@@ -214,6 +212,7 @@ export default function ApolloPageClient() {
           classId={classId}
           onBack={() => router.push(`/apollo?class=${classId}`)}
           backLabel="Back to problems"
+          maxWidthClassName="max-w-4xl"
         />
         <main className="apollo-page">
           <div className="apollo-page__main">
@@ -250,6 +249,7 @@ export default function ApolloPageClient() {
           classId={classId}
           onBack={() => router.push(`/apollo?class=${classId}`)}
           backLabel="Back to problems"
+          maxWidthClassName="max-w-4xl"
         />
         <main className="apollo-page">
           <div className="apollo-page__main">
@@ -291,6 +291,7 @@ export default function ApolloPageClient() {
         progress={progress}
         onBack={() => router.push(`/apollo?class=${classId}`)}
         backLabel="Back to problems"
+        maxWidthClassName="max-w-4xl"
         menuExtra={(close) =>
           !report ? (
             <button

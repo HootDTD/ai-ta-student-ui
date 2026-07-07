@@ -1,13 +1,16 @@
 "use client";
 
-// Chrome shared by every Apollo page — mirrors Hoot's site-header: sticky,
-// blurred bar with a centered brand and a right-side menu instead of
-// per-page nav rows of buttons.
+// Chrome shared by every Apollo page. Reuses Hoot's own .site-header and
+// .site-brand classes directly (rather than parallel Apollo-specific
+// copies) plus the exact Tailwind layout Hoot's header renders with
+// (mx-auto max-w-3xl flex ... px-4 py-1.5, brand absolutely centered) —
+// see app/page.tsx's <header>. This guarantees the two headers can't
+// drift the way a hand-copied second set of values eventually will.
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, MoreVertical } from "lucide-react";
+import { ChevronLeft, MoreVertical, PanelLeft } from "lucide-react";
 
 interface ApolloTopBarProgress {
   level: number;
@@ -19,8 +22,14 @@ interface Props {
   progress?: ApolloTopBarProgress | null;
   onBack?: () => void;
   backLabel?: string;
+  // Present only on the browse page — reveals the mobile concepts drawer.
+  // Hidden by CSS at desktop widths, where the sidebar is always visible.
+  onToggleSidebar?: () => void;
   hideProgressLink?: boolean;
   menuExtra?: (close: () => void) => React.ReactNode;
+  // The session view's two-column (problem + KG) grid needs more room
+  // than Hoot's single reading column; browse/progress match it exactly.
+  maxWidthClassName?: string;
 }
 
 export default function ApolloTopBar({
@@ -28,8 +37,10 @@ export default function ApolloTopBar({
   progress,
   onBack,
   backLabel = "Back",
+  onToggleSidebar,
   hideProgressLink,
   menuExtra,
+  maxWidthClassName = "max-w-3xl",
 }: Props) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,9 +58,20 @@ export default function ApolloTopBar({
   }, []);
 
   return (
-    <header className="apollo-topbar">
-      <div className="apollo-topbar__inner">
-        <div className="apollo-topbar__left">
+    <header className="site-header">
+      <div className={`mx-auto flex w-full ${maxWidthClassName} items-center justify-between px-4 py-1.5 relative`}>
+        <div className="flex items-center gap-2 relative z-[1]">
+          {onToggleSidebar && (
+            <button
+              type="button"
+              className="apollo-topbar__back apollo-topbar__sidebar-toggle"
+              onClick={onToggleSidebar}
+              aria-label="Toggle concepts"
+              title="Concepts"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
+          )}
           {onBack && (
             <button
               type="button"
@@ -63,9 +85,11 @@ export default function ApolloTopBar({
           )}
         </div>
 
-        <div className="apollo-topbar__brand">Apollo</div>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="site-brand">Apollo</div>
+        </div>
 
-        <div className="apollo-topbar__right">
+        <div className="flex items-center gap-2 relative z-[1]">
           {progress && (
             <span className="apollo-topbar__stat">
               Lv {progress.level} · {progress.xp_total.toLocaleString()} XP

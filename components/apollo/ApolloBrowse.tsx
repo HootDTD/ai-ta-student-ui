@@ -17,6 +17,7 @@ import {
   startSession,
 } from "@/lib/apollo/api";
 import ApolloErrorSurface from "./ApolloErrorSurface";
+import ApolloSidebar from "./ApolloSidebar";
 import ApolloTopBar from "./ApolloTopBar";
 
 const DIFFICULTIES: ApolloDifficulty[] = ["intro", "standard", "hard"];
@@ -35,15 +36,15 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<StudentProgressDetailed | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Compact progress header (spec §UI) — non-blocking, browse renders without it.
     getStudentProgressDetailed(classId).then(setProgress).catch(() => {});
+    // No auto-select: the browse page opens on a centered prompt until the
+    // student picks a concept from the sidebar.
     listConcepts(classId)
-      .then((r) => {
-        setConcepts(r.concepts);
-        if (r.concepts.length > 0) setConceptId(r.concepts[0].concept_id);
-      })
+      .then((r) => setConcepts(r.concepts))
       .catch((e) => setError(e as Error));
   }, [classId]);
 
@@ -71,102 +72,103 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
     [classId, conceptId, difficulty, onStarted],
   );
 
-  if (concepts === null && error === null) {
-    return (
-      <>
-        <ApolloTopBar classId={classId} progress={progress} />
-        <div className="apollo-browse">
-          <div className="apollo-browse__loading">Loading concepts…</div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
-      <ApolloTopBar classId={classId} progress={progress} />
-      <div className="apollo-browse">
-      <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
+      <ApolloTopBar
+        classId={classId}
+        progress={progress}
+        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+      />
+      <div className="apollo-shell">
+        <ApolloSidebar
+          concepts={concepts ?? []}
+          conceptId={conceptId}
+          onSelect={setConceptId}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
 
-      {concepts !== null && concepts.length === 0 && (
-        <div className="apollo-browse__empty">
-          No teachable concepts in this course yet. Check back soon!
-        </div>
-      )}
+        <div className="apollo-shell__content">
+          <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
 
-      {concepts !== null && concepts.length > 0 && (
-        <div className="apollo-browse__columns">
-          <div className="apollo-browse__rail">
-            <div className="eyebrow">Concepts</div>
-            <nav className="apollo-browse__concepts" aria-label="Concepts">
-              {concepts.map((c) => (
-                <button
-                  key={c.concept_id}
-                  className={`apollo-browse__concept ${
-                    c.concept_id === conceptId ? "apollo-browse__concept--active" : ""
-                  }`}
-                  onClick={() => setConceptId(c.concept_id)}
-                >
-                  {c.display_name}
-                </button>
-              ))}
-            </nav>
-          </div>
+          {concepts === null && error === null && (
+            <div className="apollo-browse__loading">Loading concepts…</div>
+          )}
 
-          <section className="apollo-browse__problems">
-            <div className="apollo-browse__difficulties" role="tablist">
-              {DIFFICULTIES.map((d) => (
-                <button
-                  key={d}
-                  role="tab"
-                  aria-selected={d === difficulty}
-                  className={`apollo-browse__difficulty ${
-                    d === difficulty ? "apollo-browse__difficulty--active" : ""
-                  }`}
-                  onClick={() => setDifficulty(d)}
-                >
-                  {d}
-                </button>
-              ))}
+          {concepts !== null && concepts.length === 0 && (
+            <div className="apollo-browse__empty">
+              No teachable concepts in this course yet. Check back soon!
+            </div>
+          )}
+
+          {concepts !== null && concepts.length > 0 && conceptId === null && (
+            <div className="apollo-browse__welcome">
+              <p className="lede">Pick a concept from the sidebar to get started.</p>
               <button
-                className="apollo-browse__surprise"
-                disabled={busy || conceptId === null}
-                onClick={() => start()}
+                type="button"
+                className="ui-button ui-button--small apollo-browse__welcome-btn"
+                onClick={() => setSidebarOpen(true)}
               >
-                Surprise me
+                Browse concepts
               </button>
             </div>
+          )}
 
-            {problems === null && <div className="apollo-browse__loading">Loading problems…</div>}
-            {problems !== null && problems.length === 0 && (
-              <div className="apollo-browse__empty">
-                No {difficulty} problems for this concept yet — try another difficulty.
+          {conceptId !== null && (
+            <section className="apollo-browse__problems">
+              <div className="apollo-browse__difficulties" role="tablist">
+                {DIFFICULTIES.map((d) => (
+                  <button
+                    key={d}
+                    role="tab"
+                    aria-selected={d === difficulty}
+                    className={`apollo-browse__difficulty ${
+                      d === difficulty ? "apollo-browse__difficulty--active" : ""
+                    }`}
+                    onClick={() => setDifficulty(d)}
+                  >
+                    {d}
+                  </button>
+                ))}
+                <button
+                  className="apollo-browse__surprise"
+                  disabled={busy}
+                  onClick={() => start()}
+                >
+                  Surprise me
+                </button>
               </div>
-            )}
-            <ul className="apollo-browse__cards">
-              {(problems ?? []).map((p) => (
-                <li key={p.id} className="apollo-browse__card">
-                  <p className="apollo-browse__card-text">
-                    {p.problem_text.length > PREVIEW_CHARS
-                      ? `${p.problem_text.slice(0, PREVIEW_CHARS)}…`
-                      : p.problem_text}
-                  </p>
-                  <div className="apollo-browse__card-footer">
-                    {p.attempted && <span className="apollo-browse__tried">Tried</span>}
-                    <button
-                      className="ui-button ui-button--primary ui-button--small"
-                      disabled={busy}
-                      onClick={() => start(p.id)}
-                    >
-                      Start teaching
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+
+              {problems === null && <div className="apollo-browse__loading">Loading problems…</div>}
+              {problems !== null && problems.length === 0 && (
+                <div className="apollo-browse__empty">
+                  No {difficulty} problems for this concept yet — try another difficulty.
+                </div>
+              )}
+              <ul className="apollo-browse__cards">
+                {(problems ?? []).map((p) => (
+                  <li key={p.id} className="apollo-browse__card">
+                    <p className="apollo-browse__card-text">
+                      {p.problem_text.length > PREVIEW_CHARS
+                        ? `${p.problem_text.slice(0, PREVIEW_CHARS)}…`
+                        : p.problem_text}
+                    </p>
+                    <div className="apollo-browse__card-footer">
+                      {p.attempted && <span className="apollo-browse__tried">Tried</span>}
+                      <button
+                        className="ui-button ui-button--primary ui-button--small"
+                        disabled={busy}
+                        onClick={() => start(p.id)}
+                      >
+                        Start teaching
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
-      )}
       </div>
     </>
   );

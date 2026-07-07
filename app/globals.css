@@ -47,6 +47,12 @@
   --btn-bg: rgba(233, 223, 207, 0.72);
   --btn-primary-hover: #111;
   --citation-bg: rgba(233, 223, 207, 0.8);
+  --success-solid: rgb(28, 96, 52);
+  --warning-solid: rgb(184, 138, 28);
+  --danger-solid: rgb(160, 38, 18);
+  --modal-backdrop: rgba(0, 0, 0, 0.4);
+  --kg-dot-neutral: rgba(0, 0, 0, 0.18);
+  --meter-groove: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 html.dark {
@@ -89,6 +95,12 @@ html.dark {
   --btn-bg: rgba(50, 48, 43, 0.72);
   --btn-primary-hover: #d6d2cc;
   --citation-bg: rgba(50, 48, 43, 0.8);
+  --success-solid: rgb(90, 200, 130);
+  --warning-solid: rgb(200, 160, 50);
+  --danger-solid: rgb(220, 80, 60);
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
+  --kg-dot-neutral: rgba(232, 228, 222, 0.22);
+  --meter-groove: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
 *,
@@ -513,7 +525,7 @@ button:disabled {
   grid-template-columns: 3.25rem 1fr;
   gap: 1rem;
   align-items: center;
-  padding: 1.1rem 1.15rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
   border: 1px solid var(--border);
   background: var(--card-fill);
 }
@@ -537,33 +549,9 @@ button:disabled {
   font-size: 0.95rem;
 }
 
-/* Chrome shared by every Apollo page — mirrors .site-header: sticky,
-   blurred bar, centered brand, actions tucked into a menu instead of a
-   row of buttons. */
-.apollo-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 60;
-  border-bottom: 1px solid var(--border);
-  background: var(--bar-bg);
-  backdrop-filter: blur(18px);
-}
-
-.apollo-topbar__inner {
-  width: var(--content-width);
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: minmax(2.5rem, auto) minmax(0, 1fr) auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 0.5rem 0;
-}
-
-.apollo-topbar__left {
-  display: flex;
-  align-items: center;
-}
-
+/* Apollo's top bar reuses .site-header + .site-brand directly (see
+   components/apollo/ApolloTopBar.tsx) rather than parallel copies — only
+   the pieces with no Hoot equivalent need their own rules here. */
 .apollo-topbar__back {
   display: inline-flex;
   align-items: center;
@@ -582,44 +570,34 @@ button:disabled {
   background: var(--accent-soft);
 }
 
-.apollo-topbar__brand {
-  font-family: var(--font-prose);
-  font-size: 1.15rem;
-  font-weight: 400;
-  letter-spacing: -0.03em;
-  text-align: center;
-  color: var(--text);
-}
-
-.apollo-topbar__right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.65rem;
+/* The concepts sidebar is always visible at desktop widths — the toggle
+   that reveals it as a drawer is only meaningful below that breakpoint. */
+@media (min-width: 1024px) {
+  .apollo-topbar__sidebar-toggle {
+    display: none;
+  }
 }
 
 .apollo-topbar__stat {
   font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--muted);
   white-space: nowrap;
 }
 
+/* The session view's two-column (problem + KG) grid needs more room than
+   Hoot's 768px reading column — matched to the wider max-w-4xl the
+   top bar renders with on this page only (see ApolloPageClient.tsx). */
 .apollo-page {
-  width: var(--content-width);
+  width: 100%;
+  max-width: 56rem;
   margin: 0 auto;
-  padding: 1rem 0 2.5rem;
+  padding: 1rem 0 2.6rem;
   display: grid;
   gap: 0.85rem 1.25rem;
   grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
   grid-template-areas: "main aside";
   align-items: start;
-}
-
-/* Browse hosts its own single-column container — the session grid's
-   main/aside split doesn't apply. */
-.apollo-page--browse {
-  display: block;
 }
 
 .apollo-page__exit-actions {
@@ -662,7 +640,7 @@ button:disabled {
   --apollo-glow: transparent;
 
   margin: 0 0 0.85rem;
-  padding: 0.75rem 0.95rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
   border: 1px solid var(--border);
   background: var(--card-fill);
   box-shadow:
@@ -722,7 +700,7 @@ button:disabled {
   background: var(--apollo-acc-soft);
   border-radius: 999px;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--meter-groove);
 }
 
 .apollo-progress-card__bar-fill {
@@ -852,7 +830,7 @@ html.dark .apollo-progress-card[data-level="5"] {
     border-color 150ms ease,
     background 150ms ease,
     color 150ms ease,
-    box-shadow 180ms ease;
+    box-shadow 150ms ease;
 }
 
 .ui-button:hover:not(:disabled) {
@@ -1684,11 +1662,11 @@ html.dark .apollo-progress-card[data-level="5"] {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--kg-dot-neutral);
 }
-.kg-pill__dot--green  { background: rgb(28, 96, 52); }
-.kg-pill__dot--yellow { background: rgb(184, 138, 28); }
-.kg-pill__dot--red    { background: rgb(160, 38, 18); }
+.kg-pill__dot--green  { background: var(--success-solid); }
+.kg-pill__dot--yellow { background: var(--warning-solid); }
+.kg-pill__dot--red    { background: var(--danger-solid); }
 .kg-pill__text {
   flex: 1 1 auto;
   min-width: 0;
@@ -1741,7 +1719,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .kg-pill__error {
   font-size: 0.78rem;
-  color: rgb(160, 38, 18);
+  color: var(--danger-solid);
   margin-top: 0.2rem;
 }
 .kg-pill__card {
@@ -1757,7 +1735,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   color: var(--muted);
   margin-bottom: 0.3rem;
 }
-.kg-pill__trace-eyebrow { color: rgba(0, 0, 0, 0.42); }
+.kg-pill__trace-eyebrow { color: var(--muted); }
 .kg-pill__textarea {
   width: 100%;
   font: inherit;
@@ -1777,7 +1755,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-size: 0.72rem;
   color: var(--muted);
 }
-.kg-pill__counter--err { color: rgb(160, 38, 18); }
+.kg-pill__counter--err { color: var(--danger-solid); }
 .kg-pill__card-actions { display: inline-flex; gap: 0.3rem; }
 .kg-pill__trace-source { margin-bottom: 0.5rem; }
 .kg-pill__trace-label {
@@ -1807,7 +1785,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 .done-gate-modal__backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1890,7 +1868,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .done-gate-modal__row-status--done {
   font-size: 0.82rem;
-  color: rgb(28, 96, 52);
+  color: var(--success-solid);
 }
 .done-gate-modal__footer {
   display: flex;
@@ -1901,60 +1879,137 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 
 
-/* --- Apollo browse (standalone entry, 2026-07-07) -------------------
-   Styled on the app's editorial system: hairline borders, square
-   corners, accent = ink. The concepts rail reads as an index — active
-   concept carries a 3px accent spine, echoing .module's accent edge. */
-.apollo-browse {
-  width: var(--content-width);
-  max-width: 960px;
+/* --- Apollo browse shell (2026-07-07) --------------------------------
+   Persistent concepts sidebar + centered content column, mirroring
+   Hoot's chat-sidebar/main split. Sidebar is in-flow on desktop; below
+   1024px it becomes an off-canvas drawer toggled from the top bar.
+   48rem matches Hoot's own max-w-3xl reading column exactly (see
+   ApolloTopBar's default maxWidthClassName) so chrome and body stay
+   flush at every viewport width. */
+.apollo-shell {
+  width: 100%;
+  max-width: 48rem;
   margin: 0 auto;
-  padding: 1.25rem 0 2.6rem;
-}
-
-.apollo-browse__columns {
-  display: grid;
-  grid-template-columns: minmax(200px, 250px) minmax(0, 1fr);
+  padding: 1rem 0 2.6rem;
+  display: flex;
+  align-items: flex-start;
   gap: 1.4rem;
-  align-items: start;
 }
 
-.apollo-browse__rail {
+.apollo-shell__content {
+  flex: 1;
+  min-width: 0;
   display: grid;
-  gap: 0.5rem;
+  gap: 0.9rem;
 }
 
-.apollo-browse__concepts {
+.apollo-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 65;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--surface-fill);
+  backdrop-filter: blur(18px);
+  border-right: 1px solid var(--border);
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+  overflow-y: auto;
+}
+
+.apollo-sidebar--open {
+  transform: translateX(0);
+}
+
+.apollo-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  background: var(--modal-backdrop);
+}
+
+@media (min-width: 1024px) {
+  .apollo-sidebar {
+    position: sticky;
+    top: calc(3.5rem + 1.25rem);
+    flex: 0 0 220px;
+    width: auto;
+    max-height: calc(100vh - 5rem);
+    z-index: 1;
+    transform: none;
+    background: transparent;
+    backdrop-filter: none;
+    border-right: none;
+    padding: 0;
+  }
+
+  .apollo-sidebar-overlay {
+    display: none;
+  }
+}
+
+.apollo-sidebar__list {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
   background: var(--card-fill);
 }
 
-.apollo-browse__concept {
+.apollo-sidebar__item {
   text-align: left;
-  padding: 0.7rem 0.85rem;
+  padding: 0.625rem 0.75rem;
   border: 0;
   border-bottom: 1px solid var(--dropdown-divider);
   border-left: 3px solid transparent;
   background: transparent;
   cursor: pointer;
   font: inherit;
+  font-size: 0.875rem;
   transition: background 140ms ease, border-color 140ms ease;
 }
 
-.apollo-browse__concept:last-child {
+.apollo-sidebar__item:last-child {
   border-bottom: 0;
 }
 
-.apollo-browse__concept:hover {
+.apollo-sidebar__item:hover {
   background: var(--accent-soft);
 }
 
-.apollo-browse__concept--active {
+.apollo-sidebar__item--active {
   border-left-color: var(--accent);
   background: var(--accent-soft);
   font-weight: 600;
+}
+
+/* The centered prompt shown until a concept is chosen — the "little
+   message in the middle" the browse page opens on. Fills the available
+   viewport height so it reads as a deliberate centered moment, not a
+   stray line floating near the top. */
+.apollo-browse__welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  min-height: 60vh;
+  padding: 1rem;
+  text-align: center;
+}
+
+.apollo-browse__welcome-btn {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .apollo-browse__welcome-btn {
+    display: inline-flex;
+  }
 }
 
 .apollo-browse__problems {
@@ -1975,9 +2030,9 @@ html.dark .apollo-progress-card[data-level="5"] {
   border: 1px solid var(--border);
   background: var(--chip-bg);
   color: var(--text);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
@@ -2021,7 +2076,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 .apollo-browse__card {
   display: grid;
   gap: 0.65rem;
-  padding: 0.95rem 1.05rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
   border: 1px solid var(--border);
   background: var(--card-fill);
   transition: border-color 140ms ease;
@@ -2049,9 +2104,9 @@ html.dark .apollo-progress-card[data-level="5"] {
   border: 1px solid var(--border);
   background: var(--chip-bg);
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -2062,12 +2117,6 @@ html.dark .apollo-progress-card[data-level="5"] {
   border: 1px dashed var(--border);
   background: var(--empty-bg);
   color: var(--muted);
-}
-
-@media (max-width: 720px) {
-  .apollo-browse__columns {
-    grid-template-columns: 1fr;
-  }
 }
 
 .apollo-gate-resume {
@@ -2091,10 +2140,10 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 /* --- Apollo progress dashboard --------------------------------------- */
 .apollo-progress-page {
-  width: var(--content-width);
-  max-width: 760px;
+  width: 100%;
+  max-width: 48rem;
   margin: 0 auto;
-  padding: 1.25rem 0 2.6rem;
+  padding: 1rem 0 2.6rem;
   display: grid;
   gap: 1rem;
   justify-items: stretch;
@@ -2106,13 +2155,14 @@ html.dark .apollo-progress-card[data-level="5"] {
   color: var(--accent);
   font-size: clamp(1.6rem, 2.2vw, 2.2rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.05em;
+  line-height: 0.96;
 }
 
 .apollo-progress-page__section {
   display: grid;
-  gap: 0.75rem;
-  margin-top: 0.9rem;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .apollo-progress-page__section h2 {
@@ -2160,7 +2210,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   border-radius: 999px;
   background: var(--accent-soft);
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--meter-groove);
 }
 
 .apollo-mastery__fill {
@@ -2194,7 +2244,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   display: flex;
   gap: 0.85rem;
   align-items: baseline;
-  padding: 0.6rem 0.15rem;
+  padding: 0.6rem 0.75rem;
   border-bottom: 1px solid var(--dropdown-divider);
 }
 
@@ -2209,9 +2259,9 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .apollo-attempts__difficulty {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
