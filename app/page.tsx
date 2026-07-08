@@ -6,9 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Dropzone from 'react-dropzone';
 import { Send, X, ImagePlus, Paperclip, ChevronDown, MoreVertical, Sun, Moon, Plus, MessageSquare, PanelLeftClose, PanelLeft, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
+import MathMarkdown from '@/components/MathMarkdown';
 import {
   SUPABASE_AUTH_ENABLED,
   clearStoredSession,
@@ -266,23 +264,6 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [loading],
   );
-
-  const normalizeMath = (text: string): string => {
-    let out = text;
-    out = out.replace(/^\s*\\\[([\s\S]*?)\\\]\s*$/gm, (_m, inner) => `$$${inner.trim()}$$`);
-    out = out.replace(/\\\((.+?)\\\)/g, (_m, inner) => `$${inner.trim()}$`);
-    out = out.replace(/^\s*\[\s*([^\n\]]+?)\s*\]\s*$/gm, (m, inner) => {
-      if (/\\[a-zA-Z]+|\^|_/.test(inner)) return `$$${inner}$$`;
-      return m;
-    });
-    out = out.replace(/\[(\s*[^\]]*?)\]/g, (m, inner) => {
-      if (/\\[a-zA-Z]+|\^|_/.test(inner) && !/\$\$?.*\$\$?/.test(inner)) {
-        return `$${inner.trim()}$`;
-      }
-      return m;
-    });
-    return out;
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -1215,9 +1196,7 @@ export default function Page() {
               <div className={m.role === 'user' ? 'msg-user' : 'msg-ai'}>
                 <div className="prose max-w-none">
                   {m.role === 'assistant' ? (
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                      {normalizeMath(parseAnswer(m.content).answerText)}
-                    </ReactMarkdown>
+                    <MathMarkdown>{parseAnswer(m.content).answerText}</MathMarkdown>
                   ) : (
                     <span className="whitespace-pre-wrap">{m.content}</span>
                   )}
