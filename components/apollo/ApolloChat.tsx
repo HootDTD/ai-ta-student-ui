@@ -20,6 +20,9 @@ interface Props {
   // so it can render the report without a redundant API call.
   onDoneFromChat?: (result: DoneResponse) => void;
   disabled?: boolean;
+  // True while the parent is processing the "I'm done teaching" click
+  // (awaiting finishTeaching); drives the button's loading state.
+  busy?: boolean;
 }
 
 function ApolloAvatar() {
@@ -43,6 +46,7 @@ export default function ApolloChat({
   onDoneClicked,
   onDoneFromChat,
   disabled,
+  busy,
 }: Props) {
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
@@ -177,7 +181,8 @@ export default function ApolloChat({
             type="button"
             className="ui-button ui-button--small"
           >
-            I&apos;m done teaching
+            {busy && <span className="ui-button__spinner" aria-hidden />}
+            {busy ? "Ending session…" : "I'm done teaching"}
           </button>
         </div>
       </div>

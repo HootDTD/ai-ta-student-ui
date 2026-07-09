@@ -372,6 +372,7 @@ export default function ApolloPageClient() {
             onDoneClicked={handleDone}
             onDoneFromChat={(result) => setReport(result)}
             disabled={busy}
+            busy={busy}
           />
         )}
       </main>
