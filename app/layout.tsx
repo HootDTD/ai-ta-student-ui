@@ -3,6 +3,8 @@ import { Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 
+import SessionRefresher from "@/components/SessionRefresher";
+
 const fraunces = Fraunces({
   subsets: ["latin"],
   style: ["normal", "italic"],
@@ -30,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fraunces.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
+        <SessionRefresher />
         {children}
       </body>
     </html>
