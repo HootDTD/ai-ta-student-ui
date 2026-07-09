@@ -10,6 +10,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+import { APOLLO_ONLY } from "@/lib/flags";
 import { ChevronDown, ChevronLeft, MoreVertical, PanelLeft } from "lucide-react";
 
 import { listMyClasses, type ApolloClassOption } from "@/lib/apollo/api";
@@ -165,16 +167,18 @@ export default function ApolloTopBar({
                     My progress
                   </Link>
                 ) : null}
-                <button
-                  type="button"
-                  className="dropdown-item"
-                  onClick={() => {
-                    closeMenu();
-                    router.push("/");
-                  }}
-                >
-                  Return to Hoot
-                </button>
+                {!APOLLO_ONLY && (
+                  <button
+                    type="button"
+                    className="dropdown-item"
+                    onClick={() => {
+                      closeMenu();
+                      router.push("/");
+                    }}
+                  >
+                    Return to Hoot
+                  </button>
+                )}
               </div>
             )}
           </div>
