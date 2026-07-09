@@ -416,6 +416,28 @@ export default function Page() {
     void fetchChatList();
   }, [authReady, accessToken, selectedClassId, fetchChatList]);
 
+  // Pick up proactive token refreshes: <SessionRefresher /> (app/layout.tsx)
+  // keeps the localStorage session fresh; this page holds the token in React
+  // state, so poll storage cheaply and adopt a rotated token when it appears.
+  useEffect(() => {
+    if (!authReady || !session) return;
+    const adopt = () => {
+      const stored = loadStoredSession();
+      if (stored?.access_token && stored.access_token !== session.access_token) {
+        setSession(stored);
+      }
+    };
+    const timer = setInterval(adopt, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') adopt();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [authReady, session]);
+
   // Apollo-only deployments: "/" stays the sign-in screen, but signed-in
   // users go straight to the Apollo surface instead of Hoot chat.
   useEffect(() => {
