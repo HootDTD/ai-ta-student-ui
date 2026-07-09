@@ -10,6 +10,7 @@ interface Props {
   report: DoneResponse;
   onRetry: () => void;
   onEnd: () => void;
+  onNext: () => void;
   busy?: boolean;
 }
 
@@ -49,7 +50,7 @@ function AxisRow({ label, axis }: { label: string; axis: RubricAxis }) {
   );
 }
 
-export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Props) {
+export default function ApolloReportPanel({ report, onRetry, onEnd, onNext, busy }: Props) {
   const { rubric, diagnostic_narrative } = report;
   const tone = rubric.overall.score >= PASS_SCORE ? "success" : "danger";
 
@@ -117,10 +118,18 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, busy }: Prop
 
       <div className="composer-foot">
         <button
-          onClick={onRetry}
+          onClick={onNext}
           disabled={busy}
           type="button"
           className="ui-button ui-button--primary ui-button--small"
+        >
+          Next problem
+        </button>
+        <button
+          onClick={onRetry}
+          disabled={busy}
+          type="button"
+          className="ui-button ui-button--small"
         >
           Teach more and retry
         </button>

@@ -11,6 +11,8 @@ import {
   signUpWithPassword,
   type StoredSession,
 } from "../../lib/auth";
+import AuthBrand from "../../../components/AuthBrand";
+import BootScreen from "../../../components/BootScreen";
 
 type ResolvedLink = {
   search_space_id: number;
@@ -43,7 +45,6 @@ export default function JoinPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
-  const [redeemLoading, setRedeemLoading] = useState(false);
   const [redeemError, setRedeemError] = useState<string | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
 
@@ -89,7 +90,6 @@ export default function JoinPage() {
   const redeem = useCallback(
     async (token: string) => {
       if (!code || redeemSuccess) return;
-      setRedeemLoading(true);
       setRedeemError(null);
       try {
         const resp = await fetch(`/api/invite-links/redeem/${encodeURIComponent(code)}`, {
@@ -109,8 +109,6 @@ export default function JoinPage() {
         }
       } catch (err) {
         setRedeemError(err instanceof Error ? err.message : "Failed to redeem invite code");
-      } finally {
-        setRedeemLoading(false);
       }
     },
     [code, redeemSuccess, router]
@@ -159,10 +157,10 @@ export default function JoinPage() {
 
   if (!SUPABASE_AUTH_ENABLED) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="module w-full max-w-sm">
-          <h1 className="section-title">Auth not configured</h1>
-          <p className="note">Supabase auth is not enabled on this instance.</p>
+      <div className="auth-screen">
+        <div className="auth-card">
+          <AuthBrand />
+          <div className="notice" data-tone="danger">Hoot isn&apos;t fully set up yet. Please contact your administrator.</div>
         </div>
       </div>
     );
@@ -170,10 +168,8 @@ export default function JoinPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="module w-full max-w-sm">
-          <p className="note">Checking invite code...</p>
-        </div>
+      <div className="auth-screen">
+        <BootScreen label="Checking your invite…" />
       </div>
     );
   }
@@ -197,13 +193,14 @@ export default function JoinPage() {
   // Success screen
   if (redeemSuccess && resolved) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="module w-full max-w-sm text-center">
-          <h1 className="section-title">You&apos;re in!</h1>
-          <p className="note mt-2">
+      <div className="auth-screen">
+        <div className="auth-card">
+          <AuthBrand />
+          <h1 className="section-title" style={{ fontSize: '1.4rem', textAlign: 'center' }}>You&apos;re in!</h1>
+          <p className="note" style={{ textAlign: 'center', margin: 0 }}>
             Joined <strong>{resolved.course_name}</strong> as {resolved.role}.
           </p>
-          <p className="note mt-1">Redirecting to Hoot...</p>
+          <p className="note" style={{ textAlign: 'center', margin: 0 }}>Redirecting to Hoot…</p>
         </div>
       </div>
     );
@@ -212,20 +209,19 @@ export default function JoinPage() {
   // Not logged in — show auth form with course context
   if (!session && authReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <form onSubmit={handleSignIn} className="module w-full max-w-sm">
-          <div>
-            <h1 className="section-title">Join {resolved?.course_name}</h1>
-            <p className="note mt-2">
-              Sign in or create an account to join this class.
-            </p>
+      <div className="auth-screen">
+        <form onSubmit={handleSignIn} className="auth-card">
+          <AuthBrand />
+          <div style={{ textAlign: 'center' }}>
+            <h1 className="section-title" style={{ fontSize: '1.3rem' }}>Join {resolved?.course_name ?? 'this course'}</h1>
+            <p className="note" style={{ margin: '0.3rem 0 0' }}>Sign in or create an account to join this class.</p>
           </div>
           {authError && (
             <div className="notice" data-tone="danger">
               {authError}
             </div>
           )}
-          {authNotice && <div className="notice">{authNotice}</div>}
+          {authNotice && <div className="notice" data-tone="success">{authNotice}</div>}
           <label className="field-label">
             Email
             <input
@@ -251,15 +247,15 @@ export default function JoinPage() {
             disabled={authLoading}
             className="ui-button ui-button--primary ui-button--full"
           >
-            {authLoading ? "Signing in..." : "Sign in"}
+            {authLoading ? "Signing in…" : "Sign in"}
           </button>
           <button
             type="button"
             disabled={authLoading}
             onClick={handleSignUp}
-            className="ui-button ui-button--full"
+            className="ui-button ui-button--ghost ui-button--full"
           >
-            {authLoading ? "Working..." : "Create account"}
+            {authLoading ? "Working…" : "New here? Create an account"}
           </button>
         </form>
       </div>
@@ -268,16 +264,13 @@ export default function JoinPage() {
 
   // Logged in, redeeming in progress
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="module w-full max-w-sm">
-        <h1 className="section-title">Joining {resolved?.course_name}...</h1>
-        {redeemLoading && <p className="note">Enrolling you now...</p>}
-        {redeemError && (
-          <div className="notice" data-tone="danger">
-            {redeemError}
-          </div>
-        )}
-      </div>
+    <div className="auth-screen">
+      <BootScreen label={`Enrolling you in ${resolved?.course_name ?? 'your class'}…`} />
+      {redeemError && (
+        <div className="notice" data-tone="danger">
+          {redeemError}
+        </div>
+      )}
     </div>
   );
 }

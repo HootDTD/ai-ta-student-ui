@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { ApolloApiError, sendChat } from "@/lib/apollo/api";
 import type { ApolloKG, DoneResponse } from "@/lib/apollo/api";
 import SpecialCharsPalette from "@/components/SpecialCharsPalette";
+import OwlVideo from "@/components/OwlVideo";
+import MathMarkdown from "@/components/MathMarkdown";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 
 interface Props {
@@ -18,6 +20,9 @@ interface Props {
   // so it can render the report without a redundant API call.
   onDoneFromChat?: (result: DoneResponse) => void;
   disabled?: boolean;
+  // True while the parent is processing the "I'm done teaching" click
+  // (awaiting finishTeaching); drives the button's loading state.
+  busy?: boolean;
 }
 
 function ApolloAvatar() {
@@ -41,6 +46,7 @@ export default function ApolloChat({
   onDoneClicked,
   onDoneFromChat,
   disabled,
+  busy,
 }: Props) {
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
@@ -96,83 +102,89 @@ export default function ApolloChat({
   const hasConversation = messages.length > 0 || sending;
 
   return (
-    <section className="composer-grid">
-      {hasConversation ? (
-        <div ref={scrollRef} className="apollo-scrollback">
-          {messages.map((m, i) => {
-            if (m.role === "student") {
+    <section className="apollo-chat">
+      <div ref={scrollRef} className="apollo-chat__scroll">
+        {hasConversation ? (
+          <div className="apollo-scrollback">
+            {messages.map((m, i) => {
+              if (m.role === "student") {
+                return (
+                  <div key={i} className="apollo-turn apollo-turn--student">
+                    <span className="eyebrow">You</span>
+                    <div className="prose md-body">
+                      <MathMarkdown>{m.content}</MathMarkdown>
+                    </div>
+                  </div>
+                );
+              }
               return (
-                <div key={i} className="apollo-turn apollo-turn--student">
-                  <span className="eyebrow">You</span>
-                  <span>{m.content}</span>
+                <div key={i} className="apollo-turn apollo-turn--apollo">
+                  <ApolloAvatar />
+                  <div className="apollo-turn__body">
+                    <span className="eyebrow">Apollo</span>
+                    <div className="prose md-body">
+                      <MathMarkdown>{m.content}</MathMarkdown>
+                    </div>
+                  </div>
                 </div>
               );
-            }
-            return (
-              <div key={i} className="apollo-turn apollo-turn--apollo">
+            })}
+            {sending && (
+              <div className="apollo-turn apollo-turn--apollo" aria-live="polite">
                 <ApolloAvatar />
                 <div className="apollo-turn__body">
                   <span className="eyebrow">Apollo</span>
-                  <span>{m.content}</span>
+                  <em className="note" style={{ margin: 0 }}>
+                    thinking…
+                  </em>
                 </div>
               </div>
-            );
-          })}
-          {sending && (
-            <div className="apollo-turn apollo-turn--apollo" aria-live="polite">
-              <ApolloAvatar />
-              <div className="apollo-turn__body">
-                <span className="eyebrow">Apollo</span>
-                <em className="note" style={{ margin: 0 }}>
-                  thinking…
-                </em>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="apollo-empty">
-          <ApolloAvatar />
-          <div>
-            <div className="eyebrow">Apollo</div>
-            <p className="prose" style={{ margin: 0 }}>
-              I need you to walk me through the steps to solve this — not just give me formulas. Explain what to do first, why it applies here, and how to get from there to the answer.
+            )}
+          </div>
+        ) : (
+          <div className="apollo-chat__welcome">
+            <OwlVideo className="empty-greeting__owl" />
+            <p className="empty-greeting__note">
+              I&apos;m listening — walk me through your thinking.
             </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
+      <div className="apollo-chat__composer">
+        <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
 
-      <SpecialCharsPalette onInsert={insertChar} />
+        <SpecialCharsPalette onInsert={insertChar} />
 
-      <textarea
-        ref={textareaRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        placeholder="Teach Apollo in your own words…"
-        rows={3}
-        disabled={disabled || sending}
-        className="textarea"
-      />
-
-      <div className="composer-foot">
-        <button
-          onClick={handleSend}
-          disabled={disabled || sending || !draft.trim()}
-          type="button"
-          className="ui-button ui-button--primary ui-button--small"
-        >
-          {sending ? "Sending…" : "Send"}
-        </button>
-        <button
-          onClick={onDoneClicked}
+        <textarea
+          ref={textareaRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Teach Apollo in your own words…"
+          rows={3}
           disabled={disabled || sending}
-          type="button"
-          className="ui-button ui-button--small"
-        >
-          I&apos;m done teaching
-        </button>
+          className="textarea"
+        />
+
+        <div className="composer-foot">
+          <button
+            onClick={handleSend}
+            disabled={disabled || sending || !draft.trim()}
+            type="button"
+            className="ui-button ui-button--primary ui-button--small"
+          >
+            {sending ? "Sending…" : "Send"}
+          </button>
+          <button
+            onClick={onDoneClicked}
+            disabled={disabled || sending}
+            type="button"
+            className="ui-button ui-button--small"
+          >
+            {busy && <span className="ui-button__spinner" aria-hidden />}
+            {busy ? "Ending session…" : "I'm done teaching"}
+          </button>
+        </div>
       </div>
     </section>
   );

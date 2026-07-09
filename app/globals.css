@@ -47,6 +47,12 @@
   --btn-bg: rgba(233, 223, 207, 0.72);
   --btn-primary-hover: #111;
   --citation-bg: rgba(233, 223, 207, 0.8);
+  --success-solid: rgb(28, 96, 52);
+  --warning-solid: rgb(184, 138, 28);
+  --danger-solid: rgb(160, 38, 18);
+  --modal-backdrop: rgba(0, 0, 0, 0.4);
+  --kg-dot-neutral: rgba(0, 0, 0, 0.18);
+  --meter-groove: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 html.dark {
@@ -89,6 +95,12 @@ html.dark {
   --btn-bg: rgba(50, 48, 43, 0.72);
   --btn-primary-hover: #d6d2cc;
   --citation-bg: rgba(50, 48, 43, 0.8);
+  --success-solid: rgb(90, 200, 130);
+  --warning-solid: rgb(200, 160, 50);
+  --danger-solid: rgb(220, 80, 60);
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
+  --kg-dot-neutral: rgba(232, 228, 222, 0.22);
+  --meter-groove: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
 *,
@@ -318,12 +330,213 @@ button:disabled {
   white-space: nowrap;
 }
 
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: radial-gradient(ellipse 120% 80% at 50% -10%, var(--bg-soft), var(--bg) 70%);
+}
+
+.auth-card {
+  width: min(24.5rem, 100%);
+  display: grid;
+  gap: 1.05rem;
+  padding: clamp(1.6rem, 4vw, 2.1rem);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  background: var(--surface-fill);
+  box-shadow: var(--shadow-soft);
+}
+
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The owl video dissolves into the card via mix-blend-mode; an animated
+   (opacity/transform) ancestor would create a stacking context that
+   isolates the blend and exposes the video's raw background. So the
+   brand block itself never animates — its text children carry the
+   entrance instead. */
+.auth-card > *:not(.auth-brand) {
+  animation: auth-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-brand__wordmark,
+.auth-brand__subtitle {
+  animation: auth-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-brand__subtitle {
+  animation-delay: 60ms;
+}
+
+.auth-card > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.auth-card > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.auth-card > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.auth-card > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+.auth-card > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+
+.auth-card > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+
+.auth-card > *:nth-child(n + 8) {
+  animation-delay: 420ms;
+}
+
+.auth-brand {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  padding-bottom: 0.35rem;
+}
+
+.auth-brand__owl {
+  width: 4.25rem;
+  height: 4.25rem;
+  object-fit: contain;
+  filter: invert(var(--owl-invert));
+  mix-blend-mode: var(--owl-blend);
+}
+
+.auth-brand__wordmark {
+  font-family: var(--serif);
+  font-size: 2.35rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.auth-brand__subtitle {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.boot-screen {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  text-align: center;
+}
+
+.boot-screen__owl {
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: contain;
+  filter: invert(var(--owl-invert));
+  mix-blend-mode: var(--owl-blend);
+}
+
+.boot-screen__wordmark {
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.boot-screen__bar {
+  width: 8.5rem;
+  height: 2px;
+  background: var(--accent-soft);
+  overflow: hidden;
+  position: relative;
+}
+
+.boot-screen__bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  background: var(--accent);
+  animation: boot-slide 1.3s ease-in-out infinite;
+}
+
+@keyframes boot-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(380%);
+  }
+}
+
+.boot-screen__label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.empty-greeting {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  text-align: center;
+  padding: clamp(2.5rem, 10vh, 5rem) 1rem 1rem;
+}
+
+.empty-greeting__owl {
+  width: 5rem;
+  height: 5rem;
+  object-fit: contain;
+  filter: invert(var(--owl-invert));
+  mix-blend-mode: var(--owl-blend);
+}
+
+.empty-greeting__title {
+  font-family: var(--serif);
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.empty-greeting__note {
+  max-width: 26rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+/* ── Canonical label ───────────────────────────────────────────────────
+   There is exactly ONE label treatment in this app: quiet, muted, sentence
+   case. It matches the serif/light home aesthetic instead of shouting.
+   DO NOT hand-roll `font-weight: 700; text-transform: uppercase;
+   letter-spacing: …` labels in component CSS — that bold-UPPERCASE-gray
+   "eyebrow" motif was the source of repeated off-style drift. Reach for
+   `.eyebrow`. (The only intentional exceptions are the mono technical
+   labels on citation chips and the auth brand subtitle — a distinct,
+   deliberate typographic voice, not this label.) */
 .eyebrow {
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .hero-title,
@@ -466,16 +679,47 @@ button:disabled {
   background: var(--success-bg);
 }
 
-/* Apollo teach-scrollback: grows with messages, caps at max-height then
-   scrolls. No min-height — empty state is handled separately. */
+/* Apollo chat: fills the main column, message list scrolls, composer pins
+   to the bottom — the same shell as Hoot's chat home. */
+.apollo-chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.apollo-chat__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Empty state: the owl centered in the space above the composer, so the
+   session reads as "Apollo is waiting for you" rather than a blank panel. */
+.apollo-chat__welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.apollo-chat__composer {
+  display: grid;
+  gap: 0.7rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
 .apollo-scrollback {
   display: grid;
   gap: 0.9rem;
-  max-height: 55vh;
-  overflow-y: auto;
-  padding: 1rem 1.1rem;
-  border: 1px solid var(--border);
-  background: var(--card-fill);
+  padding: 0.5rem 0.15rem;
 }
 
 .apollo-turn {
@@ -493,6 +737,12 @@ button:disabled {
   display: grid;
   gap: 0.25rem;
   min-width: 0;
+}
+
+/* Markdown/KaTeX message bodies (Apollo chat turns, problem card): drop the
+   trailing paragraph margin from .prose so single-line content stays tight. */
+.md-body > :last-child {
+  margin-bottom: 0;
 }
 
 .apollo-turn--student {
@@ -513,7 +763,7 @@ button:disabled {
   grid-template-columns: 3.25rem 1fr;
   gap: 1rem;
   align-items: center;
-  padding: 1.1rem 1.15rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
   border: 1px solid var(--border);
   background: var(--card-fill);
 }
@@ -533,67 +783,147 @@ button:disabled {
   gap: 0.35rem;
 }
 
-.apollo-kg__section > strong {
-  font-size: 0.95rem;
+/* Panel heading uses the same serif-accent treatment as the home titles;
+   section labels below it use the muted .eyebrow — a quiet title → label
+   hierarchy instead of a stack of bold headers. */
+.apollo-kg__title {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: var(--accent);
 }
 
-.apollo-page {
-  width: var(--content-width);
-  margin: 0 auto;
-  padding: 0.75rem 0 2.5rem;
-  display: grid;
-  gap: 0.85rem 1.25rem;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-  grid-template-areas:
-    "nav nav"
-    "main aside";
-  align-items: start;
+.apollo-kg__empty {
+  margin: 0;
 }
 
-.apollo-page__nav {
-  grid-area: nav;
+/* Apollo's top bar reuses .site-header + .site-brand directly (see
+   components/apollo/ApolloTopBar.tsx) rather than parallel copies — only
+   the pieces with no Hoot equivalent need their own rules here. */
+.apollo-topbar__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.apollo-topbar__back:hover {
+  border-color: var(--border);
+  background: var(--accent-soft);
+}
+
+/* The concepts sidebar is always visible at desktop widths — the toggle
+   that reveals it as a drawer is only meaningful below that breakpoint. */
+@media (min-width: 1024px) {
+  .apollo-topbar__sidebar-toggle {
+    display: none;
+  }
+}
+
+/* Visible secondary action in the top-bar right cluster (e.g. "Start over"),
+   matching the subtle outlined treatment of the back/menu chrome. */
+.apollo-topbar__action {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.apollo-topbar__action:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.apollo-topbar__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The session view's two-column (problem + KG) grid needs more room than
+   Hoot's 768px reading column — matched to the wider max-w-4xl the
+   top bar renders with on this page only (see ApolloPageClient.tsx). */
+/* Session view fills the viewport as a flex column (header + body) so the
+   composer can pin to the bottom, mirroring Hoot's chat shell. */
+.apollo-session-shell {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* Single centered reading column (like Hoot's chat + the browse shell) so
+   the problem/chat/composer sit in the middle of the page. "Apollo's
+   understanding" is a toggle drawer (below), not a side column. */
+.apollo-page {
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.apollo-page__exit-actions {
+  display: flex;
+  gap: 0.6rem;
 }
 
 .apollo-page__main {
-  grid-area: main;
-}
-
-.apollo-page__aside {
-  grid-area: aside;
-}
-
-.apollo-page__main,
-.apollo-page__aside {
-  display: grid;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 0.85rem;
   min-width: 0;
+  min-height: 0;
 }
 
-.apollo-return-link {
+/* "Apollo's understanding" off-canvas drawer (right side), toggled from the
+   top bar. Sizes to its own content and scrolls — never stretches. */
+.apollo-kg-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 65;
+  width: min(24rem, 92vw);
+  padding: 1.25rem 1rem;
+  background: var(--surface-fill);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  overflow-y: auto;
+}
+
+.apollo-kg-drawer--open {
+  transform: translateX(0);
+}
+
+.apollo-kg-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  background: var(--modal-backdrop);
+}
+
+/* Inside the drawer the KG content is flush — the drawer is the surface, so
+   drop the panel's own card border/fill/padding. */
+.apollo-kg-drawer .apollo-kg {
+  border: 0;
   background: transparent;
-  border: none;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.9rem;
-  padding: 0.25rem 0.35rem;
-  cursor: pointer;
-  transition: color 140ms ease;
-}
-
-.apollo-return-link:hover {
-  color: var(--text);
-}
-
-@media (max-width: 960px) {
-  .apollo-page {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "nav"
-      "main"
-      "aside";
-  }
+  padding: 0;
+  box-shadow: none;
 }
 
 /* ── Apollo progress card (mount-persistent XP/level banner) ─────────── */
@@ -607,9 +937,8 @@ button:disabled {
   --apollo-glow: transparent;
 
   margin: 0 0 0.85rem;
-  padding: 0.75rem 0.95rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
   border: 1px solid var(--border);
-  border-radius: 10px;
   background: var(--card-fill);
   box-shadow:
     var(--inset-shadow),
@@ -657,9 +986,7 @@ button:disabled {
 }
 
 .apollo-progress-card__level {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -668,7 +995,7 @@ button:disabled {
   background: var(--apollo-acc-soft);
   border-radius: 999px;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--meter-groove);
 }
 
 .apollo-progress-card__bar-fill {
@@ -798,7 +1125,7 @@ html.dark .apollo-progress-card[data-level="5"] {
     border-color 150ms ease,
     background 150ms ease,
     color 150ms ease,
-    box-shadow 180ms ease;
+    box-shadow 150ms ease;
 }
 
 .ui-button:hover:not(:disabled) {
@@ -818,6 +1145,35 @@ html.dark .apollo-progress-card[data-level="5"] {
   color: var(--bg);
 }
 
+.ui-button--apollo {
+  border-color: var(--border);
+  background: var(--card-fill);
+  color: var(--text);
+}
+
+.ui-button--apollo:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.ui-button--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--border);
+}
+
+.ui-button--ghost:hover:not(:disabled) {
+  color: var(--text);
+  background: transparent;
+  border-color: transparent;
+  transform: none;
+  text-decoration-color: var(--accent);
+}
+
 .ui-button--small {
   padding: 0.55rem 0.85rem;
   font-size: 0.92rem;
@@ -831,6 +1187,22 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .ui-button--full {
   width: 100%;
+}
+
+.ui-button__spinner {
+  width: 0.85em;
+  height: 0.85em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: ui-button-spin 700ms linear infinite;
+}
+
+@keyframes ui-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .chip {
@@ -918,12 +1290,16 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 .dropdown-item {
+  display: block;
   width: 100%;
-  padding: 0.75rem 0.9rem;
+  padding: 0.6rem 0.9rem;
   border: 0;
   border-bottom: 1px solid var(--dropdown-divider);
   background: transparent;
+  color: var(--text);
+  font-size: 0.9rem;
   text-align: left;
+  text-decoration: none;
   transition: background 140ms ease, color 140ms ease;
 }
 
@@ -1537,7 +1913,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   margin: 0.75rem 0;
   padding: 0.5rem 0.75rem;
   background: var(--card-fill);
-  border-radius: 0.5rem;
+  border: 1px solid var(--border);
 }
 
 .apollo-rubric__row {
@@ -1568,7 +1944,6 @@ html.dark .apollo-progress-card[data-level="5"] {
   padding: 0.65rem 0.8rem;
   border: 1px solid var(--border);
   background: linear-gradient(90deg, rgba(255, 215, 0, 0.12), rgba(255, 215, 0, 0.02));
-  border-radius: 6px;
   position: relative;
   overflow: hidden;
   animation: apolloLevelUpSlide 450ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -1601,7 +1976,6 @@ html.dark .apollo-progress-card[data-level="5"] {
   position: relative;
   display: block;
   padding: 0.25rem 0;
-  border-radius: 4px;
   transition: background-color 200ms ease;
 }
 .kg-pill--disputed {
@@ -1632,33 +2006,35 @@ html.dark .apollo-progress-card[data-level="5"] {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--kg-dot-neutral);
 }
-.kg-pill__dot--green  { background: rgb(28, 96, 52); }
-.kg-pill__dot--yellow { background: rgb(184, 138, 28); }
-.kg-pill__dot--red    { background: rgb(160, 38, 18); }
+.kg-pill__dot--green  { background: var(--success-solid); }
+.kg-pill__dot--yellow { background: var(--warning-solid); }
+.kg-pill__dot--red    { background: var(--danger-solid); }
 .kg-pill__text {
   flex: 1 1 auto;
   min-width: 0;
 }
 .kg-pill__badge {
   flex: 0 0 auto;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.75rem;
   color: var(--muted);
   background: var(--accent-soft);
   padding: 0.05rem 0.35rem;
-  border-radius: 3px;
 }
+/* Negotiation controls stay out of the way until you engage a row — the
+   panel at rest reads as a clean list, not a wall of buttons. Revealed on
+   hover and keyboard focus (focus-within keeps them reachable without a
+   mouse). */
 .kg-pill__actions {
   flex: 0 0 auto;
   display: inline-flex;
   gap: 0.15rem;
-  opacity: 0.55;
+  opacity: 0;
   transition: opacity 200ms ease;
 }
-.kg-pill:hover .kg-pill__actions { opacity: 1; }
+.kg-pill:hover .kg-pill__actions,
+.kg-pill:focus-within .kg-pill__actions { opacity: 1; }
 .kg-pill__btn,
 .kg-pill__btn-primary,
 .kg-pill__btn-secondary {
@@ -1667,7 +2043,6 @@ html.dark .apollo-progress-card[data-level="5"] {
   border: 1px solid var(--border);
   background: var(--btn-bg);
   color: var(--text);
-  border-radius: 4px;
   padding: 0.1rem 0.45rem;
   line-height: 1.1;
 }
@@ -1691,7 +2066,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .kg-pill__error {
   font-size: 0.78rem;
-  color: rgb(160, 38, 18);
+  color: var(--danger-solid);
   margin-top: 0.2rem;
 }
 .kg-pill__card {
@@ -1699,23 +2074,19 @@ html.dark .apollo-progress-card[data-level="5"] {
   padding: 0.5rem 0.7rem;
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
 }
 .kg-pill__card-eyebrow {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
   margin-bottom: 0.3rem;
 }
-.kg-pill__trace-eyebrow { color: rgba(0, 0, 0, 0.42); }
+.kg-pill__trace-eyebrow { color: var(--muted); }
 .kg-pill__textarea {
   width: 100%;
   font: inherit;
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--text);
-  border-radius: 4px;
   padding: 0.3rem 0.5rem;
   resize: vertical;
 }
@@ -1729,7 +2100,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-size: 0.72rem;
   color: var(--muted);
 }
-.kg-pill__counter--err { color: rgb(160, 38, 18); }
+.kg-pill__counter--err { color: var(--danger-solid); }
 .kg-pill__card-actions { display: inline-flex; gap: 0.3rem; }
 .kg-pill__trace-source { margin-bottom: 0.5rem; }
 .kg-pill__trace-label {
@@ -1759,7 +2130,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 .done-gate-modal__backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1769,7 +2140,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 .done-gate-modal__card {
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-left: 4px solid var(--accent);
   max-width: 560px;
   width: 100%;
   padding: 1.5rem;
@@ -1777,9 +2148,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .done-gate-modal__header { margin-bottom: 1rem; }
 .done-gate-modal__eyebrow {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 .done-gate-modal__title {
@@ -1805,7 +2174,6 @@ html.dark .apollo-progress-card[data-level="5"] {
 .done-gate-modal__row {
   border: 1px solid var(--border);
   background: var(--bg-soft);
-  border-radius: 6px;
   padding: 0.6rem 0.8rem;
   display: flex;
   flex-direction: column;
@@ -1821,9 +2189,7 @@ html.dark .apollo-progress-card[data-level="5"] {
   gap: 0.5rem;
 }
 .done-gate-modal__row-type {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 .done-gate-modal__row-summary {
@@ -1843,7 +2209,7 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 .done-gate-modal__row-status--done {
   font-size: 0.82rem;
-  color: rgb(28, 96, 52);
+  color: var(--success-solid);
 }
 .done-gate-modal__footer {
   display: flex;
@@ -1853,3 +2219,395 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 
+
+/* --- Apollo browse shell (2026-07-07) --------------------------------
+   Persistent concepts sidebar + centered content column, mirroring
+   Hoot's chat-sidebar/main split. Sidebar is in-flow on desktop; below
+   1024px it becomes an off-canvas drawer toggled from the top bar. The
+   outer .apollo-layout/.apollo-layout__main split mirrors Hoot's own
+   `min-h-screen flex` + `.chat-sidebar` shell exactly (see app/page.tsx's
+   top-level markup): the sidebar is a real full-height column on the
+   actual side of the page, and .apollo-shell (48rem, matching Hoot's
+   max-w-3xl reading column / ApolloTopBar's default maxWidthClassName)
+   centers in whatever space is left over, so the topbar brand and the
+   welcome copy center against the same remaining width. */
+.apollo-layout {
+  min-height: 100vh;
+  display: flex;
+}
+
+.apollo-layout__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.apollo-shell {
+  flex: 1;
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1.4rem 1rem 2.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.apollo-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 65;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--surface-fill);
+  backdrop-filter: blur(18px);
+  border-right: 1px solid var(--border);
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+  overflow-y: auto;
+}
+
+.apollo-sidebar--open {
+  transform: translateX(0);
+}
+
+.apollo-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  background: var(--modal-backdrop);
+}
+
+@media (min-width: 1024px) {
+  .apollo-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    flex: 0 0 240px;
+    width: auto;
+    max-height: none;
+    z-index: 1;
+    transform: none;
+    padding: 1.25rem 1rem;
+  }
+
+  .apollo-sidebar-overlay {
+    display: none;
+  }
+}
+
+.apollo-sidebar__list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  background: var(--card-fill);
+}
+
+.apollo-sidebar__item {
+  text-align: left;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--dropdown-divider);
+  border-left: 3px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.apollo-sidebar__item:last-child {
+  border-bottom: 0;
+}
+
+.apollo-sidebar__item:hover {
+  background: var(--accent-soft);
+}
+
+.apollo-sidebar__item--active {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+/* The centered prompt shown until a concept is chosen — the "little
+   message in the middle" the browse page opens on. flex: 1 inside the
+   flex-column .apollo-shell so it claims the full remaining viewport
+   height below the topbar and centers truly in that space (same
+   min-h-screen-flex-center pattern Hoot uses for its own centered
+   screens), not just within a fixed min-height guess. */
+/* Apollo's browse welcome reuses Hoot's shared .empty-greeting + <OwlVideo>
+   (see app/page.tsx) verbatim so it's pixel-identical to the chat home — only
+   the copy differs. The mobile-only "Browse concepts" button is the one
+   Apollo-specific addition (the sidebar is a drawer below 1024px). */
+.apollo-browse__welcome-btn {
+  display: none;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 1023px) {
+  .apollo-browse__welcome-btn {
+    display: inline-flex;
+  }
+}
+
+.apollo-browse__problems {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.apollo-browse__difficulties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.apollo-browse__difficulty {
+  padding: 0.32rem 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.apollo-browse__difficulty:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.apollo-browse__difficulty--active,
+.apollo-browse__difficulty--active:hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.apollo-browse__surprise {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.apollo-browse__surprise:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.apollo-browse__cards {
+  list-style: none;
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+}
+
+.apollo-browse__card {
+  display: grid;
+  gap: 0.65rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--border);
+  background: var(--card-fill);
+  transition: border-color 140ms ease;
+}
+
+.apollo-browse__card:hover {
+  border-color: var(--accent);
+}
+
+.apollo-browse__card-text {
+  margin: 0;
+  line-height: 1.55;
+  font-family: var(--font-prose);
+}
+
+.apollo-browse__card-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  justify-content: flex-end;
+}
+
+.apollo-browse__tried {
+  padding: 0.14rem 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.apollo-browse__loading,
+.apollo-browse__empty {
+  margin: 0;
+  padding: 1.1rem;
+  border: 1px dashed var(--border);
+  background: var(--empty-bg);
+  color: var(--muted);
+}
+
+.apollo-gate-resume {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 40;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 0.92rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: background 150ms ease;
+}
+
+.apollo-gate-resume:hover {
+  background: var(--btn-primary-hover);
+}
+
+/* --- Apollo progress dashboard --------------------------------------- */
+.apollo-progress-page {
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem 0 2.6rem;
+  display: grid;
+  gap: 1rem;
+  justify-items: stretch;
+  align-content: start;
+}
+
+.apollo-progress-page__title {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.apollo-progress-page__section {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.apollo-progress-page__section h2 {
+  margin: 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.apollo-progress-page__empty {
+  padding: 1.1rem;
+  border: 1px dashed var(--border);
+  background: var(--empty-bg);
+  color: var(--muted);
+}
+
+.apollo-mastery {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.apollo-mastery__row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.apollo-mastery__name {
+  flex: 0 0 220px;
+  min-width: 0;
+}
+
+/* Meters keep the pill radius of the XP bar — the one rounded shape in
+   the system — so mastery and XP read as the same instrument. */
+.apollo-mastery__bar {
+  flex: 1;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  overflow: hidden;
+  box-shadow: var(--meter-groove);
+}
+
+.apollo-mastery__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.apollo-mastery__pct {
+  flex: 0 0 3.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .apollo-mastery__name {
+    flex-basis: 42%;
+  }
+}
+
+.apollo-attempts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.apollo-attempts__row {
+  display: flex;
+  gap: 0.85rem;
+  align-items: baseline;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--dropdown-divider);
+}
+
+.apollo-attempts__row:last-child {
+  border-bottom: 0;
+}
+
+.apollo-attempts__concept {
+  flex: 1;
+  min-width: 0;
+}
+
+.apollo-attempts__difficulty {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.apollo-attempts__grade {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.apollo-attempts__date {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
