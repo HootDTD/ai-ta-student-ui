@@ -22,7 +22,8 @@ import SpecialCharsPalette from '@/components/SpecialCharsPalette';
 import AuthBrand from '@/components/AuthBrand';
 import BootScreen from '@/components/BootScreen';
 import OwlVideo from '@/components/OwlVideo';
-import { startSessionFromHoot, ApolloApiError } from '@/lib/apollo/api';
+import { startSessionFromHoot, listMyClasses, ApolloApiError } from '@/lib/apollo/api';
+import { APOLLO_ONLY } from '@/lib/flags';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 type Message = {
@@ -414,6 +415,24 @@ export default function Page() {
     }
     void fetchChatList();
   }, [authReady, accessToken, selectedClassId, fetchChatList]);
+
+  // Apollo-only deployments: "/" stays the sign-in screen, but signed-in
+  // users go straight to the Apollo surface instead of Hoot chat.
+  useEffect(() => {
+    if (!APOLLO_ONLY || !authReady || !session) return;
+    let cancelled = false;
+    listMyClasses()
+      .then((classes) => {
+        if (cancelled) return;
+        router.replace(classes.length ? `/apollo?class=${classes[0].id}` : '/apollo');
+      })
+      .catch(() => {
+        if (!cancelled) router.replace('/apollo');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, session, router]);
 
   const handleNewChat = useCallback(() => {
     createNewChatId();
@@ -946,6 +965,17 @@ export default function Page() {
           </button>
           <p className="note" style={{ textAlign: 'center', margin: 0 }}>Joining a class? Use the invite link from your instructor.</p>
         </form>
+      </div>
+    );
+  }
+
+  // Apollo-only deployments never render the Hoot chat: signed-in users are
+  // being redirected to /apollo by the effect above — show the boot screen
+  // instead of flashing the chat UI.
+  if (APOLLO_ONLY) {
+    return (
+      <div className="auth-screen">
+        <BootScreen />
       </div>
     );
   }
