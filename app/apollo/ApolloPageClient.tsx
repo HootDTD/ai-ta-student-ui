@@ -27,6 +27,7 @@ import ApolloKGPanel from "@/components/apollo/ApolloKGPanel";
 import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
 import ApolloReportPanel from "@/components/apollo/ApolloReportPanel";
 import ApolloTopBar from "@/components/apollo/ApolloTopBar";
+import { APOLLO_ONLY } from "@/lib/flags";
 
 export default function ApolloPageClient() {
   const router = useRouter();
@@ -282,9 +283,9 @@ export default function ApolloPageClient() {
                   <button
                     type="button"
                     className="ui-button ui-button--primary ui-button--small"
-                    onClick={() => router.push("/")}
+                    onClick={() => router.push(APOLLO_ONLY ? "/apollo" : "/")}
                   >
-                    Return to Hoot
+                    {APOLLO_ONLY ? "Browse problems" : "Return to Hoot"}
                   </button>
                 )}
               </div>
