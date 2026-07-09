@@ -6,6 +6,7 @@ import { ApolloApiError, sendChat } from "@/lib/apollo/api";
 import type { ApolloKG, DoneResponse } from "@/lib/apollo/api";
 import SpecialCharsPalette from "@/components/SpecialCharsPalette";
 import OwlVideo from "@/components/OwlVideo";
+import MathMarkdown from "@/components/MathMarkdown";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 
 interface Props {
@@ -110,7 +111,9 @@ export default function ApolloChat({
                 return (
                   <div key={i} className="apollo-turn apollo-turn--student">
                     <span className="eyebrow">You</span>
-                    <span>{m.content}</span>
+                    <div className="prose md-body">
+                      <MathMarkdown>{m.content}</MathMarkdown>
+                    </div>
                   </div>
                 );
               }
@@ -119,7 +122,9 @@ export default function ApolloChat({
                   <ApolloAvatar />
                   <div className="apollo-turn__body">
                     <span className="eyebrow">Apollo</span>
-                    <span>{m.content}</span>
+                    <div className="prose md-body">
+                      <MathMarkdown>{m.content}</MathMarkdown>
+                    </div>
                   </div>
                 </div>
               );

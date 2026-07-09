@@ -1,6 +1,7 @@
 "use client";
 
 import type { ApolloProblem } from "@/lib/apollo/api";
+import MathMarkdown from "@/components/MathMarkdown";
 
 interface Props {
   problem: ApolloProblem | null;
@@ -16,9 +17,9 @@ export default function ApolloProblemPanel({ problem }: Props) {
   }
   return (
     <section className="module">
-      <p className="prose" style={{ margin: 0 }}>
-        {problem.problem_text}
-      </p>
+      <div className="prose md-body">
+        <MathMarkdown>{problem.problem_text}</MathMarkdown>
+      </div>
       <p className="note" style={{ margin: 0 }}>
         Teach Apollo enough to solve for {problem.target_unknown}.
       </p>

@@ -739,6 +739,12 @@ button:disabled {
   min-width: 0;
 }
 
+/* Markdown/KaTeX message bodies (Apollo chat turns, problem card): drop the
+   trailing paragraph margin from .prose so single-line content stays tight. */
+.md-body > :last-child {
+  margin-bottom: 0;
+}
+
 .apollo-turn--student {
   justify-items: start;
 }
