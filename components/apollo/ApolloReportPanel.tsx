@@ -59,6 +59,9 @@ function TopicRow({ topic }: { topic: TopicCredit }) {
     topic.canonical_key === GENERAL_TOPIC_KEY
       ? "Other issues"
       : (topic.display_name ?? topic.canonical_key);
+  // Network data: guard the nested array so a mid-deploy payload without
+  // `misconceptions` degrades to "no findings" instead of a crash.
+  const misconceptions = topic.misconceptions ?? [];
 
   return (
     <div className="apollo-topic" data-status={topic.status}>
@@ -72,9 +75,9 @@ function TopicRow({ topic }: { topic: TopicCredit }) {
         </span>
       </div>
 
-      {topic.misconceptions.length > 0 && (
+      {misconceptions.length > 0 && (
         <div className="apollo-topic__misconceptions">
-          {topic.misconceptions.map((m, i) => (
+          {misconceptions.map((m, i) => (
             <div
               key={`${m.canonical_key}-${i}`}
               className="apollo-topic__misconception"

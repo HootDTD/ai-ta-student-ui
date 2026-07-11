@@ -1997,6 +1997,14 @@ html.dark .apollo-progress-card[data-level="5"] {
   opacity: 0.8;
 }
 
+/* MathMarkdown wraps single-line text in a block <p>; this is the one
+   inline call site, so flatten it or the quote marks and quote text land
+   on separate flex lines. */
+.apollo-topic__misconception-evidence p {
+  display: inline;
+  margin: 0;
+}
+
 .apollo-topic__misconception-badge {
   color: var(--success-solid);
   font-weight: 600;

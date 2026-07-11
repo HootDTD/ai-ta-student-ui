@@ -187,7 +187,9 @@ export interface TopicMisconception {
   // Fraction of the 0.30 dock clamp this finding consumed (e.g. 0.05), not
   // a raw point value — the UI renders it as points out of 100.
   dock_points: number;
-  evidence_span: string;
+  // Verbatim student quote the finding is grounded in; null when the
+  // detector produced no span (the backend serves null, not undefined).
+  evidence_span: string | null;
 }
 
 export interface TopicCredit {
