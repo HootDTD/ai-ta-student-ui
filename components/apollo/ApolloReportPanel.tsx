@@ -1,10 +1,7 @@
 "use client";
 
-import { Fragment } from "react";
-import { InlineMath } from "react-katex";
-import "katex/dist/katex.min.css";
-
-import type { DoneResponse, Rubric, RubricAxis } from "@/lib/apollo/api";
+import MathMarkdown from "@/components/MathMarkdown";
+import type { DoneResponse, Rubric, RubricAxis, TopicCredit } from "@/lib/apollo/api";
 
 interface Props {
   report: DoneResponse;
@@ -17,22 +14,22 @@ interface Props {
 const BAR_CELLS = 8;
 const PASS_SCORE = 75;
 
+// "_general" is the synthetic bucket (design spec §2) for misconceptions
+// whose finding didn't localize to a reference topic node; it always
+// renders last, labelled "Other issues" rather than its raw key.
+const GENERAL_TOPIC_KEY = "_general";
+
 const AXIS_LABELS: Record<keyof Omit<Rubric, "overall">, string> = {
   procedure: "Procedure",
   justification: "Justification",
   simplification: "Simplification",
 };
 
-function renderWithMath(text: string) {
-  const parts = text.split(/(\$[^$]+\$)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("$") && part.endsWith("$")) {
-      const tex = part.slice(1, -1);
-      return <InlineMath key={i} math={tex} />;
-    }
-    return <Fragment key={i}>{part}</Fragment>;
-  });
-}
+const STATUS_GLYPH: Record<TopicCredit["status"], string> = {
+  covered: "✓",
+  partial: "◐",
+  missing: "✗",
+};
 
 function AxisRow({ label, axis }: { label: string; axis: RubricAxis }) {
   const filled = Math.round((axis.score / 100) * BAR_CELLS);
@@ -46,6 +43,84 @@ function AxisRow({ label, axis }: { label: string; axis: RubricAxis }) {
       <span>{axis.letter}</span>
       <span>({axis.score})</span>
       <span aria-hidden>{bar}</span>
+    </div>
+  );
+}
+
+// dock_points is stored as a fraction of the 0.30 severity clamp (design
+// spec §2); the report renders it as "points out of 100" the way the
+// overall score is expressed, so round(dock_points * 100).
+function dockToPoints(dockPoints: number): number {
+  return Math.round(dockPoints * 100);
+}
+
+function TopicRow({ topic }: { topic: TopicCredit }) {
+  const label =
+    topic.canonical_key === GENERAL_TOPIC_KEY
+      ? "Other issues"
+      : (topic.display_name ?? topic.canonical_key);
+  // Network data: guard the nested array so a mid-deploy payload without
+  // `misconceptions` degrades to "no findings" instead of a crash.
+  const misconceptions = topic.misconceptions ?? [];
+
+  return (
+    <div className="apollo-topic" data-status={topic.status}>
+      <div className="apollo-topic__row">
+        <span className="apollo-topic__glyph" aria-hidden>
+          {STATUS_GLYPH[topic.status]}
+        </span>
+        <span className="apollo-topic__label">{label}</span>
+        <span className="apollo-topic__credit">
+          {Math.round(topic.credit * 100)}%
+        </span>
+      </div>
+
+      {misconceptions.length > 0 && (
+        <div className="apollo-topic__misconceptions">
+          {misconceptions.map((m, i) => (
+            <div
+              key={`${m.canonical_key}-${i}`}
+              className="apollo-topic__misconception"
+              data-resolved={m.resolved ? "true" : "false"}
+            >
+              <span className="apollo-topic__misconception-name">
+                {m.canonical_key}
+              </span>
+              {!m.resolved && (
+                <span className="apollo-topic__misconception-dock">
+                  −{dockToPoints(m.dock_points)} pts
+                </span>
+              )}
+              {m.evidence_span && (
+                <span className="apollo-topic__misconception-evidence">
+                  &ldquo;<MathMarkdown>{m.evidence_span}</MathMarkdown>&rdquo;
+                </span>
+              )}
+              {m.resolved && (
+                <span className="apollo-topic__misconception-badge">
+                  corrected ✓
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TopicList({ topics }: { topics: TopicCredit[] }) {
+  // "_general" always renders last regardless of its position in the
+  // served array (design spec §2).
+  const ordered = [
+    ...topics.filter((t) => t.canonical_key !== GENERAL_TOPIC_KEY),
+    ...topics.filter((t) => t.canonical_key === GENERAL_TOPIC_KEY),
+  ];
+  return (
+    <div className="apollo-rubric apollo-topics">
+      {ordered.map((topic) => (
+        <TopicRow key={topic.canonical_key} topic={topic} />
+      ))}
     </div>
   );
 }
@@ -64,6 +139,12 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, onNext, busy
   const levelProgressPct = progress?.level_progress_pct;
   const xpToNext = progress?.xp_to_next_level;
 
+  // Design spec §5: topics present (and non-empty) ⇒ checklist replaces
+  // the three legacy axis rows; absent/empty ⇒ today's axis rendering
+  // (flag off / old backend, backward compatible).
+  const topics = report.topics;
+  const hasTopics = Array.isArray(topics) && topics.length > 0;
+
   return (
     <section className="notice" data-tone={tone}>
       <div className="eyebrow">Teaching grade</div>
@@ -71,11 +152,15 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, onNext, busy
         {rubric.overall.letter} ({rubric.overall.score})
       </strong>
 
-      <div className="apollo-rubric">
-        <AxisRow label={AXIS_LABELS.procedure} axis={rubric.procedure} />
-        <AxisRow label={AXIS_LABELS.justification} axis={rubric.justification} />
-        <AxisRow label={AXIS_LABELS.simplification} axis={rubric.simplification} />
-      </div>
+      {hasTopics ? (
+        <TopicList topics={topics as TopicCredit[]} />
+      ) : (
+        <div className="apollo-rubric">
+          <AxisRow label={AXIS_LABELS.procedure} axis={rubric.procedure} />
+          <AxisRow label={AXIS_LABELS.justification} axis={rubric.justification} />
+          <AxisRow label={AXIS_LABELS.simplification} axis={rubric.simplification} />
+        </div>
+      )}
 
       {typeof xpEarned === "number" && (
         <p className="apollo-xp-line">
@@ -106,13 +191,8 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, onNext, busy
 
       <details open>
         <summary>Diagnostic narrative</summary>
-        <div
-          className="prose"
-          style={{ whiteSpace: "pre-wrap", margin: "0.5rem 0 0" }}
-        >
-          {diagnostic_narrative.split("\n").map((line, i) => (
-            <div key={i}>{renderWithMath(line)}</div>
-          ))}
+        <div className="prose md-body" style={{ margin: "0.5rem 0 0" }}>
+          <MathMarkdown>{diagnostic_narrative}</MathMarkdown>
         </div>
       </details>
 

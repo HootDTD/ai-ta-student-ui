@@ -1929,6 +1929,87 @@ html.dark .apollo-progress-card[data-level="5"] {
   opacity: 0.4;
 }
 
+/* Apollo topic checklist — replaces the three axis rows when the backend
+   serves `report.topics` (topic-based grading, design spec §5). Reuses the
+   `.apollo-rubric` card shell; rows below are its topic-specific siblings. */
+.apollo-topics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.apollo-topic__row {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr 3rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.apollo-topic__glyph {
+  text-align: center;
+}
+
+.apollo-topic[data-status="missing"] .apollo-topic__glyph {
+  color: var(--danger-solid);
+}
+
+.apollo-topic[data-status="partial"] .apollo-topic__glyph {
+  color: var(--accent);
+}
+
+.apollo-topic[data-status="covered"] .apollo-topic__glyph {
+  color: var(--success-solid);
+}
+
+.apollo-topic__credit {
+  text-align: right;
+}
+
+.apollo-topic__misconceptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.25rem 0 0.15rem 2rem;
+}
+
+.apollo-topic__misconception {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.apollo-topic__misconception[data-resolved="true"] {
+  opacity: 0.65;
+}
+
+.apollo-topic__misconception-dock {
+  color: var(--danger-solid);
+}
+
+.apollo-topic__misconception-evidence {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* MathMarkdown wraps single-line text in a block <p>; this is the one
+   inline call site, so flatten it or the quote marks and quote text land
+   on separate flex lines. */
+.apollo-topic__misconception-evidence p {
+  display: inline;
+  margin: 0;
+}
+
+.apollo-topic__misconception-badge {
+  color: var(--success-solid);
+  font-weight: 600;
+}
+
 .apollo-xp-line {
   margin: 0.5rem 0;
   font-weight: 600;
