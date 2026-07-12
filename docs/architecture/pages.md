@@ -13,7 +13,7 @@ related:
   - ai-ta-student-ui/components
   - ai-ta-backend/apollo
   - shared/product-context
-last_verified: 2026-07-09
+last_verified: 2026-07-11
 stub: false
 ---
 
@@ -78,6 +78,8 @@ All `app/api/**` handlers share one pattern: read `AI_TA_API_BASE_URL` (500 if m
 Supabase: pages never call Supabase data APIs; only auth via `app/lib/auth.ts` (sign in / sign up / refresh, localStorage persistence).
 
 ## Non-obvious conventions
+
+- `ApolloPageClient` treats a changed `session` query parameter as a hard state boundary. It clears all prior session/report/KG/gate state, ignores superseded session fetches, and keeps the loading surface visible until `loadedSessionId` matches the URL; this prevents a completed attempt's grade from leaking into a newly selected problem during client-side navigation.
 
 - Apollo's `lib/apollo/api.ts` fetches **do** attach the Supabase Bearer token, via the module-private `apolloHeaders()` / `apolloHeaders(true)` (`loadStoredSession()` + `authHeaders()`) — every exported function including the class-switcher's `listMyClasses()` uses it; the `/api/apollo/*` proxies forward Authorization only if present.
 - `chat_id` is generated client-side, not by the backend; the backend persists turns under it (sidebar list filters to `turn_count > 0`).

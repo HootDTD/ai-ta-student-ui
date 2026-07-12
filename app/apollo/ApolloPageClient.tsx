@@ -36,6 +36,7 @@ export default function ApolloPageClient() {
   const classId = Number(searchParams.get("class"));
 
   const [state, setState] = useState<ApolloSessionState | null>(null);
+  const [loadedSessionId, setLoadedSessionId] = useState<number | null>(null);
   const [kg, setKg] = useState<ApolloKG | null>(null);
   const [pulseEntryId, setPulseEntryId] = useState<string | null>(null);
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -51,19 +52,46 @@ export default function ApolloPageClient() {
 
   useEffect(() => {
     if (!sessionId) return;
+
+    let cancelled = false;
+    setState(null);
+    setLoadedSessionId(null);
+    setKg(null);
+    setPulseEntryId(null);
+    setTouched(new Set());
+    setGateEntries(null);
+    setGateOpen(false);
+    setReport(null);
+    setProgress(null);
+    setError(null);
+    setBusy(false);
+    setKgOpen(false);
+
     getSessionState(sessionId)
       .then((s) => {
+        if (cancelled) return;
         setState(s);
+        setLoadedSessionId(sessionId);
         setKg(s.kg);
         // Fetch progress for the greeting + avatar level. Non-blocking;
         // errors fall back silently (greeting renders level 1 defaults).
         // Course-scoped endpoint — skip entirely without a class id.
         if (!classId) return;
         getStudentProgressDetailed(classId)
-          .then(setProgress)
-          .catch(() => setProgress(null));
+          .then((nextProgress) => {
+            if (!cancelled) setProgress(nextProgress);
+          })
+          .catch(() => {
+            if (!cancelled) setProgress(null);
+          });
       })
-      .catch((e) => setError(e as Error));
+      .catch((e) => {
+        if (!cancelled) setError(e as Error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId, classId]);
 
   // After any Done event, refresh progress so the greeting/avatar update
@@ -219,7 +247,7 @@ export default function ApolloPageClient() {
     );
   }
 
-  if (!state) {
+  if (!state || loadedSessionId !== sessionId) {
     return (
       <>
         <ApolloTopBar
