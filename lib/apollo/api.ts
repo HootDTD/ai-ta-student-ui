@@ -177,6 +177,30 @@ export interface ProgressEnvelope {
   xp_to_next_level: number | null;
 }
 
+// Apollo topic-based grading (2026-07-10 design spec §2-3). Serialized
+// `TopicCredit[]` attached to the Done payload only when the backend's
+// `APOLLO_TOPIC_SCORE_SERVED` flag is on; absent on older/flag-off backends,
+// in which case the UI falls back to the legacy three-axis rubric.
+export interface TopicMisconception {
+  canonical_key: string;
+  resolved: boolean;
+  // Fraction of the 0.30 dock clamp this finding consumed (e.g. 0.05), not
+  // a raw point value — the UI renders it as points out of 100.
+  dock_points: number;
+  // Verbatim student quote the finding is grounded in; null when the
+  // detector produced no span (the backend serves null, not undefined).
+  evidence_span: string | null;
+}
+
+export interface TopicCredit {
+  canonical_key: string;
+  display_name?: string | null;
+  status: "covered" | "partial" | "missing";
+  credit: number;
+  weight: number;
+  misconceptions: TopicMisconception[];
+}
+
 export interface DoneResponse {
   rubric: Rubric;
   diagnostic_narrative: string;
@@ -198,6 +222,10 @@ export interface DoneResponse {
   level_before?: number;
   level_after?: number;
   level_up?: boolean;
+  // Present only when the backend serves the topic-based score (design
+  // spec §3, flag-gated). Non-empty ⇒ UI renders the topic checklist
+  // instead of the three axis rows.
+  topics?: TopicCredit[];
 }
 
 export interface StudentProgress {
