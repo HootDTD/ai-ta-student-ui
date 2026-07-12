@@ -12,7 +12,7 @@ related:
   - ai-ta-student-ui/pages
   - ai-ta-student-ui/components
   - shared/product-context
-last_verified: 2026-07-07
+last_verified: 2026-07-11
 stub: false
 ---
 
@@ -24,7 +24,7 @@ stub: false
 - `eslint.config.mjs` — flat config via `FlatCompat`, extends `next/core-web-vitals` + `next/typescript`; ignores `node_modules`, `.next`, `out`, `build`, `next-env.d.ts`.
 - `postcss.config.mjs` — single plugin `@tailwindcss/postcss` (Tailwind v4 style, no tailwind.config file).
 - `app/layout.tsx` — root layout. Loads Google fonts **Fraunces** (`--font-fraunces`, with opsz axis + italic) and **JetBrains Mono** (`--font-jetbrains-mono`), imports `app/globals.css` and `katex/dist/katex.min.css` globally. Metadata: title "Hoot - AI Teaching Assistant". Body is just `<body className="antialiased">{children}</body>` — no providers, no header; each page renders its own chrome.
-- `app/globals.css` — ~1855 lines; the design system. `@import "tailwindcss"` plus a large hand-rolled class library: CSS variables in `:root` with `html.dark` overrides (theme toggled by adding `dark` class on `<html>`), and component classes used throughout (`module`, `card`, `notice` (with `data-tone`), `eyebrow`, `section-title`, `note`, `ui-button` + variants, `input`/`textarea`/`field-label`, `dropdown*`, `chat-sidebar*`, `msg-user`/`msg-ai`, `citation-chip*`, `char-palette*`, `apollo-page*`, `apollo-turn*`, `apollo-kg*`, `kg-pill*`, `done-gate-modal*`, `apollo-progress-card*`, `thinking-indicator*`).
+- `app/globals.css` — ~2750 lines; the design system. `@import "tailwindcss"` plus a large hand-rolled class library: CSS variables in `:root` with `html.dark` overrides (theme toggled by adding `dark` class on `<html>`), and component classes used throughout (`module`, `card`, `notice` (with `data-tone`), `eyebrow`, `section-title`, `note`, `ui-button` + variants (incl. `--done`, the solid success-green session-finishing action), `input`/`textarea`/`field-label`, `dropdown*`, `chat-sidebar*`, `msg-user`/`msg-ai`, `citation-chip*`, `char-palette*`, `apollo-page*`, `apollo-turn*`, `apollo-finish*` (the "I'm done teaching" band under the Apollo composer), `apollo-kg*`, `kg-pill*`, `done-gate-modal*`, `apollo-progress-card*`, `thinking-indicator*`).
 - `app/lib/auth.ts` — hand-rolled Supabase GoTrue client (no `@supabase/supabase-js` dependency). See Public interfaces.
 - `lib/apollo/api.ts` — typed client for the Apollo proxy routes (`/api/apollo/*`); defines all Apollo domain types (`ApolloSessionState`, `ApolloKG`, node/edge types, `DoneResponse`, `ProgressEnvelope`, `NegotiateResponse`, etc.) and the `ApolloApiError` class whose `errorCode` mirrors the backend `error_code` field. Comment policy at top: UI renders each error code explicitly, "NO FALLBACKS".
 - `public/` — `thinking.mp4` (Apollo owl avatar / thinking animation used on the chat page and Apollo chat), `favicon.ico`, plus default Next SVGs (`next.svg`, `vercel.svg`, `file.svg`, `globe.svg`, `window.svg`).

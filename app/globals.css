@@ -716,6 +716,38 @@ button:disabled {
   border-top: 1px solid var(--border);
 }
 
+.apollo-chat__send-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* The session's one loud affordance: a full-width band below the composer
+   that separates "end the session and get graded" from the ordinary Send
+   flow. The green .ui-button--done inside carries the emphasis. */
+.apollo-finish {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--success-border);
+  background: var(--success-bg);
+}
+
+.apollo-finish__copy {
+  min-width: 0;
+}
+
+.apollo-finish__note {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.apollo-finish .ui-button--done {
+  flex-shrink: 0;
+}
+
 .apollo-scrollback {
   display: grid;
   gap: 0.9rem;
@@ -1143,6 +1175,22 @@ html.dark .apollo-progress-card[data-level="5"] {
 .ui-button--primary:hover:not(:disabled) {
   background: var(--btn-primary-hover);
   color: var(--bg);
+}
+
+/* Session-finishing action (Apollo's "I'm done teaching"): solid success
+   green so it can't be confused with Send. --success-solid flips light↔dark
+   with the theme, so var(--bg) keeps the label readable in both. */
+.ui-button--done {
+  border-color: var(--success-solid);
+  background: var(--success-solid);
+  color: var(--bg);
+}
+
+.ui-button--done:hover:not(:disabled) {
+  border-color: var(--success-solid);
+  background: var(--success-solid);
+  color: var(--bg);
+  filter: brightness(1.12);
 }
 
 .ui-button--apollo {
@@ -1807,6 +1855,11 @@ html.dark .apollo-progress-card[data-level="5"] {
   .composer-foot {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .apollo-finish {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .dropdown {

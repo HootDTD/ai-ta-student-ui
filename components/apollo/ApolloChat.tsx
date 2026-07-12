@@ -25,15 +25,31 @@ interface Props {
   busy?: boolean;
 }
 
-function ApolloAvatar() {
+// The owl animates only while Apollo is processing a turn; settled turns
+// hold the first frame so old answers don't read as still "thinking".
+function ApolloAvatar({ thinking = false }: { thinking?: boolean }) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    if (thinking) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [thinking]);
+
   return (
     <video
+      ref={ref}
       className="apollo-avatar"
       src="/thinking.mp4"
-      autoPlay
+      autoPlay={thinking}
       loop
       muted
       playsInline
+      preload="auto"
       aria-hidden
     />
   );
@@ -131,7 +147,7 @@ export default function ApolloChat({
             })}
             {sending && (
               <div className="apollo-turn apollo-turn--apollo" aria-live="polite">
-                <ApolloAvatar />
+                <ApolloAvatar thinking />
                 <div className="apollo-turn__body">
                   <span className="eyebrow">Apollo</span>
                   <em className="note" style={{ margin: 0 }}>
@@ -166,7 +182,7 @@ export default function ApolloChat({
           className="textarea"
         />
 
-        <div className="composer-foot">
+        <div className="apollo-chat__send-row">
           <button
             onClick={handleSend}
             disabled={disabled || sending || !draft.trim()}
@@ -175,14 +191,24 @@ export default function ApolloChat({
           >
             {sending ? "Sending…" : "Send"}
           </button>
+        </div>
+
+        <div className="apollo-finish">
+          <div className="apollo-finish__copy">
+            <span className="eyebrow">Finished teaching?</span>
+            <p className="apollo-finish__note">
+              Apollo will try to solve the problem using only what you taught
+              it.
+            </p>
+          </div>
           <button
             onClick={onDoneClicked}
             disabled={disabled || sending}
             type="button"
-            className="ui-button ui-button--small"
+            className="ui-button ui-button--done"
           >
             {busy && <span className="ui-button__spinner" aria-hidden />}
-            {busy ? "Ending session…" : "I'm done teaching"}
+            {busy ? "Grading your teaching…" : "I'm done teaching"}
           </button>
         </div>
       </div>
