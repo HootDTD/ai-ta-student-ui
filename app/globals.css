@@ -2063,6 +2063,40 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-weight: 600;
 }
 
+.apollo-transcript {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.apollo-transcript__turn {
+  border-left: 2px solid var(--border);
+  padding-left: 0.75rem;
+}
+
+.apollo-transcript__turn[data-role="student"] {
+  border-left-color: var(--accent);
+}
+
+.apollo-transcript__role {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.apollo-transcript__turn .md-body > :first-child {
+  margin-top: 0.2rem;
+}
+
+.apollo-transcript__turn .md-body > :last-child {
+  margin-bottom: 0;
+}
+
 .apollo-xp-line {
   margin: 0.5rem 0;
   font-weight: 600;

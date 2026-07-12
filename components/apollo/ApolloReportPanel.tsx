@@ -1,7 +1,13 @@
 "use client";
 
 import MathMarkdown from "@/components/MathMarkdown";
-import type { DoneResponse, Rubric, RubricAxis, TopicCredit } from "@/lib/apollo/api";
+import type {
+  DoneResponse,
+  Rubric,
+  RubricAxis,
+  TopicCredit,
+  TranscriptTurn,
+} from "@/lib/apollo/api";
 
 interface Props {
   report: DoneResponse;
@@ -125,6 +131,30 @@ function TopicList({ topics }: { topics: TopicCredit[] }) {
   );
 }
 
+function TranscriptSection({ transcript }: { transcript: TranscriptTurn[] }) {
+  return (
+    <details>
+      <summary>Your conversation with Apollo</summary>
+      <div className="apollo-transcript">
+        {transcript.map((turn) => (
+          <div
+            key={turn.turn_index}
+            className="apollo-transcript__turn"
+            data-role={turn.role}
+          >
+            <span className="apollo-transcript__role">
+              {turn.role === "student" ? "You" : "Apollo"}
+            </span>
+            <div className="prose md-body">
+              <MathMarkdown>{turn.content}</MathMarkdown>
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 export default function ApolloReportPanel({ report, onRetry, onEnd, onNext, busy }: Props) {
   const { rubric, diagnostic_narrative } = report;
   const tone = rubric.overall.score >= PASS_SCORE ? "success" : "danger";
@@ -144,6 +174,8 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, onNext, busy
   // (flag off / old backend, backward compatible).
   const topics = report.topics;
   const hasTopics = Array.isArray(topics) && topics.length > 0;
+  const transcript = report.transcript;
+  const hasTranscript = Array.isArray(transcript) && transcript.length > 0;
 
   return (
     <section className="notice" data-tone={tone}>
@@ -195,6 +227,10 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, onNext, busy
           <MathMarkdown>{diagnostic_narrative}</MathMarkdown>
         </div>
       </details>
+
+      {hasTranscript && (
+        <TranscriptSection transcript={transcript as TranscriptTurn[]} />
+      )}
 
       <div className="composer-foot">
         <button

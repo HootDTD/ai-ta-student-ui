@@ -33,6 +33,8 @@ stub: false
 
 ## Public interfaces
 
+`lib/apollo/api.ts` exports `TranscriptTurn` and exposes the attempt-scoped chat as optional `DoneResponse.transcript`, preserving compatibility with older backends.
+
 `app/lib/auth.ts` exports (consumed by `app/page.tsx`, `app/join/[code]/page.tsx`, `app/report/[id]/page.tsx`):
 
 - Types: `StoredSession { access_token, refresh_token?, expires_at?, user_id?, user_email? }`, `SignUpResult { session, requiresEmailConfirmation }`.

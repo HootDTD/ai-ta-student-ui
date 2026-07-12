@@ -201,6 +201,12 @@ export interface TopicCredit {
   misconceptions: TopicMisconception[];
 }
 
+export interface TranscriptTurn {
+  role: "student" | "apollo";
+  content: string;
+  turn_index: number;
+}
+
 export interface DoneResponse {
   rubric: Rubric;
   diagnostic_narrative: string;
@@ -226,6 +232,9 @@ export interface DoneResponse {
   // spec §3, flag-gated). Non-empty ⇒ UI renders the topic checklist
   // instead of the three axis rows.
   topics?: TopicCredit[];
+  // The ordered conversation for the attempt that produced this grade.
+  // Absent on older backends and empty when transcript retrieval degraded.
+  transcript?: TranscriptTurn[];
 }
 
 export interface StudentProgress {
