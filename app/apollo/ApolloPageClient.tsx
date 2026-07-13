@@ -142,10 +142,16 @@ export default function ApolloPageClient() {
     setError(null);
     try {
       await retryProblem(sessionId);
-      setReport(null);
       const fresh = await getSessionState(sessionId);
       setState(fresh);
       setKg(fresh.kg);
+      // Retry now starts a FRESH attempt server-side — clear all
+      // first-attempt UI state (same reset set as next/restart) so stale
+      // done-gate entries can't leak into the new attempt.
+      setReport(null);
+      setGateEntries(null);
+      setTouched(new Set());
+      setPulseEntryId(null);
     } catch (e) {
       setError(e as Error);
     } finally {
