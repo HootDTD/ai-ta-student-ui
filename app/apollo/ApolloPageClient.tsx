@@ -16,10 +16,8 @@ import {
   type ApolloKG,
   type ApolloSessionState,
   type DoneResponse,
-  type ReviewRequiredEntry,
   type StudentProgress,
 } from "@/lib/apollo/api";
-import DoneGateModal from "@/components/apollo/DoneGateModal";
 import ApolloBrowse from "@/components/apollo/ApolloBrowse";
 import ApolloChat from "@/components/apollo/ApolloChat";
 import ApolloErrorSurface from "@/components/apollo/ApolloErrorSurface";
@@ -38,10 +36,6 @@ export default function ApolloPageClient() {
   const [state, setState] = useState<ApolloSessionState | null>(null);
   const [loadedSessionId, setLoadedSessionId] = useState<number | null>(null);
   const [kg, setKg] = useState<ApolloKG | null>(null);
-  const [pulseEntryId, setPulseEntryId] = useState<string | null>(null);
-  const [touched, setTouched] = useState<Set<string>>(new Set());
-  const [gateEntries, setGateEntries] = useState<ReviewRequiredEntry[] | null>(null);
-  const [gateOpen, setGateOpen] = useState(false);
   const [report, setReport] = useState<DoneResponse | null>(null);
   const [progress, setProgress] = useState<StudentProgress | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
@@ -57,10 +51,6 @@ export default function ApolloPageClient() {
     setState(null);
     setLoadedSessionId(null);
     setKg(null);
-    setPulseEntryId(null);
-    setTouched(new Set());
-    setGateEntries(null);
-    setGateOpen(false);
     setReport(null);
     setProgress(null);
     setError(null);
@@ -120,17 +110,8 @@ export default function ApolloPageClient() {
     try {
       const r = await finishTeaching(sessionId);
       setReport(r);
-      setGateEntries(null);
-      setGateOpen(false);
     } catch (e) {
-      if (e instanceof ApolloApiError && e.errorCode === "review_required") {
-        const entries = (e.extra["review_required"] as ReviewRequiredEntry[]) ?? [];
-        setGateEntries(entries);
-        setTouched(new Set());
-        setGateOpen(true);
-      } else {
-        setError(e as Error);
-      }
+      setError(e as Error);
     } finally {
       setBusy(false);
     }
@@ -145,13 +126,10 @@ export default function ApolloPageClient() {
       const fresh = await getSessionState(sessionId);
       setState(fresh);
       setKg(fresh.kg);
-      // Retry now starts a FRESH attempt server-side — clear all
-      // first-attempt UI state (same reset set as next/restart) so stale
-      // done-gate entries can't leak into the new attempt.
+      // Retry starts a fresh attempt server-side. Close any drawer that was
+      // showing the previous attempt before rendering the blank state.
       setReport(null);
-      setGateEntries(null);
-      setTouched(new Set());
-      setPulseEntryId(null);
+      setKgOpen(false);
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -169,10 +147,9 @@ export default function ApolloPageClient() {
       const fresh = await getSessionState(sessionId);
       setState(fresh);
       setKg(fresh.kg);
+      // Retry is a new attempt with no prior-attempt UI state.
       setReport(null);
-      setGateEntries(null);
-      setTouched(new Set());
-      setPulseEntryId(null);
+      setKgOpen(false);
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -197,9 +174,7 @@ export default function ApolloPageClient() {
       setState(fresh);
       setKg(fresh.kg);
       setReport(null);
-      setGateEntries(null);
-      setTouched(new Set());
-      setPulseEntryId(null);
+      setKgOpen(false);
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -367,30 +342,6 @@ export default function ApolloPageClient() {
       <main className="apollo-page" data-apollo-level={levelForAvatar}>
         <ApolloProblemPanel problem={state.problem} />
         <ApolloErrorSurface error={error} onDismiss={() => setError(null)} />
-        {gateEntries && gateOpen && (
-          <DoneGateModal
-            entries={gateEntries}
-            touched={touched}
-            onJumpTo={(entryId) => {
-              setGateOpen(false);
-              setPulseEntryId(entryId);
-            }}
-            onClose={() => setGateOpen(false)}
-            onRetry={() => {
-              setGateOpen(false);
-              void handleDone();
-            }}
-          />
-        )}
-        {gateEntries && !gateOpen && !report && (
-          <button
-            type="button"
-            className="apollo-gate-resume"
-            onClick={() => setGateOpen(true)}
-          >
-            Resume review ({gateEntries.filter((e) => !touched.has(e.entry_id)).length} left)
-          </button>
-        )}
         {report ? (
           <ApolloReportPanel
             report={report}
@@ -427,15 +378,7 @@ export default function ApolloPageClient() {
             <ApolloKGPanel
               kg={kg}
               sessionId={sessionId}
-              pulseEntryId={pulseEntryId}
               onKgUpdated={(newKg) => setKg(newKg)}
-              onEntryTouched={(id) =>
-                setTouched((prev) => {
-                  const next = new Set(prev);
-                  next.add(id);
-                  return next;
-                })
-              }
             />
           </aside>
         </>
