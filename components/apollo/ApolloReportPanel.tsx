@@ -211,7 +211,7 @@ export default function ApolloReportPanel({ report, onRetry, onEnd, onNext, busy
           type="button"
           className="ui-button ui-button--small"
         >
-          Teach more and retry
+          Try again from scratch
         </button>
         <button
           onClick={onEnd}
