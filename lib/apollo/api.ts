@@ -15,7 +15,6 @@ export type ApolloErrorCode =
   | "coverage_grading_failed"
   // P3 — Negotiable OLM
   | "kg_entry_not_found"
-  | "review_required"
   | "problem_not_found"
   | "unknown";
 
@@ -285,12 +284,14 @@ export async function finishTeaching(sessionId: number): Promise<DoneResponse> {
   return (await _handle(res)) as DoneResponse;
 }
 
-export async function retryProblem(sessionId: number): Promise<{ ok: boolean }> {
+export async function retryProblem(
+  sessionId: number,
+): Promise<{ ok: boolean; attempt_id: number | null }> {
   const res = await fetch(`/api/apollo/sessions/${sessionId}/retry`, {
     method: "POST",
     headers: apolloHeaders(),
   });
-  return (await _handle(res)) as { ok: boolean };
+  return (await _handle(res)) as { ok: boolean; attempt_id: number | null };
 }
 
 export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
@@ -501,14 +502,6 @@ export interface NegotiationTrace {
   node_id: string;
   moves: NegotiationTraceMove[];
   source_utterance: string | null;
-}
-
-// P3.6 — Done-gate review payload (returned in 422 body).
-export interface ReviewRequiredEntry {
-  entry_id: string;
-  type: ApolloNodeType;
-  reason: "low_confidence" | "disputed";
-  summary: string;
 }
 
 export async function challengeEntry(

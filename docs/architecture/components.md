@@ -1,6 +1,6 @@
 ---
 doc: ai-ta-student-ui/components
-description: Shared UI components — CitationChip, SpecialCharsPalette, and the components/apollo/ subtree (chrome/browse, chat, KG panel, negotiation pills, report, progress, done-gate)
+description: Shared UI components — CitationChip, SpecialCharsPalette, and the components/apollo/ subtree (chrome/browse, chat, KG panel, negotiation pills, report, progress)
 owns:
   - components/**
 related:
@@ -31,7 +31,6 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 - `components/apollo/ApolloProblemPanel.tsx` — current problem card.
 - `components/apollo/ApolloProgressCard.tsx` — XP/level/tier progress bar.
 - `components/apollo/ApolloReportPanel.tsx` — post-Done rubric/grade report.
-- `components/apollo/DoneGateModal.tsx` — P3.8 review-required modal (currently unwired; see Non-obvious conventions).
 - `components/apollo/KGEntryPill.tsx` — per-KG-entry negotiation wrapper (challenge/paraphrase/skip/trace).
 - `components/apollo/KGEntryDispute.tsx`, `KGEntryParaphrase.tsx`, `KGEntryTrace.tsx` — the pill's inline expandable cards.
 
@@ -53,7 +52,6 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 - **`KGEntryDispute`** (default) — props `{ busy, onCancel, onSubmit(reason) }`; free-text reason, max 500 chars (backend contract), char counter.
 - **`KGEntryParaphrase`** (default) — props `{ busy, initialValue, onCancel, onSubmit(surfaceForm) }`; max 1000 chars; only the surface wording changes — structural fields are never mutated by the backend.
 - **`KGEntryTrace`** (default) — props `{ trace: NegotiationTrace, onClose }`. Read-only "Apollo's wiring" card: source utterance quote + chronological move list (`actor move · time`, with challenge reason / paraphrase text quoted). Deliberately styled in non-Apollo gray voice.
-- **`DoneGateModal`** (default) — props `{ entries: ReviewRequiredEntry[], touched: Set<string>, onJumpTo(entryId), onClose(), onRetry() }`. Designed for the P3.6 done-gate: when Done returns 422 `review_required`, list each flagged entry (reason `low_confidence` or `disputed`) with "Jump to entry"; "Re-submit Done" stays disabled until every entry id is in `touched`.
 
 ## Main data flows
 
@@ -73,7 +71,7 @@ All components are `"use client"`. Types come from `@/lib/apollo/api` (the Apoll
 ## Non-obvious conventions
 
 - **One label style — `.eyebrow`.** There is a single label treatment in `app/globals.css`: `.eyebrow` (quiet, muted, sentence case), matching the serif/light home. Do **not** hand-roll `font-weight: 700; text-transform: uppercase; letter-spacing: …` labels in component CSS — that bold-UPPERCASE-gray motif was copy-pasted into ~10 rules and repeatedly drifted off-style. Reach for `.eyebrow`. The only intentional exceptions (a distinct mono "technical" voice, not this label) are the citation-chip labels and the auth brand subtitle.
-- **KG negotiation is wired**: `ApolloPageClient` passes `ApolloKGPanel` its full session props (`sessionId`/`pulseEntryId`/`onKgUpdated`/`onEntryTouched`), so entries render as interactive `KGEntryPill`s, and it renders `DoneGateModal` on the `review_required` gate. (This landed with the apollo-e2e re-land; earlier docs described it as dormant.)
+- **KG negotiation is optional**: `ApolloPageClient` passes `ApolloKGPanel` `sessionId` and `onKgUpdated`, so entries render as interactive `KGEntryPill`s. Challenge/paraphrase/skip can refine grading input, but no confidence or dispute state blocks Done.
 - `MaybePill` in `ApolloKGPanel` is the intentional toggle: `sessionId === undefined` ⇒ pre-P3 read-only rendering preserved for report/legacy contexts.
 - `KGEntryPill` is type-agnostic by design — the parent panel decides how each node type's surface form renders and passes it as `children` (render-prop comment in source).
 - Char limits (500 dispute / 1000 paraphrase) and the XP tier table are duplicated frontend copies of backend contracts — change both sides together.

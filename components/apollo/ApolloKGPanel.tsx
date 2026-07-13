@@ -31,9 +31,8 @@ interface Props {
   // Bubbled when a negotiation move succeeds — parent updates its KG
   // state and may clear `pulseEntryId`.
   onKgUpdated?: (kg: ApolloKG) => void;
-  // Fired with the touched entry's node_id on every successful
-  // negotiation move — parent tracks the set of entries the student
-  // has engaged with (Task 8 done-gate consumes it).
+  // Fired with the touched entry's node_id on every successful optional
+  // negotiation move.
   onEntryTouched?: (entryId: string) => void;
 }
 
