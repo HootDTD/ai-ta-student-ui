@@ -13,7 +13,7 @@ related:
   - ai-ta-student-ui/components
   - ai-ta-backend/apollo
   - shared/product-context
-last_verified: 2026-07-11
+last_verified: 2026-07-13
 stub: false
 ---
 

@@ -2207,99 +2207,6 @@ html.dark .apollo-progress-card[data-level="5"] {
 .kg-pill__trace-payload { color: var(--muted); font-size: 0.82rem; }
 .kg-pill__trace-empty   { color: var(--muted); font-size: 0.82rem; }
 
-/* P3.8 — Done-gate modal */
-.done-gate-modal__backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--modal-backdrop);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
-}
-.done-gate-modal__card {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--accent);
-  max-width: 560px;
-  width: 100%;
-  padding: 1.5rem;
-  box-shadow: var(--shadow-soft);
-}
-.done-gate-modal__header { margin-bottom: 1rem; }
-.done-gate-modal__eyebrow {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-.done-gate-modal__title {
-  font-size: 1.15rem;
-  font-weight: 500;
-  margin: 0.2rem 0;
-}
-.done-gate-modal__subtitle {
-  font-size: 0.92rem;
-  color: var(--muted);
-  margin: 0.5rem 0 0 0;
-}
-.done-gate-modal__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-.done-gate-modal__row {
-  border: 1px solid var(--border);
-  background: var(--bg-soft);
-  padding: 0.6rem 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.done-gate-modal__row--done {
-  background: var(--success-bg);
-  border-color: var(--success-border);
-}
-.done-gate-modal__row-main {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-.done-gate-modal__row-type {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-.done-gate-modal__row-summary {
-  font-size: 0.9rem;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.done-gate-modal__row-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
-.done-gate-modal__row-reason {
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-.done-gate-modal__row-status--done {
-  font-size: 0.82rem;
-  color: var(--success-solid);
-}
-.done-gate-modal__footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-
 
 /* --- Apollo browse shell (2026-07-07) --------------------------------
    Persistent concepts sidebar + centered content column, mirroring
@@ -2539,25 +2446,6 @@ html.dark .apollo-progress-card[data-level="5"] {
   border: 1px dashed var(--border);
   background: var(--empty-bg);
   color: var(--muted);
-}
-
-.apollo-gate-resume {
-  position: fixed;
-  bottom: 1.25rem;
-  right: 1.25rem;
-  z-index: 40;
-  padding: 0.65rem 1rem;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: var(--bg);
-  font-size: 0.92rem;
-  cursor: pointer;
-  box-shadow: var(--shadow-soft);
-  transition: background 150ms ease;
-}
-
-.apollo-gate-resume:hover {
-  background: var(--btn-primary-hover);
 }
 
 /* --- Apollo progress dashboard --------------------------------------- */
