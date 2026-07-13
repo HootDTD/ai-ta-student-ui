@@ -35,6 +35,9 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedProblemIds, setExpandedProblemIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   useEffect(() => {
     // No auto-select: the browse page opens on a centered prompt until the
@@ -47,10 +50,23 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
   useEffect(() => {
     if (conceptId === null) return;
     setProblems(null);
+    setExpandedProblemIds(new Set());
     listProblems(classId, conceptId, difficulty)
       .then((r) => setProblems(r.problems))
       .catch((e) => setError(e as Error));
   }, [classId, conceptId, difficulty]);
+
+  const toggleProblem = useCallback((problemId: string) => {
+    setExpandedProblemIds((current) => {
+      const next = new Set(current);
+      if (next.has(problemId)) {
+        next.delete(problemId);
+      } else {
+        next.add(problemId);
+      }
+      return next;
+    });
+  }, []);
 
   const start = useCallback(
     async (problemId?: string) => {
@@ -143,25 +159,51 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                 </div>
               )}
               <ul className="apollo-browse__cards">
-                {(problems ?? []).map((p) => (
-                  <li key={p.id} className="apollo-browse__card">
-                    <p className="apollo-browse__card-text">
-                      {p.problem_text.length > PREVIEW_CHARS
-                        ? `${p.problem_text.slice(0, PREVIEW_CHARS)}…`
-                        : p.problem_text}
-                    </p>
-                    <div className="apollo-browse__card-footer">
-                      {p.attempted && <span className="apollo-browse__tried">Tried</span>}
-                      <button
-                        className="ui-button ui-button--primary ui-button--small"
-                        disabled={busy}
-                        onClick={() => start(p.id)}
-                      >
-                        Start teaching
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                {(problems ?? []).map((p) => {
+                  const isLong = p.problem_text.length > PREVIEW_CHARS;
+                  const isExpanded = expandedProblemIds.has(p.id);
+                  const problemText =
+                    isLong && !isExpanded
+                      ? `${p.problem_text.slice(0, PREVIEW_CHARS)}…`
+                      : p.problem_text;
+
+                  return (
+                    <li key={p.id} className="apollo-browse__card">
+                      {isLong ? (
+                        <button
+                          type="button"
+                          className="apollo-browse__card-text apollo-browse__card-toggle"
+                          aria-expanded={isExpanded}
+                          onClick={() => toggleProblem(p.id)}
+                        >
+                          <span>{problemText}</span>
+                          <span className="apollo-browse__card-toggle-label" aria-hidden="true">
+                            {isExpanded ? "Show less" : "Show full problem"}
+                            <span
+                              className={`apollo-browse__card-chevron ${
+                                isExpanded ? "apollo-browse__card-chevron--expanded" : ""
+                              }`}
+                            >
+                              ⌄
+                            </span>
+                          </span>
+                        </button>
+                      ) : (
+                        <p className="apollo-browse__card-text">{problemText}</p>
+                      )}
+                      <div className="apollo-browse__card-footer">
+                        {p.attempted && <span className="apollo-browse__tried">Tried</span>}
+                        <button
+                          className="ui-button ui-button--primary ui-button--small"
+                          disabled={busy}
+                          onClick={() => start(p.id)}
+                        >
+                          Start teaching
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}
