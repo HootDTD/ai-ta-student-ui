@@ -20,9 +20,6 @@ export default function ApolloProblemPanel({ problem }: Props) {
       <div className="prose md-body">
         <MathMarkdown>{problem.problem_text}</MathMarkdown>
       </div>
-      <p className="note" style={{ margin: 0 }}>
-        Teach Apollo enough to solve for {problem.target_unknown}.
-      </p>
     </section>
   );
 }
