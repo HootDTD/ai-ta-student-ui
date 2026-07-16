@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ApolloApiError, sendChat } from "@/lib/apollo/api";
-import type { ApolloKG, DoneResponse } from "@/lib/apollo/api";
+import type { ApolloKG, CoveredTopic, DoneResponse } from "@/lib/apollo/api";
 import SpecialCharsPalette from "@/components/SpecialCharsPalette";
 import OwlVideo from "@/components/OwlVideo";
 import MathMarkdown from "@/components/MathMarkdown";
@@ -13,6 +13,7 @@ interface Props {
   sessionId: number;
   initialMessages: Array<{ role: string; content: string }>;
   onKgUpdate: (kg: ApolloKG) => void;
+  onCoverageSnapshot: (topics: CoveredTopic[]) => void;
   onDoneClicked: () => void;
   // Item #5: when chat detects a "done" intent and the student affirms,
   // the backend executes handle_done inline and embeds the result in
@@ -59,6 +60,7 @@ export default function ApolloChat({
   sessionId,
   initialMessages,
   onKgUpdate,
+  onCoverageSnapshot,
   onDoneClicked,
   onDoneFromChat,
   disabled,
@@ -104,6 +106,7 @@ export default function ApolloChat({
       const resp = await sendChat(sessionId, myMsg);
       setMessages((m) => [...m, { role: "apollo", content: resp.apollo_reply }]);
       onKgUpdate(resp.kg);
+      onCoverageSnapshot(resp.covered_topics ?? []);
       if (resp.intent_executed?.intent === "done" && onDoneFromChat) {
         onDoneFromChat(resp.intent_executed.result);
       }

@@ -686,6 +686,145 @@ button:disabled {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* A transient reward for an uncovered -> covered transition in Apollo's
+   reference-node tally. It floats beside the reading column without moving
+   chat content, then clears itself after the entrance settles. */
+.apollo-coverage-celebrations {
+  position: fixed;
+  z-index: 35;
+  top: clamp(7.5rem, 24vh, 13rem);
+  right: max(1.25rem, calc((100vw - 48rem) / 2 - 19rem));
+  display: grid;
+  width: min(19rem, calc(100vw - 2rem));
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.apollo-coverage-pop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  overflow: hidden;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface, #fff) 94%, #dff8e8);
+  box-shadow: 0 18px 45px rgba(18, 92, 51, 0.18), 0 4px 12px rgba(18, 92, 51, 0.1);
+  animation: apolloCoveragePop 3.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.apollo-coverage-pop::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 15%, rgba(255, 255, 255, 0.72) 45%, transparent 70%);
+  content: "";
+  transform: translateX(-125%);
+  animation: apolloCoverageShine 700ms ease-out 300ms both;
+}
+
+.apollo-coverage-pop__check {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  overflow: visible;
+  filter: drop-shadow(0 5px 8px rgba(26, 142, 75, 0.22));
+}
+
+.apollo-coverage-pop__check circle {
+  fill: #2dbd6e;
+  stroke: #2dbd6e;
+  stroke-dasharray: 126;
+  stroke-dashoffset: 126;
+  stroke-width: 2;
+  animation: apolloCoverageCircle 480ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 100ms forwards;
+}
+
+.apollo-coverage-pop__check path {
+  fill: none;
+  stroke: #fff;
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  animation: apolloCoverageCheck 360ms ease-out 480ms forwards;
+}
+
+.apollo-coverage-pop__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.apollo-coverage-pop__copy strong {
+  overflow: hidden;
+  color: var(--ink, #17211b);
+  font-size: 0.98rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apollo-coverage-pop__eyebrow {
+  color: #16834a;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.apollo-coverage-pop__burst span {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 2.35rem;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 999px;
+  background: #75da9f;
+  animation: apolloCoverageBurst 650ms ease-out 340ms both;
+}
+
+.apollo-coverage-pop__burst span:nth-child(1) { --burst-x: -2rem; --burst-y: -1.7rem; }
+.apollo-coverage-pop__burst span:nth-child(2) { --burst-x: 1.9rem; --burst-y: -1.8rem; }
+.apollo-coverage-pop__burst span:nth-child(3) { --burst-x: -2.1rem; --burst-y: 1.6rem; }
+.apollo-coverage-pop__burst span:nth-child(4) { --burst-x: 2.2rem; --burst-y: 1.5rem; }
+
+@keyframes apolloCoveragePop {
+  0% { opacity: 0; transform: translate3d(2rem, 0, 0) scale(0.82); }
+  12% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.03); }
+  18%, 82% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  100% { opacity: 0; transform: translate3d(1rem, -0.35rem, 0) scale(0.96); }
+}
+
+@keyframes apolloCoverageCircle { to { stroke-dashoffset: 0; } }
+@keyframes apolloCoverageCheck { to { stroke-dashoffset: 0; } }
+@keyframes apolloCoverageShine { to { transform: translateX(125%); } }
+@keyframes apolloCoverageBurst {
+  0% { opacity: 0; transform: translate(0, 0) scale(0); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--burst-x), var(--burst-y)) scale(1); }
+}
+
+@media (max-width: 72rem) {
+  .apollo-coverage-celebrations {
+    top: 5.5rem;
+    right: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apollo-coverage-pop,
+  .apollo-coverage-pop::after,
+  .apollo-coverage-pop__check circle,
+  .apollo-coverage-pop__check path,
+  .apollo-coverage-pop__burst span {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
 }
 
 .apollo-chat__scroll {
