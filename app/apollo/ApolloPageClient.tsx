@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
@@ -15,11 +15,15 @@ import {
   type ApolloDifficulty,
   type ApolloKG,
   type ApolloSessionState,
+  type CoveredTopic,
   type DoneResponse,
   type StudentProgress,
 } from "@/lib/apollo/api";
 import ApolloBrowse from "@/components/apollo/ApolloBrowse";
 import ApolloChat from "@/components/apollo/ApolloChat";
+import ApolloCoverageCelebrations, {
+  type CoverageCelebration,
+} from "@/components/apollo/ApolloCoverageCelebrations";
 import ApolloErrorSurface from "@/components/apollo/ApolloErrorSurface";
 import ApolloKGPanel from "@/components/apollo/ApolloKGPanel";
 import ApolloProblemPanel from "@/components/apollo/ApolloProblemPanel";
@@ -40,9 +44,47 @@ export default function ApolloPageClient() {
   const [progress, setProgress] = useState<StudentProgress | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
+  const [celebrations, setCelebrations] = useState<CoverageCelebration[]>([]);
+  // The lasting checklist: every covered topic stays here for the whole
+  // attempt, one row per concept. `celebrations` is only the transient pop.
+  const [coveredTopics, setCoveredTopics] = useState<CoverageCelebration[]>([]);
+  const seenCoveredRef = useRef(new Set<string>());
+  const seenCoveredNamesRef = useRef(new Set<string>());
+  const celebrationIdRef = useRef(0);
+  const celebrationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // "Apollo's understanding" is a toggle drawer, not a stretched side column,
   // so the teaching chat gets a single centered column like Hoot's chat.
   const [kgOpen, setKgOpen] = useState(false);
+
+  useEffect(() => {
+    return () => celebrationTimersRef.current.forEach(clearTimeout);
+  }, []);
+
+  function handleCoverageSnapshot(topics: CoveredTopic[]) {
+    const next: CoverageCelebration[] = [];
+    for (const topic of topics) {
+      if (seenCoveredRef.current.has(topic.node_id)) continue;
+      seenCoveredRef.current.add(topic.node_id);
+      // Belt-and-suspenders dedup: never show two rows with the same label,
+      // even if the tally reports two distinct nodes under one display name.
+      const nameKey = topic.display_name.trim().toLowerCase();
+      if (!nameKey || seenCoveredNamesRef.current.has(nameKey)) continue;
+      seenCoveredNamesRef.current.add(nameKey);
+      next.push({ eventId: ++celebrationIdRef.current, displayName: topic.display_name });
+    }
+    if (!next.length) return;
+
+    // Persist each new topic in the lasting checklist AND fire its transient
+    // pop. The pop clears after 3.6s; the checklist row stays for the attempt.
+    setCoveredTopics((current) => [...current, ...next]);
+    setCelebrations((current) => [...current, ...next]);
+    const eventIds = new Set(next.map((item) => item.eventId));
+    const timer = setTimeout(() => {
+      setCelebrations((current) => current.filter((item) => !eventIds.has(item.eventId)));
+      celebrationTimersRef.current = celebrationTimersRef.current.filter((item) => item !== timer);
+    }, 3600);
+    celebrationTimersRef.current.push(timer);
+  }
 
   useEffect(() => {
     if (!sessionId) return;
@@ -56,6 +98,12 @@ export default function ApolloPageClient() {
     setError(null);
     setBusy(false);
     setKgOpen(false);
+    setCelebrations([]);
+    setCoveredTopics([]);
+    seenCoveredRef.current.clear();
+    seenCoveredNamesRef.current.clear();
+    celebrationTimersRef.current.forEach(clearTimeout);
+    celebrationTimersRef.current = [];
 
     getSessionState(sessionId)
       .then((s) => {
@@ -130,6 +178,10 @@ export default function ApolloPageClient() {
       // showing the previous attempt before rendering the blank state.
       setReport(null);
       setKgOpen(false);
+      setCelebrations([]);
+      seenCoveredRef.current.clear();
+      celebrationTimersRef.current.forEach(clearTimeout);
+      celebrationTimersRef.current = [];
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -150,6 +202,10 @@ export default function ApolloPageClient() {
       // Retry is a new attempt with no prior-attempt UI state.
       setReport(null);
       setKgOpen(false);
+      setCelebrations([]);
+      seenCoveredRef.current.clear();
+      celebrationTimersRef.current.forEach(clearTimeout);
+      celebrationTimersRef.current = [];
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -175,6 +231,10 @@ export default function ApolloPageClient() {
       setKg(fresh.kg);
       setReport(null);
       setKgOpen(false);
+      setCelebrations([]);
+      seenCoveredRef.current.clear();
+      celebrationTimersRef.current.forEach(clearTimeout);
+      celebrationTimersRef.current = [];
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -355,6 +415,7 @@ export default function ApolloPageClient() {
             sessionId={sessionId}
             initialMessages={state.messages.map((m) => ({ role: m.role, content: m.content }))}
             onKgUpdate={(newKg) => setKg(newKg)}
+            onCoverageSnapshot={handleCoverageSnapshot}
             onDoneClicked={handleDone}
             onDoneFromChat={(result) => setReport(result)}
             disabled={busy}
@@ -362,6 +423,7 @@ export default function ApolloPageClient() {
           />
         )}
       </main>
+      <ApolloCoverageCelebrations celebrating={celebrations} covered={coveredTopics} />
       {kg && (
         <>
           {kgOpen && (
