@@ -128,10 +128,18 @@ export interface ApolloSessionState {
   messages: Array<{ role: string; content: string; turn_index: number }>;
 }
 
+export interface CoveredTopic {
+  node_id: string;
+  display_name: string;
+}
+
 export interface ChatResponse {
   apollo_reply: string;
   kg_entries_added: number;
   kg: ApolloKG;
+  // Current covered-node snapshot from the active reference-driven Q&A path.
+  // The chat compares node IDs across turns and celebrates only new coverage.
+  covered_topics?: CoveredTopic[];
   // Item #5: when the chat handler classifies a non-teaching intent
   // above the confidence threshold, it stashes a pending intent and
   // replies with a confirmation prompt. The student's next turn either
