@@ -310,11 +310,6 @@ export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
   return (await _handle(res)) as { ok: boolean };
 }
 
-export async function getStudentProgress(): Promise<StudentProgress> {
-  const res = await fetch("/api/apollo/progress", { headers: apolloHeaders() });
-  return (await _handle(res)) as StudentProgress;
-}
-
 // ---------------------------------------------------------------------------
 // Standalone entry + browse surface (2026-07-07 e2e baseline)
 // ---------------------------------------------------------------------------
