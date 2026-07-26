@@ -205,7 +205,33 @@ export interface TopicCredit {
   status: "covered" | "partial" | "missing";
   credit: number;
   weight: number;
+  // Verbatim gated student quote for this topic (scorecard PR1, backend PR
+  // #200); null when no evidence span was gated. Absent on backends
+  // predating PR #200 — treat as null.
+  evidence_span?: string | null;
   misconceptions: TopicMisconception[];
+}
+
+// Structured per-topic feedback (scorecard PR1, backend PR #200). Served as
+// `student_response["feedback"]` only when the topic score computed AND the
+// diagnostic LLM call/parse succeeded — absent whenever either soft-fails,
+// even though `topics` is present. Never assume `feedback` implies `topics`
+// is non-empty, but the reverse (feedback present ⇒ topics present) holds.
+export interface TopicFeedbackItem {
+  canonical_key: string;
+  note: string;
+  // Verbatim gated student quote backing this note; null when the model
+  // didn't cite one or its citation failed the verbatim gate.
+  quote: string | null;
+}
+
+export interface DoneFeedback {
+  headline: string;
+  topic_feedback: TopicFeedbackItem[];
+  // Deterministic, code-generated recap lines (misconception/negotiation
+  // summaries) — never model output.
+  recap: string[];
+  next_step: string;
 }
 
 export interface DoneResponse {
@@ -233,6 +259,9 @@ export interface DoneResponse {
   // spec §3, flag-gated). Non-empty ⇒ UI renders the topic checklist
   // instead of the three axis rows.
   topics?: TopicCredit[];
+  // Structured feedback block (scorecard PR2). See `DoneFeedback` — served
+  // only alongside a non-empty `topics`, and only on LLM/parse success.
+  feedback?: DoneFeedback;
 }
 
 export interface StudentProgress {

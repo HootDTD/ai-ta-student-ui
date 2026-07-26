@@ -2211,6 +2211,48 @@ html.dark .apollo-progress-card[data-level="5"] {
   opacity: 0.4;
 }
 
+/* Apollo feedback scorecard — grade header + per-topic credit bar (scorecard
+   PR2, backend PR #200). Header bar reuses the `.apollo-progress-card`
+   bar-track/bar-fill pattern at a smaller scale; rows below reuse the
+   pre-existing `.apollo-topic` checklist shell (design spec §5) plus new
+   per-row bar + expandable body classes. */
+.apollo-scorecard__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.apollo-scorecard__overall-bar-track {
+  flex: 1;
+  height: 0.5rem;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: var(--meter-groove);
+}
+
+.apollo-scorecard__overall-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.apollo-scorecard__headline {
+  font-weight: 600;
+}
+
+.apollo-scorecard__recap {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.apollo-scorecard__next-step {
+  padding: 0.65rem 0.85rem;
+}
+
 /* Apollo topic checklist — replaces the three axis rows when the backend
    serves `report.topics` (topic-based grading, design spec §5). Reuses the
    `.apollo-rubric` card shell; rows below are its topic-specific siblings. */
@@ -2222,11 +2264,20 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .apollo-topic__row {
   display: grid;
-  grid-template-columns: 1.5rem 1fr 3rem;
+  grid-template-columns: 1.5rem 1fr 5rem 3rem;
   align-items: center;
   gap: 0.5rem;
   font-family: var(--mono);
   font-size: 0.85rem;
+}
+
+.apollo-topic__summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.apollo-topic__summary::-webkit-details-marker {
+  display: none;
 }
 
 .apollo-topic__glyph {
@@ -2245,6 +2296,57 @@ html.dark .apollo-progress-card[data-level="5"] {
   color: var(--success-solid);
 }
 
+.apollo-topic__bar-track {
+  height: 0.4rem;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.apollo-topic__bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.apollo-topic[data-status="missing"] .apollo-topic__bar-fill {
+  background: var(--danger-solid);
+}
+
+.apollo-topic[data-status="partial"] .apollo-topic__bar-fill {
+  background: var(--accent);
+}
+
+.apollo-topic[data-status="covered"] .apollo-topic__bar-fill {
+  background: var(--success-solid);
+}
+
+.apollo-topic__body {
+  margin: 0.35rem 0 0.15rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.apollo-topic__note {
+  font-size: 0.85rem;
+}
+
+.apollo-topic__quote {
+  margin: 0;
+  font-size: 0.82rem;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* MathMarkdown wraps single-line text in a block <p>; flatten the inline
+   call sites here or the surrounding text and quote marks split lines. */
+.apollo-topic__note p,
+.apollo-topic__quote p {
+  display: inline;
+  margin: 0;
+}
+
 .apollo-topic__credit {
   text-align: right;
 }
@@ -2253,7 +2355,6 @@ html.dark .apollo-progress-card[data-level="5"] {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin: 0.25rem 0 0.15rem 2rem;
 }
 
 .apollo-topic__misconception {
