@@ -4,7 +4,7 @@ description: lib/apollo/api.ts (types + fetchers hub)
 owns:
   - lib/apollo/api.ts
 related: [shell/auth-client, apollo/error-surface, apollo/session-proxies, apollo/practice-proxies, apollo/kg-proxies, hoot/qa-proxies, apollo/progress-card]
-last_verified: 2026-07-25
+last_verified: 2026-07-26
 stub: false
 ---
 
@@ -29,9 +29,14 @@ variable_mapping / procedure_step, each with typed `content`) over `ApolloNodeBa
 (`phase` INIT|TEACHING|PROBLEM_REVEAL|SOLVING|REPORT|BETWEEN), `CoveredTopic`,
 `ChatResponse` (`apollo_reply`, `kg`, `covered_topics?`, `intent_pending?`,
 `intent_executed?{intent:'done', result:DoneResponse}`), `Rubric`/`RubricAxis`,
-`ProgressEnvelope`, `TopicCredit`/`TopicMisconception` (flag-gated topic grading),
+`ProgressEnvelope`, `TopicCredit`/`TopicMisconception` (flag-gated topic grading;
+`TopicCredit.evidence_span?` = verbatim gated student quote, backend PR #200),
+`TopicFeedbackItem`/`DoneFeedback` (structured scorecard feedback: `headline`,
+per-topic `note`+code-gated `quote|null`, deterministic `recap[]`, `next_step`),
 `DoneResponse` (rubric + `diagnostic_narrative` + coverage + `progress?` + flat
-`xp_*` migration fields + `topics?`), `StudentProgress`(+`Detailed`),
+`xp_*` migration fields + `topics?` + `feedback?` — feedback served only
+alongside non-empty topics and only on diagnostic-LLM success; feedback ⇒
+topics, never the reverse), `StudentProgress`(+`Detailed`),
 `ConceptMastery`/`RecentAttempt`, `Negotiate*`/`NegotiationTrace` types.
 
 **Fetchers** (all same-origin `/api/apollo/*` except `listMyClasses`):
