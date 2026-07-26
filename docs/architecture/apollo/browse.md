@@ -5,7 +5,7 @@ owns:
   - components/apollo/ApolloBrowse.tsx
   - components/apollo/ApolloSidebar.tsx
 related: [apollo/api-client, apollo/top-bar, shared-ui/entry-chrome, shell/layout-and-design-system]
-last_verified: 2026-07-25
+last_verified: 2026-07-26
 stub: false
 ---
 
@@ -34,6 +34,12 @@ on the active one, and closes on outside-click / Escape when `open`.
 - Problem statements >180 chars start as previews with an accessible "Show full
   problem"/"Show less" toggle (reset when concept/difficulty changes); the toggle
   is independent of starting a session.
+- **Grade display (2026-07-26):** a problem with `grade` ({score, letter} = the
+  student's best served grade, from `ApolloProblemSummary`) renders a letter
+  chip (`.apollo-browse__grade--{band}`) instead of the "Tried" badge, and the
+  card tints to the band (`.apollo-browse__card--grade-{band}`). `gradeBand()`
+  maps `letter[0]` → a|b|c|d|f; an unknown letter (or `grade` absent on older
+  backends) degrades to the plain attempted state — never an unstyled chip.
 
 ## Related
 - [api-client.md](api-client.md), [top-bar.md](top-bar.md),

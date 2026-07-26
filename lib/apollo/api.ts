@@ -361,11 +361,19 @@ export interface ApolloConceptSummary {
   display_name: string;
 }
 
+export interface ApolloProblemGrade {
+  score: number;
+  letter: string;
+}
+
 export interface ApolloProblemSummary {
   id: string;
   difficulty: string;
   problem_text: string;
   attempted: boolean;
+  /** Best served overall across the student's graded attempts, else null.
+   *  Absent on older backends — treat undefined like null. */
+  grade?: ApolloProblemGrade | null;
 }
 
 export interface StartSessionResponse {

@@ -5,7 +5,7 @@ owns:
   - app/layout.tsx
   - app/globals.css
 related: [shell/session-refresh, shared-ui/math-markdown]
-last_verified: 2026-07-25
+last_verified: 2026-07-26
 stub: false
 ---
 
@@ -38,6 +38,11 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `apollo-session-shell`/`apollo-turn*`/`apollo-chat*`/`apollo-finish*`/
   `apollo-kg*`/`kg-pill*`/`apollo-progress-card*`/`apollo-mastery*`/
   `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`.
+- **Grade-band tokens (2026-07-26):** `--grade-{a,b,c,d,f}-{border,bg,solid}`
+  in both `:root` and `html.dark` — A/C/F reuse the success/warning/danger
+  families, B (olive) and D (burnt orange) sit between so the letters read as
+  a continuous scale. Consumed only by `.apollo-browse__card--grade-*` /
+  `.apollo-browse__grade--*` (see `apollo/browse.md`).
 - **Single label treatment:** use `.eyebrow`; do not hand-roll
   bold-UPPERCASE-gray labels (the two intentional exceptions are the mono
   `citation-chip` label voice and KG-pill card eyebrows).

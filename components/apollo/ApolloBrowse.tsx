@@ -21,6 +21,15 @@ import ApolloTopBar from "./ApolloTopBar";
 
 const DIFFICULTIES: ApolloDifficulty[] = ["intro", "standard", "hard"];
 const PREVIEW_CHARS = 180;
+const GRADE_BANDS = new Set(["a", "b", "c", "d", "f"]);
+
+/** Map a letter grade ("A-", "B+", "F") to its color band, or null when the
+ *  backend sends a letter outside the known scale — the card then falls back
+ *  to the neutral attempted state instead of rendering an unstyled chip. */
+function gradeBand(letter: string): string | null {
+  const band = letter.charAt(0).toLowerCase();
+  return GRADE_BANDS.has(band) ? band : null;
+}
 
 interface Props {
   classId: number;
@@ -166,9 +175,15 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                     isLong && !isExpanded
                       ? `${p.problem_text.slice(0, PREVIEW_CHARS)}…`
                       : p.problem_text;
+                  const band = p.grade ? gradeBand(p.grade.letter) : null;
 
                   return (
-                    <li key={p.id} className="apollo-browse__card">
+                    <li
+                      key={p.id}
+                      className={`apollo-browse__card${
+                        band ? ` apollo-browse__card--grade-${band}` : ""
+                      }`}
+                    >
                       {isLong ? (
                         <button
                           type="button"
@@ -192,7 +207,19 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                         <p className="apollo-browse__card-text">{problemText}</p>
                       )}
                       <div className="apollo-browse__card-footer">
-                        {p.attempted && <span className="apollo-browse__tried">Tried</span>}
+                        {p.grade && band ? (
+                          <span
+                            className={`apollo-browse__grade apollo-browse__grade--${band}`}
+                            aria-label={`Your grade for this problem: ${p.grade.letter}`}
+                            title={`Your grade: ${p.grade.letter}`}
+                          >
+                            {p.grade.letter}
+                          </span>
+                        ) : (
+                          p.attempted && (
+                            <span className="apollo-browse__tried">Tried</span>
+                          )
+                        )}
                         <button
                           className="ui-button ui-button--primary ui-button--small"
                           disabled={busy}

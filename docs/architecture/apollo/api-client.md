@@ -4,7 +4,7 @@ description: lib/apollo/api.ts (types + fetchers hub)
 owns:
   - lib/apollo/api.ts
 related: [shell/auth-client, apollo/error-surface, apollo/session-proxies, apollo/practice-proxies, apollo/kg-proxies, hoot/qa-proxies, apollo/progress-card]
-last_verified: 2026-07-25
+last_verified: 2026-07-26
 stub: false
 ---
 
@@ -32,7 +32,10 @@ variable_mapping / procedure_step, each with typed `content`) over `ApolloNodeBa
 `ProgressEnvelope`, `TopicCredit`/`TopicMisconception` (flag-gated topic grading),
 `DoneResponse` (rubric + `diagnostic_narrative` + coverage + `progress?` + flat
 `xp_*` migration fields + `topics?`), `StudentProgress`(+`Detailed`),
-`ConceptMastery`/`RecentAttempt`, `Negotiate*`/`NegotiationTrace` types.
+`ConceptMastery`/`RecentAttempt`, `Negotiate*`/`NegotiationTrace` types,
+`ApolloProblemSummary` (browse cards; `grade?: ApolloProblemGrade | null` =
+`{score, letter}`, the student's best served grade — optional so older
+backends without the field behave like null).
 
 **Fetchers** (all same-origin `/api/apollo/*` except `listMyClasses`):
 - Session lifecycle: `startSessionFromHoot`, `getSessionState`, `sendChat`,
