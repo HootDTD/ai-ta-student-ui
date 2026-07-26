@@ -5,7 +5,7 @@ owns:
   - app/layout.tsx
   - app/globals.css
 related: [shell/session-refresh, shared-ui/math-markdown]
-last_verified: 2026-07-25
+last_verified: 2026-07-26
 stub: false
 ---
 
@@ -37,7 +37,11 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `apollo-page*`/`apollo-layout*`/`apollo-shell`/`apollo-browse*`/
   `apollo-session-shell`/`apollo-turn*`/`apollo-chat*`/`apollo-finish*`/
   `apollo-kg*`/`kg-pill*`/`apollo-progress-card*`/`apollo-mastery*`/
-  `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`.
+  `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`, plus the report
+  scorecard set `apollo-scorecard*` (header/headline/overall-bar/recap/
+  next-step) and `apollo-topic*` (row/glyph/label/bar/credit/body/note/quote,
+  status-colored via `data-status`) — added 2026-07-26 for the per-topic
+  feedback scorecard (`ApolloReportPanel`).
 - **Single label treatment:** use `.eyebrow`; do not hand-roll
   bold-UPPERCASE-gray labels (the two intentional exceptions are the mono
   `citation-chip` label voice and KG-pill card eyebrows).
