@@ -5,7 +5,7 @@ owns:
   - app/layout.tsx
   - app/globals.css
 related: [shell/session-refresh, shared-ui/math-markdown]
-last_verified: 2026-07-26
+last_verified: 2026-07-27
 stub: false
 ---
 
@@ -37,7 +37,11 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `apollo-page*`/`apollo-layout*`/`apollo-shell`/`apollo-browse*`/
   `apollo-session-shell`/`apollo-turn*`/`apollo-chat*`/`apollo-finish*`/
   `apollo-kg*`/`kg-pill*`/`apollo-progress-card*`/`apollo-mastery*`/
-  `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`.
+  `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`, plus the report
+  scorecard set `apollo-scorecard*` (header/headline/overall-bar/recap/
+  next-step) and `apollo-topic*` (row/glyph/label/bar/credit/body/note/quote,
+  status-colored via `data-status`) — added 2026-07-26 for the per-topic
+  feedback scorecard (`ApolloReportPanel`).
 - **Grade-band tokens (2026-07-26):** `--grade-{a,b,c,d,f}-{border,bg,solid}`
   in both `:root` and `html.dark` — A/C/F reuse the success/warning/danger
   families, B (olive) and D (burnt orange) sit between so the letters read as
