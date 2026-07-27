@@ -296,9 +296,9 @@ export default function ApolloChat({
                     ? "Unsure? Ask Hoot! You've used all 3 Ask Hoot questions for this session."
                     : "Unsure? Ask Hoot!"
                 }
-                className="ui-button ui-button--ghost ui-button--small"
+                className="ui-button ui-button--small apollo-ask-hoot__button"
               >
-                Unsure? Ask Hoot!
+                <span aria-hidden="true">🦉</span> Unsure? Ask Hoot!
               </button>
             )}
           </div>

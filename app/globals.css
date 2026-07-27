@@ -1004,6 +1004,28 @@ button:disabled {
   color: var(--accent);
 }
 
+/* The Ask Hoot entry point earns real visibility: accent outline + soft fill
+   so it reads as a feature, not a ghost action — while staying quieter than
+   the primary Send button beside it. */
+.apollo-ask-hoot__button {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.apollo-ask-hoot__button:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--bg);
+  transform: translateY(-1px);
+}
+
+.apollo-ask-hoot__button:disabled {
+  border-color: var(--border);
+  background: transparent;
+  font-weight: 400;
+}
+
 /* The session's one loud affordance: a full-width band below the composer
    that separates "end the session and get graded" from the ordinary Send
    flow. The green .ui-button--done inside carries the emphasis. */
