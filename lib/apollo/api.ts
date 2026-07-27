@@ -393,6 +393,10 @@ export interface ApolloConceptSummary {
 export interface ApolloProblemGrade {
   score: number;
   letter: string;
+  /** Narrative of the SAME best-grade attempt (what the Done panel served).
+   *  Absent on older backends, null when the attempt has no usable narrative
+   *  — either way the chip renders without a feedback panel. */
+  feedback?: string | null;
 }
 
 export interface ApolloProblemSummary {

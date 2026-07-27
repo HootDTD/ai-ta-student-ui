@@ -2915,6 +2915,42 @@ html.dark .apollo-progress-card[data-level="5"] {
 .apollo-browse__grade--d { border-color: var(--grade-d-border); color: var(--grade-d-solid); }
 .apollo-browse__grade--f { border-color: var(--grade-f-border); color: var(--grade-f-solid); }
 
+/* Chip-as-button (grade with persisted feedback): same chip look, plus an
+   affordance — pointer, filled hover/open state. Native squares, no pill. */
+.apollo-browse__grade--clickable {
+  cursor: pointer;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.apollo-browse__grade--clickable:hover,
+.apollo-browse__grade--clickable[aria-expanded="true"] {
+  background: var(--surface-fill);
+}
+
+/* In-card panel re-serving the Done-time feedback narrative for the SAME
+   attempt the chip grades. Native --surface-fill square with the band's
+   solid color as a left rule; opened/closed by the chip button. */
+.apollo-browse__feedback {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface-fill);
+  font-size: 0.85rem;
+  text-align: left;
+}
+.apollo-browse__feedback p { margin: 0; }
+.apollo-browse__feedback p + p { margin-top: 0.4rem; }
+.apollo-browse__feedback--a { border-left-color: var(--grade-a-solid); }
+.apollo-browse__feedback--b { border-left-color: var(--grade-b-solid); }
+.apollo-browse__feedback--c { border-left-color: var(--grade-c-solid); }
+.apollo-browse__feedback--d { border-left-color: var(--grade-d-solid); }
+.apollo-browse__feedback--f { border-left-color: var(--grade-f-solid); }
+
 .apollo-browse__loading,
 .apollo-browse__empty {
   margin: 0;
