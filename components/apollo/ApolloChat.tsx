@@ -3,15 +3,29 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ApolloApiError, sendChat } from "@/lib/apollo/api";
-import type { ApolloKG, CoveredTopic, DoneResponse } from "@/lib/apollo/api";
+import type { ApolloKG, ChatAside, CoveredTopic, DoneResponse } from "@/lib/apollo/api";
 import SpecialCharsPalette from "@/components/SpecialCharsPalette";
 import OwlVideo from "@/components/OwlVideo";
 import MathMarkdown from "@/components/MathMarkdown";
+import { CitationChip } from "@/components/CitationChip";
 import ApolloErrorSurface from "./ApolloErrorSurface";
+
+// A chat turn. `intent`/`aside` are only ever set on apollo-role turns:
+// `intent === "reference_aside"` (from a live reply or transcript reload)
+// renders the distinct "From the course materials" card instead of a normal
+// persona bubble. `aside` (citations included) is only available on turns
+// built from a live `sendChat` response — reloaded history carries the
+// `intent` tag but not the structured citations.
+interface ChatMessage {
+  role: string;
+  content: string;
+  intent?: string;
+  aside?: ChatAside;
+}
 
 interface Props {
   sessionId: number;
-  initialMessages: Array<{ role: string; content: string }>;
+  initialMessages: ChatMessage[];
   onKgUpdate: (kg: ApolloKG) => void;
   onCoverageSnapshot: (topics: CoveredTopic[]) => void;
   onDoneClicked: () => void;
@@ -104,7 +118,20 @@ export default function ApolloChat({
     setSending(true);
     try {
       const resp = await sendChat(sessionId, myMsg);
-      setMessages((m) => [...m, { role: "apollo", content: resp.apollo_reply }]);
+      if (resp.message_kind === "reference_aside" && resp.aside) {
+        setMessages((m) => [
+          ...m,
+          {
+            role: "apollo",
+            content: resp.aside!.text,
+            intent: "reference_aside",
+            aside: resp.aside,
+          },
+          { role: "apollo", content: resp.apollo_reply },
+        ]);
+      } else {
+        setMessages((m) => [...m, { role: "apollo", content: resp.apollo_reply }]);
+      }
       onKgUpdate(resp.kg);
       onCoverageSnapshot(resp.covered_topics ?? []);
       if (resp.intent_executed?.intent === "done" && onDoneFromChat) {
@@ -132,6 +159,28 @@ export default function ApolloChat({
                     <span className="eyebrow">You</span>
                     <div className="prose md-body">
                       <MathMarkdown>{m.content}</MathMarkdown>
+                    </div>
+                  </div>
+                );
+              }
+              if (m.intent === "reference_aside") {
+                return (
+                  <div key={i} className="apollo-turn apollo-turn--aside">
+                    <div
+                      className="apollo-aside"
+                      data-in-scope={m.aside ? m.aside.in_scope : true}
+                    >
+                      <span className="eyebrow">From the course materials</span>
+                      <div className="prose md-body">
+                        <MathMarkdown>{m.content}</MathMarkdown>
+                      </div>
+                      {m.aside && m.aside.citations.length > 0 && (
+                        <div className="apollo-aside__citations">
+                          {m.aside.citations.map((c, ci) => (
+                            <CitationChip key={ci} meta={c} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

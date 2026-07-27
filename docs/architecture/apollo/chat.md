@@ -3,19 +3,33 @@ doc: apollo/chat
 description: ApolloChat
 owns:
   - components/apollo/ApolloChat.tsx
-related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome]
-last_verified: 2026-07-25
+related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
+last_verified: 2026-07-27
 stub: false
 ---
 
 # ApolloChat
 
-Apollo teaching conversation + composer (~220 lines).
+Apollo teaching conversation + composer (~250 lines).
 
 ## Interface
-default `ApolloChat({sessionId, initialMessages:{role,content}[], onKgUpdate(kg),
+default `ApolloChat({sessionId, initialMessages:ChatMessage[], onKgUpdate(kg),
 onCoverageSnapshot(topics), onDoneClicked(), onDoneFromChat?(result:DoneResponse),
-disabled?, busy?})`. Owns local `messages`/`draft`/`sending`/`error`.
+disabled?, busy?})`. `ChatMessage = {role, content, intent?, aside?:ChatAside}`.
+Owns local `messages`/`draft`/`sending`/`error`.
+
+INTERACTION4: when `sendChat`'s response has `message_kind === "reference_aside"`,
+`handleSend` pushes two apollo-role turns instead of one — the aside turn
+(`content: aside.text`, `intent: "reference_aside"`, `aside` carrying the full
+`ChatAside` incl. citations) followed by a normal turn for `apollo_reply` (the
+persona's resume line). Rendered as a bordered `.apollo-aside` card labeled
+"From the course materials", citations via the reused `CitationChip`
+([citation-chip.md](../shared-ui/citation-chip.md)); `in_scope: false` still
+renders as an aside — the text itself is the refusal. On session reload,
+`ApolloPageClient` forwards each history turn's `intent` string through
+verbatim, so a reloaded `reference_aside` turn renders with the same card
+styling — but without citations (the transcript replay doesn't carry them
+back, only `role`/`content`/`intent`).
 
 ## Data flow
 `handleSend` → `sendChat(sessionId, msg)`; appends Apollo's reply, calls

@@ -4,6 +4,7 @@
 // render each code explicitly (NO FALLBACKS).
 
 import { authHeaders, loadStoredSession } from "@/app/lib/auth";
+import type { CitationMeta } from "@/components/CitationChip";
 
 export type ApolloErrorCode =
   | "parser_could_not_extract"
@@ -125,12 +126,27 @@ export interface ApolloSessionState {
   phase: "INIT" | "TEACHING" | "PROBLEM_REVEAL" | "SOLVING" | "REPORT" | "BETWEEN";
   problem: ApolloProblem | null;
   kg: ApolloKG;
-  messages: Array<{ role: string; content: string; turn_index: number }>;
+  // `intent` tags a stored turn's kind on reload; INTERACTION4 reference
+  // asides come back as `intent: "reference_aside"` apollo-role turns
+  // (transcript replay carries no citations — the aside still renders,
+  // just without the citation strip a live turn has).
+  messages: Array<{ role: string; content: string; turn_index: number; intent?: string }>;
 }
 
 export interface CoveredTopic {
   node_id: string;
   display_name: string;
+}
+
+// INTERACTION4: a cited reference-question aside, rendered as a distinct
+// card between the student's question and the persona's resume line — same
+// citation shape as Hoot's /ask flow (`CitationMeta`), reused rather than
+// redefined. `in_scope: false` still renders as an aside (the text itself is
+// the polite "outside this course" refusal).
+export interface ChatAside {
+  text: string;
+  citations: CitationMeta[];
+  in_scope: boolean;
 }
 
 export interface ChatResponse {
@@ -150,11 +166,15 @@ export interface ChatResponse {
   };
   // When a pending `done` is affirmed, the handler dispatches handle_done
   // inline and returns the result here so the UI can switch to the report
-  // view without a second round-trip.
-  intent_executed?: {
-    intent: "done";
-    result: DoneResponse;
-  };
+  // view without a second round-trip. `reference_question` (INTERACTION4)
+  // fires alongside `message_kind`/`aside` below, on the same response.
+  intent_executed?:
+    | { intent: "done"; result: DoneResponse }
+    | { intent: "reference_question"; aside_count: number };
+  // Discriminator for the reference-aside path; absent on normal teaching
+  // turns. Present ⇒ `aside` is present.
+  message_kind?: "reference_aside";
+  aside?: ChatAside;
 }
 
 export interface RubricAxis {

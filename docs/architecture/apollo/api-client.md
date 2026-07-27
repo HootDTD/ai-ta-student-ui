@@ -26,9 +26,13 @@ variable_mapping / procedure_step, each with typed `content`) over `ApolloNodeBa
 (`node_id`, `attempt_id`, `source` parser|reference|system, `parser_confidence?`,
 `status` ACCEPTED|DISPUTED|DUAL, `student_belief?`), `ApolloEdge`
 (PRECEDES|USES|DEPENDS_ON|SCOPES), `ApolloKG {nodes, edges}`, `ApolloSessionState`
-(`phase` INIT|TEACHING|PROBLEM_REVEAL|SOLVING|REPORT|BETWEEN), `CoveredTopic`,
-`ChatResponse` (`apollo_reply`, `kg`, `covered_topics?`, `intent_pending?`,
-`intent_executed?{intent:'done', result:DoneResponse}`), `Rubric`/`RubricAxis`,
+(`phase` INIT|TEACHING|PROBLEM_REVEAL|SOLVING|REPORT|BETWEEN, `messages[].intent?`
+— reload tag, e.g. `"reference_aside"`), `CoveredTopic`, `ChatAside`
+(INTERACTION4: `text`, `citations:CitationMeta[]` — reuses Hoot's `/ask` citation
+type rather than redefining it, `in_scope`), `ChatResponse` (`apollo_reply`, `kg`,
+`covered_topics?`, `intent_pending?`, `intent_executed?{intent:'done',
+result:DoneResponse} | {intent:'reference_question', aside_count:number}`,
+`message_kind?:'reference_aside'`, `aside?:ChatAside`), `Rubric`/`RubricAxis`,
 `ProgressEnvelope`, `TopicCredit`/`TopicMisconception` (flag-gated topic grading;
 `TopicCredit.evidence_span?` = verbatim gated student quote, backend PR #200),
 `TopicFeedbackItem`/`DoneFeedback` (structured scorecard feedback: `headline`,
@@ -72,3 +76,4 @@ proxies only forward `Authorization` if present.
   ([session-proxies.md](session-proxies.md), [practice-proxies.md](practice-proxies.md),
   [kg-proxies.md](kg-proxies.md)); [qa-proxies.md](../hoot/qa-proxies.md)
   (`/api/my-classes`); [progress-card.md](progress-card.md).
+- [citation-chip.md](../shared-ui/citation-chip.md) — `CitationMeta`, reused by `ChatAside.citations`.
