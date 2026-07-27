@@ -46,12 +46,20 @@ function resolveQuote(
   return topic.evidence_span ?? null;
 }
 
-// INTERACTION3: "Review: Mason 1986, p. 4 · Module 9 Ethics Slides, p. 7" —
-// label + page (no page ⇒ label only). doc_id is deliberately unused here;
-// it's kept on the type for a future deep-link, not rendered in v1.
+// INTERACTION3: "Mason 1986, p. 4 · Module 9 Ethics Slides, p. 7". Labels
+// arrive marker-shaped ("[Young et al. 2020, p. 3]") with the page already
+// inside, so strip the brackets and only append the page when the label
+// doesn't carry it. doc_id is deliberately unused here; it's kept on the
+// type for a future deep-link, not rendered in v1.
 function formatReviewLine(review: TopicReviewPointer[]): string {
   return review
-    .map((r) => (typeof r.page === "number" ? `${r.label}, p. ${r.page}` : r.label))
+    .map((r) => {
+      const label = r.label.replace(/^\[/, "").replace(/\]$/, "");
+      if (typeof r.page === "number" && !label.includes(`p. ${r.page}`)) {
+        return `${label}, p. ${r.page}`;
+      }
+      return label;
+    })
     .join(" · ");
 }
 
@@ -71,9 +79,7 @@ function TopicRow({
   const misconceptions = topic.misconceptions ?? [];
   const note = feedbackItem?.note;
   const quote = resolveQuote(topic, feedbackItem, hasFeedback);
-  const review = feedbackItem?.review ?? [];
-  const hasBody =
-    Boolean(note) || Boolean(quote) || misconceptions.length > 0 || review.length > 0;
+  const hasBody = Boolean(note) || Boolean(quote) || misconceptions.length > 0;
 
   const summary = (
     <div className="apollo-topic__row">
@@ -119,10 +125,6 @@ function TopicRow({
           <p className="apollo-topic__quote">
             You said: &ldquo;<MathMarkdown>{quote}</MathMarkdown>&rdquo;
           </p>
-        )}
-
-        {review.length > 0 && (
-          <p className="apollo-topic__review">Review: {formatReviewLine(review)}</p>
         )}
 
         {misconceptions.length > 0 && (
@@ -203,6 +205,24 @@ export default function ApolloReportPanel({
   const hasTopics = Array.isArray(topics) && topics.length > 0;
   const feedback = hasTopics ? report.feedback : undefined;
 
+  // INTERACTION3 review pointers get their own card below Next step — they
+  // are course-material reading directions, not part of the ✗/✓ scorecard.
+  const reviewSections =
+    hasTopics && feedback
+      ? (topics as TopicCredit[])
+          .map((topic) => {
+            const item = feedback.topic_feedback.find(
+              (f) => f.canonical_key === topic.canonical_key,
+            );
+            return {
+              key: topic.canonical_key,
+              label: topic.display_name ?? topic.canonical_key,
+              review: item?.review ?? [],
+            };
+          })
+          .filter((s) => s.review.length > 0)
+      : [];
+
   return (
     <section className="notice" data-tone={tone}>
       <div className="eyebrow">Teaching grade</div>
@@ -247,10 +267,27 @@ export default function ApolloReportPanel({
       )}
 
       {hasTopics && feedback ? (
-        <div className="notice apollo-scorecard__next-step" data-tone="success">
-          <span className="eyebrow">Next step</span>
-          <MathMarkdown>{feedback.next_step}</MathMarkdown>
-        </div>
+        <>
+          <div className="notice apollo-scorecard__next-step" data-tone="success">
+            <span className="eyebrow">Next step</span>
+            <MathMarkdown>{feedback.next_step}</MathMarkdown>
+          </div>
+          {reviewSections.length > 0 && (
+            <div className="notice apollo-scorecard__review">
+              <span className="eyebrow">Review the course materials</span>
+              {reviewSections.map((section) => (
+                <p key={section.key} className="apollo-scorecard__review-line">
+                  {reviewSections.length > 1 && (
+                    <span className="apollo-scorecard__review-topic">
+                      {section.label}:{" "}
+                    </span>
+                  )}
+                  {formatReviewLine(section.review)}
+                </p>
+              ))}
+            </div>
+          )}
+        </>
       ) : (
         <details open>
           <summary>Diagnostic Narrative</summary>

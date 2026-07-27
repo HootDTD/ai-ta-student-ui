@@ -1024,6 +1024,19 @@ button:disabled {
   background: transparent;
 }
 
+/* INTERACTION3 review card — reading directions below Next step. */
+.apollo-scorecard__review {
+  margin-top: 0.75rem;
+}
+
+.apollo-scorecard__review-line {
+  margin: 0.35rem 0 0;
+}
+
+.apollo-scorecard__review-topic {
+  font-weight: 600;
+}
+
 /* The session's one loud affordance: a full-width band below the composer
    that separates "end the session and get graded" from the ordinary Send
    flow. The green .ui-button--done inside carries the emphasis. */
