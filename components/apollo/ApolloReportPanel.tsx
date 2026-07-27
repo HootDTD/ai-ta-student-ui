@@ -100,7 +100,13 @@ function TopicRow({
   }
 
   return (
-    <details className="apollo-topic" data-status={topic.status}>
+    // Weak topics open pre-expanded: their note + Review pointers are the
+    // actionable part of the grade, not something to hide behind a click.
+    <details
+      className="apollo-topic"
+      data-status={topic.status}
+      open={topic.status !== "covered"}
+    >
       <summary className="apollo-topic__summary">{summary}</summary>
 
       <div className="apollo-topic__body">
