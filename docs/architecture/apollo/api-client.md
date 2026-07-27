@@ -39,8 +39,9 @@ alongside non-empty topics and only on diagnostic-LLM success; feedback ⇒
 topics, never the reverse), `StudentProgress`(+`Detailed`),
 `ConceptMastery`/`RecentAttempt`, `Negotiate*`/`NegotiationTrace` types,
 `ApolloProblemSummary` (browse cards; `grade?: ApolloProblemGrade | null` =
-`{score, letter}`, the student's best served grade — optional so older
-backends without the field behave like null).
+`{score, letter, feedback?}`, the student's best served grade plus that same
+attempt's Done-time narrative — both optional so older backends without the
+fields behave like null).
 
 **Fetchers** (all same-origin `/api/apollo/*` except `listMyClasses`):
 - Session lifecycle: `startSessionFromHoot`, `getSessionState`, `sendChat`,

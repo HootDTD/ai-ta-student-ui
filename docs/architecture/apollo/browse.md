@@ -5,7 +5,7 @@ owns:
   - components/apollo/ApolloBrowse.tsx
   - components/apollo/ApolloSidebar.tsx
 related: [apollo/api-client, apollo/top-bar, shared-ui/entry-chrome, shell/layout-and-design-system]
-last_verified: 2026-07-26
+last_verified: 2026-07-27
 stub: false
 ---
 
@@ -40,6 +40,14 @@ on the active one, and closes on outside-click / Escape when `open`.
   card tints to the band (`.apollo-browse__card--grade-{band}`). `gradeBand()`
   maps `letter[0]` → a|b|c|d|f; an unknown letter (or `grade` absent on older
   backends) degrades to the plain attempted state — never an unstyled chip.
+- **Feedback on chip click (2026-07-27):** when `grade.feedback` is a non-empty
+  string, the chip renders as a `<button>` (`.apollo-browse__grade--clickable`,
+  `aria-expanded`/`aria-controls`) toggling an in-card `.apollo-browse__feedback`
+  panel — eyebrow "Your feedback" + the narrative via `MathMarkdown` (grading
+  feedback carries LaTeX), band-colored left rule. Open state lives in
+  `openFeedbackIds`, reset on concept/difficulty change like the text previews.
+  No/empty feedback (or an older backend) → the chip stays the static `<span>`
+  — never a dead-click button.
 
 ## Related
 - [api-client.md](api-client.md), [top-bar.md](top-bar.md),

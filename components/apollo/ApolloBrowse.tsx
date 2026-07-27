@@ -16,6 +16,7 @@ import {
 } from "@/lib/apollo/api";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 import ApolloSidebar from "./ApolloSidebar";
+import MathMarkdown from "@/components/MathMarkdown";
 import OwlVideo from "@/components/OwlVideo";
 import ApolloTopBar from "./ApolloTopBar";
 
@@ -47,6 +48,9 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
   const [expandedProblemIds, setExpandedProblemIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [openFeedbackIds, setOpenFeedbackIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   useEffect(() => {
     // No auto-select: the browse page opens on a centered prompt until the
@@ -60,6 +64,7 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
     if (conceptId === null) return;
     setProblems(null);
     setExpandedProblemIds(new Set());
+    setOpenFeedbackIds(new Set());
     listProblems(classId, conceptId, difficulty)
       .then((r) => setProblems(r.problems))
       .catch((e) => setError(e as Error));
@@ -67,6 +72,18 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
 
   const toggleProblem = useCallback((problemId: string) => {
     setExpandedProblemIds((current) => {
+      const next = new Set(current);
+      if (next.has(problemId)) {
+        next.delete(problemId);
+      } else {
+        next.add(problemId);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleFeedback = useCallback((problemId: string) => {
+    setOpenFeedbackIds((current) => {
       const next = new Set(current);
       if (next.has(problemId)) {
         next.delete(problemId);
@@ -176,6 +193,9 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                       ? `${p.problem_text.slice(0, PREVIEW_CHARS)}…`
                       : p.problem_text;
                   const band = p.grade ? gradeBand(p.grade.letter) : null;
+                  const feedback = p.grade?.feedback?.trim() ? p.grade.feedback : null;
+                  const feedbackOpen = openFeedbackIds.has(p.id);
+                  const feedbackPanelId = `apollo-feedback-${p.id}`;
 
                   return (
                     <li
@@ -206,15 +226,40 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                       ) : (
                         <p className="apollo-browse__card-text">{problemText}</p>
                       )}
+                      {band && feedback && feedbackOpen && (
+                        <div
+                          id={feedbackPanelId}
+                          className={`apollo-browse__feedback apollo-browse__feedback--${band}`}
+                        >
+                          <span className="eyebrow">Your feedback</span>
+                          <MathMarkdown>{feedback}</MathMarkdown>
+                        </div>
+                      )}
                       <div className="apollo-browse__card-footer">
                         {p.grade && band ? (
-                          <span
-                            className={`apollo-browse__grade apollo-browse__grade--${band}`}
-                            aria-label={`Your grade for this problem: ${p.grade.letter}`}
-                            title={`Your grade: ${p.grade.letter}`}
-                          >
-                            {p.grade.letter}
-                          </span>
+                          feedback ? (
+                            <button
+                              type="button"
+                              className={`apollo-browse__grade apollo-browse__grade--${band} apollo-browse__grade--clickable`}
+                              aria-expanded={feedbackOpen}
+                              aria-controls={feedbackPanelId}
+                              aria-label={`Your grade for this problem: ${p.grade.letter}. ${
+                                feedbackOpen ? "Hide" : "Show"
+                              } your feedback.`}
+                              title={`Your grade: ${p.grade.letter} — click for feedback`}
+                              onClick={() => toggleFeedback(p.id)}
+                            >
+                              {p.grade.letter}
+                            </button>
+                          ) : (
+                            <span
+                              className={`apollo-browse__grade apollo-browse__grade--${band}`}
+                              aria-label={`Your grade for this problem: ${p.grade.letter}`}
+                              title={`Your grade: ${p.grade.letter}`}
+                            >
+                              {p.grade.letter}
+                            </span>
+                          )
                         ) : (
                           p.attempted && (
                             <span className="apollo-browse__tried">Tried</span>
