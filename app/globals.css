@@ -53,6 +53,24 @@
   --modal-backdrop: rgba(0, 0, 0, 0.4);
   --kg-dot-neutral: rgba(0, 0, 0, 0.18);
   --meter-groove: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  /* Grade bands (browse cards): A reuses the success family, C the warning
+     family, F the danger family; B (olive) and D (burnt orange) sit between
+     so the five letters read as a continuous scale. */
+  --grade-a-border: rgba(28, 96, 52, 0.32);
+  --grade-a-bg: rgba(28, 96, 52, 0.09);
+  --grade-a-solid: rgb(28, 96, 52);
+  --grade-b-border: rgba(94, 112, 28, 0.34);
+  --grade-b-bg: rgba(94, 112, 28, 0.09);
+  --grade-b-solid: rgb(94, 112, 28);
+  --grade-c-border: rgba(124, 92, 14, 0.34);
+  --grade-c-bg: rgba(124, 92, 14, 0.09);
+  --grade-c-solid: rgb(140, 104, 16);
+  --grade-d-border: rgba(148, 66, 16, 0.34);
+  --grade-d-bg: rgba(148, 66, 16, 0.09);
+  --grade-d-solid: rgb(148, 66, 16);
+  --grade-f-border: rgba(136, 34, 14, 0.34);
+  --grade-f-bg: rgba(136, 34, 14, 0.09);
+  --grade-f-solid: rgb(160, 38, 18);
 }
 
 html.dark {
@@ -101,6 +119,21 @@ html.dark {
   --modal-backdrop: rgba(0, 0, 0, 0.6);
   --kg-dot-neutral: rgba(232, 228, 222, 0.22);
   --meter-groove: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  --grade-a-border: rgba(90, 200, 130, 0.32);
+  --grade-a-bg: rgba(90, 200, 130, 0.09);
+  --grade-a-solid: rgb(90, 200, 130);
+  --grade-b-border: rgba(150, 190, 80, 0.32);
+  --grade-b-bg: rgba(150, 190, 80, 0.09);
+  --grade-b-solid: rgb(150, 190, 80);
+  --grade-c-border: rgba(200, 160, 50, 0.32);
+  --grade-c-bg: rgba(200, 160, 50, 0.09);
+  --grade-c-solid: rgb(200, 160, 50);
+  --grade-d-border: rgba(215, 120, 55, 0.32);
+  --grade-d-bg: rgba(215, 120, 55, 0.09);
+  --grade-d-solid: rgb(215, 120, 55);
+  --grade-f-border: rgba(220, 80, 60, 0.32);
+  --grade-f-bg: rgba(220, 80, 60, 0.09);
+  --grade-f-solid: rgb(220, 80, 60);
 }
 
 *,
@@ -2858,6 +2891,29 @@ html.dark .apollo-progress-card[data-level="5"] {
   color: var(--muted);
   font-size: 0.8rem;
 }
+
+/* Graded cards: the whole box tints to the grade band (quiet wash + border),
+   and the letter chip carries the strong color. Hover still darkens the
+   border via the base :hover rule (higher specificity). */
+.apollo-browse__card--grade-a { border-color: var(--grade-a-border); background: var(--grade-a-bg); }
+.apollo-browse__card--grade-b { border-color: var(--grade-b-border); background: var(--grade-b-bg); }
+.apollo-browse__card--grade-c { border-color: var(--grade-c-border); background: var(--grade-c-bg); }
+.apollo-browse__card--grade-d { border-color: var(--grade-d-border); background: var(--grade-d-bg); }
+.apollo-browse__card--grade-f { border-color: var(--grade-f-border); background: var(--grade-f-bg); }
+
+.apollo-browse__grade {
+  padding: 0.14rem 0.55rem;
+  border: 1px solid var(--border);
+  font-family: var(--font-stack);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.apollo-browse__grade--a { border-color: var(--grade-a-border); color: var(--grade-a-solid); }
+.apollo-browse__grade--b { border-color: var(--grade-b-border); color: var(--grade-b-solid); }
+.apollo-browse__grade--c { border-color: var(--grade-c-border); color: var(--grade-c-solid); }
+.apollo-browse__grade--d { border-color: var(--grade-d-border); color: var(--grade-d-solid); }
+.apollo-browse__grade--f { border-color: var(--grade-f-border); color: var(--grade-f-solid); }
 
 .apollo-browse__loading,
 .apollo-browse__empty {

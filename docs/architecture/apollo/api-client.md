@@ -4,7 +4,7 @@ description: lib/apollo/api.ts (types + fetchers hub)
 owns:
   - lib/apollo/api.ts
 related: [shell/auth-client, apollo/error-surface, apollo/session-proxies, apollo/practice-proxies, apollo/kg-proxies, hoot/qa-proxies, apollo/progress-card]
-last_verified: 2026-07-26
+last_verified: 2026-07-27
 stub: false
 ---
 
@@ -37,7 +37,10 @@ per-topic `note`+code-gated `quote|null`, deterministic `recap[]`, `next_step`),
 `xp_*` migration fields + `topics?` + `feedback?` — feedback served only
 alongside non-empty topics and only on diagnostic-LLM success; feedback ⇒
 topics, never the reverse), `StudentProgress`(+`Detailed`),
-`ConceptMastery`/`RecentAttempt`, `Negotiate*`/`NegotiationTrace` types.
+`ConceptMastery`/`RecentAttempt`, `Negotiate*`/`NegotiationTrace` types,
+`ApolloProblemSummary` (browse cards; `grade?: ApolloProblemGrade | null` =
+`{score, letter}`, the student's best served grade — optional so older
+backends without the field behave like null).
 
 **Fetchers** (all same-origin `/api/apollo/*` except `listMyClasses`):
 - Session lifecycle: `startSessionFromHoot`, `getSessionState`, `sendChat`,
