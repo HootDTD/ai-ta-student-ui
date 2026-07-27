@@ -1011,7 +1011,6 @@ button:disabled {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--text);
-  font-weight: 600;
 }
 
 .apollo-ask-hoot__button:hover:not(:disabled) {
@@ -1023,7 +1022,6 @@ button:disabled {
 .apollo-ask-hoot__button:disabled {
   border-color: var(--border);
   background: transparent;
-  font-weight: 400;
 }
 
 /* The session's one loud affordance: a full-width band below the composer
