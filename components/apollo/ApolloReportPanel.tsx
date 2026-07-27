@@ -1,7 +1,12 @@
 "use client";
 
 import MathMarkdown from "@/components/MathMarkdown";
-import type { DoneResponse, TopicCredit, TopicFeedbackItem } from "@/lib/apollo/api";
+import type {
+  DoneResponse,
+  TopicCredit,
+  TopicFeedbackItem,
+  TopicReviewPointer,
+} from "@/lib/apollo/api";
 
 interface Props {
   report: DoneResponse;
@@ -41,6 +46,15 @@ function resolveQuote(
   return topic.evidence_span ?? null;
 }
 
+// INTERACTION3: "Review: Mason 1986, p. 4 · Module 9 Ethics Slides, p. 7" —
+// label + page (no page ⇒ label only). doc_id is deliberately unused here;
+// it's kept on the type for a future deep-link, not rendered in v1.
+function formatReviewLine(review: TopicReviewPointer[]): string {
+  return review
+    .map((r) => (typeof r.page === "number" ? `${r.label}, p. ${r.page}` : r.label))
+    .join(" · ");
+}
+
 function TopicRow({
   topic,
   feedbackItem,
@@ -57,7 +71,9 @@ function TopicRow({
   const misconceptions = topic.misconceptions ?? [];
   const note = feedbackItem?.note;
   const quote = resolveQuote(topic, feedbackItem, hasFeedback);
-  const hasBody = Boolean(note) || Boolean(quote) || misconceptions.length > 0;
+  const review = feedbackItem?.review ?? [];
+  const hasBody =
+    Boolean(note) || Boolean(quote) || misconceptions.length > 0 || review.length > 0;
 
   const summary = (
     <div className="apollo-topic__row">
@@ -97,6 +113,10 @@ function TopicRow({
           <p className="apollo-topic__quote">
             You said: &ldquo;<MathMarkdown>{quote}</MathMarkdown>&rdquo;
           </p>
+        )}
+
+        {review.length > 0 && (
+          <p className="apollo-topic__review">Review: {formatReviewLine(review)}</p>
         )}
 
         {misconceptions.length > 0 && (

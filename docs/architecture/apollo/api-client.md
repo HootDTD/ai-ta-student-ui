@@ -36,7 +36,9 @@ result:DoneResponse} | {intent:'reference_question', aside_count:number}`,
 `ProgressEnvelope`, `TopicCredit`/`TopicMisconception` (flag-gated topic grading;
 `TopicCredit.evidence_span?` = verbatim gated student quote, backend PR #200),
 `TopicFeedbackItem`/`DoneFeedback` (structured scorecard feedback: `headline`,
-per-topic `note`+code-gated `quote|null`, deterministic `recap[]`, `next_step`),
+per-topic `note`+code-gated `quote|null`+optional `review?:TopicReviewPointer[]`
+(INTERACTION3, max 3, `{doc_id, label, page}` — `doc_id` unused, kept for a
+future deep-link), deterministic `recap[]`, `next_step`),
 `DoneResponse` (rubric + `diagnostic_narrative` + coverage + `progress?` + flat
 `xp_*` migration fields + `topics?` + `feedback?` — feedback served only
 alongside non-empty topics and only on diagnostic-LLM success; feedback ⇒

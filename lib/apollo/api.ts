@@ -237,12 +237,22 @@ export interface TopicCredit {
 // diagnostic LLM call/parse succeeded — absent whenever either soft-fails,
 // even though `topics` is present. Never assume `feedback` implies `topics`
 // is non-empty, but the reverse (feedback present ⇒ topics present) holds.
+// INTERACTION3: pointers back to the course material each weak-topic note
+// drew on. `doc_id` is unused for now (kept typed for a future deep-link;
+// v1 renders label + page only). Optional, max 3 entries.
+export interface TopicReviewPointer {
+  doc_id: string | number;
+  label: string;
+  page: number | null;
+}
+
 export interface TopicFeedbackItem {
   canonical_key: string;
   note: string;
   // Verbatim gated student quote backing this note; null when the model
   // didn't cite one or its citation failed the verbatim gate.
   quote: string | null;
+  review?: TopicReviewPointer[];
 }
 
 export interface DoneFeedback {

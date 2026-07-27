@@ -2394,6 +2394,14 @@ html.dark .apollo-progress-card[data-level="5"] {
   opacity: 0.85;
 }
 
+/* INTERACTION3: weak-topic review pointers, e.g.
+   "Review: Mason 1986, p. 4 · Module 9 Ethics Slides, p. 7". */
+.apollo-topic__review {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 /* MathMarkdown wraps single-line text in a block <p>; flatten the inline
    call sites here or the surrounding text and quote marks split lines. */
 .apollo-topic__note p,

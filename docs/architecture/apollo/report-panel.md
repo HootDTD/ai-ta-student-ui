@@ -4,7 +4,7 @@ description: ApolloReportPanel
 owns:
   - components/apollo/ApolloReportPanel.tsx
 related: [shared-ui/math-markdown, apollo/api-client, apollo/session-page]
-last_verified: 2026-07-26
+last_verified: 2026-07-27
 stub: false
 ---
 
@@ -26,7 +26,11 @@ Render ladder, best-available first:
    class="apollo-topic" data-status=…>` with status glyph, `display_name`,
    credit bar + whole-number percent; expanded body shows the topic's
    `feedback.topic_feedback[]` note (matched by `canonical_key`, rendered via
-   `MathMarkdown`) and a "You said:" quote. When `report.feedback` exists, its
+   `MathMarkdown`), a "You said:" quote, and — INTERACTION3 —  a compact
+   `.apollo-topic__review` line ("Review: Mason 1986, p. 4 · Module 9 Ethics
+   Slides, p. 7") from that item's optional `review[]` (max 3; label + page,
+   page-less entries render label only). `review[].doc_id` is typed but
+   unused — no deep-linking in v1. When `report.feedback` exists, its
    `headline` renders above the list, `recap[]` as muted lines, `next_step` as
    a `.notice` callout footer, and the flat `diagnostic_narrative` is
    **suppressed** (same content, flattened). Without `feedback`, topics still
@@ -39,9 +43,9 @@ backend-gated) `quote`; without one, fall back to the topic's own
 fresh-slate new empty attempt) / "End session" unchanged.
 
 ## Invariants & gotchas
-- **Deploy-order safe:** every scorecard field (`feedback`, `evidence_span`) is
-  optional — against a pre-PR#200 backend the panel renders exactly the prior
-  topics+narrative (or rubric-fallback) view.
+- **Deploy-order safe:** every scorecard field (`feedback`, `evidence_span`,
+  `topic_feedback[].review`) is optional — against a pre-PR#200 backend, or a
+  backend without INTERACTION3, the panel renders exactly the prior view.
 - Misconception sub-row rendering is retained but runtime-dead (backend detector
   retired; `misconceptions` always `()`).
 - Still not rendered: numeric overall score/XP line/level-up banner. Migration
