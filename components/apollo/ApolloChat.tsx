@@ -168,9 +168,13 @@ export default function ApolloChat({
                   <div key={i} className="apollo-turn apollo-turn--aside">
                     <div
                       className="apollo-aside"
+                      role="note"
+                      aria-label="From the course materials"
                       data-in-scope={m.aside ? m.aside.in_scope : true}
                     >
-                      <span className="eyebrow">From the course materials</span>
+                      <span className="eyebrow" aria-hidden>
+                        From the course materials
+                      </span>
                       <div className="prose md-body">
                         <MathMarkdown>{m.content}</MathMarkdown>
                       </div>
