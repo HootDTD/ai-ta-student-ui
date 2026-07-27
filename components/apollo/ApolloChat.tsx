@@ -84,8 +84,26 @@ export default function ApolloChat({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
+  const [askMode, setAskMode] = useState(false);
+  // Ask Hoot is capped at 3 questions per session. Reloaded history carries
+  // no counter of its own, so seed it by counting transcript turns already
+  // tagged `reference_aside` (same tag the aside card itself keys on).
+  const [asideCount, setAsideCount] = useState(
+    () => initialMessages.filter((m) => m.intent === "reference_aside").length,
+  );
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const ASK_HOOT_CAP = 3;
+  const askHootCapped = asideCount >= ASK_HOOT_CAP;
+
+  function enterAskMode() {
+    if (askHootCapped) return;
+    setAskMode(true);
+  }
+
+  function cancelAskMode() {
+    setAskMode(false);
+  }
 
   function insertChar(ch: string) {
     const ta = textareaRef.current;
@@ -112,12 +130,13 @@ export default function ApolloChat({
   async function handleSend() {
     if (!draft.trim() || sending) return;
     const myMsg = draft.trim();
+    const wasAskMode = askMode;
     setDraft("");
     setError(null);
     setMessages((m) => [...m, { role: "student", content: myMsg }]);
     setSending(true);
     try {
-      const resp = await sendChat(sessionId, myMsg);
+      const resp = await sendChat(sessionId, myMsg, wasAskMode);
       if (resp.message_kind === "reference_aside" && resp.aside) {
         setMessages((m) => [
           ...m,
@@ -129,9 +148,16 @@ export default function ApolloChat({
           },
           { role: "apollo", content: resp.apollo_reply },
         ]);
+        if (resp.intent_executed?.intent === "reference_question") {
+          setAsideCount(resp.intent_executed.aside_count);
+        }
       } else {
+        // Ask-mode submit that didn't come back as an aside (flag off, or
+        // the concept isn't reference-eligible) falls through to a normal
+        // teaching turn — no error state, just quietly leave ask-mode.
         setMessages((m) => [...m, { role: "apollo", content: resp.apollo_reply }]);
       }
+      if (wasAskMode) setAskMode(false);
       onKgUpdate(resp.kg);
       onCoverageSnapshot(resp.covered_topics ?? []);
       if (resp.intent_executed?.intent === "done" && onDoneFromChat) {
@@ -232,20 +258,57 @@ export default function ApolloChat({
           ref={textareaRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Teach Apollo in your own words…"
+          placeholder={
+            askMode
+              ? "Ask a question about the course material…"
+              : "Teach Apollo in your own words…"
+          }
           rows={3}
           disabled={disabled || sending}
-          className="textarea"
+          className={`textarea ${askMode ? "apollo-textarea--ask-mode" : ""}`}
         />
 
         <div className="apollo-chat__send-row">
+          <div className="apollo-ask-hoot" aria-live="polite">
+            {askMode ? (
+              <>
+                <span className="apollo-ask-hoot__status">Ask Hoot mode — asking a question, not teaching</span>
+                <button
+                  onClick={cancelAskMode}
+                  type="button"
+                  className="ui-button ui-button--ghost ui-button--small"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={enterAskMode}
+                disabled={disabled || sending || askHootCapped}
+                type="button"
+                title={
+                  askHootCapped
+                    ? "You've used all 3 Ask Hoot questions for this session."
+                    : undefined
+                }
+                aria-label={
+                  askHootCapped
+                    ? "Unsure? Ask Hoot! You've used all 3 Ask Hoot questions for this session."
+                    : "Unsure? Ask Hoot!"
+                }
+                className="ui-button ui-button--ghost ui-button--small"
+              >
+                Unsure? Ask Hoot!
+              </button>
+            )}
+          </div>
           <button
             onClick={handleSend}
             disabled={disabled || sending || !draft.trim()}
             type="button"
             className="ui-button ui-button--primary ui-button--small"
           >
-            {sending ? "Sending…" : "Send"}
+            {sending ? "Sending…" : askMode ? "Ask" : "Send"}
           </button>
         </div>
 

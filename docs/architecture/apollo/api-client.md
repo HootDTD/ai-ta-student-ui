@@ -50,8 +50,11 @@ attempt's Done-time narrative — both optional so older backends without the
 fields behave like null).
 
 **Fetchers** (all same-origin `/api/apollo/*` except `listMyClasses`):
-- Session lifecycle: `startSessionFromHoot`, `getSessionState`, `sendChat`,
-  `finishTeaching`, `retryProblem`, `endSession`.
+- Session lifecycle: `startSessionFromHoot`, `getSessionState`,
+  `sendChat(sessionId, message, askHoot?)`, `finishTeaching`, `retryProblem`,
+  `endSession`. `askHoot` (INTERACTION4's "Ask Hoot" button, [chat.md](chat.md))
+  adds `ask_hoot: true` to the request body only when true — normal teaching
+  submits' body is unchanged.
 - Standalone browse/practice: `listConcepts`, `listProblems`, `startSession`,
   `nextProblem`, `restartProblem`, `getStudentProgressDetailed`.
 - P3 negotiation: `challengeEntry`, `paraphraseEntry`, `skipEntry`,

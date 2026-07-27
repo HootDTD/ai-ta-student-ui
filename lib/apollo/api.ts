@@ -334,11 +334,20 @@ export async function getSessionState(sessionId: number): Promise<ApolloSessionS
   return (await _handle(res)) as ApolloSessionState;
 }
 
-export async function sendChat(sessionId: number, message: string): Promise<ChatResponse> {
+// `askHoot` tags the utterance as a reference question (INTERACTION4's
+// "Ask Hoot" button) rather than a normal teaching turn — the backend
+// treats it as the reference question and, when allowed, responds with
+// `message_kind: "reference_aside"`. Omitted entirely on normal teaching
+// submits so the request body is unchanged for that path.
+export async function sendChat(
+  sessionId: number,
+  message: string,
+  askHoot?: boolean,
+): Promise<ChatResponse> {
   const res = await fetch(`/api/apollo/sessions/${sessionId}/chat`, {
     method: "POST",
     headers: apolloHeaders(true),
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, ...(askHoot ? { ask_hoot: true } : {}) }),
   });
   return (await _handle(res)) as ChatResponse;
 }
