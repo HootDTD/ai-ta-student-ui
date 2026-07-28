@@ -5,7 +5,7 @@ owns:
   - app/layout.tsx
   - app/globals.css
 related: [shell/session-refresh, shared-ui/math-markdown]
-last_verified: 2026-07-27
+last_verified: 2026-07-28
 stub: false
 ---
 
@@ -39,7 +39,8 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `apollo-kg*`/`kg-pill*`/`apollo-progress-card*`/`apollo-mastery*`/
   `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`, plus the report
   scorecard set `apollo-scorecard*` (header/headline/overall-bar/recap/
-  next-step) and `apollo-topic*` (row/glyph/label/bar/credit/body/note/quote,
+  next-step/review — the INTERACTION3 review card + `apollo-ask-hoot*`
+  composer affordance live here too) and `apollo-topic*` (row/glyph/label/bar/credit/body/note/quote,
   status-colored via `data-status`) — added 2026-07-26 for the per-topic
   feedback scorecard (`ApolloReportPanel`).
 - **Grade-band tokens (2026-07-26):** `--grade-{a,b,c,d,f}-{border,bg,solid}`
