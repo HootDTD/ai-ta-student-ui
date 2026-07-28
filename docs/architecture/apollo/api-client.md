@@ -4,7 +4,7 @@ description: lib/apollo/api.ts (types + fetchers hub)
 owns:
   - lib/apollo/api.ts
 related: [shell/auth-client, apollo/error-surface, apollo/session-proxies, apollo/practice-proxies, apollo/kg-proxies, hoot/qa-proxies, apollo/progress-card]
-last_verified: 2026-07-27
+last_verified: 2026-07-28
 stub: false
 ---
 
@@ -26,13 +26,19 @@ variable_mapping / procedure_step, each with typed `content`) over `ApolloNodeBa
 (`node_id`, `attempt_id`, `source` parser|reference|system, `parser_confidence?`,
 `status` ACCEPTED|DISPUTED|DUAL, `student_belief?`), `ApolloEdge`
 (PRECEDES|USES|DEPENDS_ON|SCOPES), `ApolloKG {nodes, edges}`, `ApolloSessionState`
-(`phase` INIT|TEACHING|PROBLEM_REVEAL|SOLVING|REPORT|BETWEEN), `CoveredTopic`,
-`ChatResponse` (`apollo_reply`, `kg`, `covered_topics?`, `intent_pending?`,
-`intent_executed?{intent:'done', result:DoneResponse}`), `Rubric`/`RubricAxis`,
+(`phase` INIT|TEACHING|PROBLEM_REVEAL|SOLVING|REPORT|BETWEEN, `messages[].intent?`
+— reload tag, e.g. `"reference_aside"`), `CoveredTopic`, `ChatAside`
+(INTERACTION4: `text`, `citations:CitationMeta[]` — reuses Hoot's `/ask` citation
+type rather than redefining it, `in_scope`), `ChatResponse` (`apollo_reply`, `kg`,
+`covered_topics?`, `intent_pending?`, `intent_executed?{intent:'done',
+result:DoneResponse} | {intent:'reference_question', aside_count:number}`,
+`message_kind?:'reference_aside'`, `aside?:ChatAside`), `Rubric`/`RubricAxis`,
 `ProgressEnvelope`, `TopicCredit`/`TopicMisconception` (flag-gated topic grading;
 `TopicCredit.evidence_span?` = verbatim gated student quote, backend PR #200),
 `TopicFeedbackItem`/`DoneFeedback` (structured scorecard feedback: `headline`,
-per-topic `note`+code-gated `quote|null`, deterministic `recap[]`, `next_step`),
+per-topic `note`+code-gated `quote|null`+optional `review?:TopicReviewPointer[]`
+(INTERACTION3, max 3, `{doc_id, label, page}` — `doc_id` unused, kept for a
+future deep-link), deterministic `recap[]`, `next_step`),
 `DoneResponse` (rubric + `diagnostic_narrative` + coverage + `progress?` + flat
 `xp_*` migration fields + `topics?` + `feedback?` — feedback served only
 alongside non-empty topics and only on diagnostic-LLM success; feedback ⇒
@@ -44,8 +50,11 @@ attempt's Done-time narrative — both optional so older backends without the
 fields behave like null).
 
 **Fetchers** (all same-origin `/api/apollo/*` except `listMyClasses`):
-- Session lifecycle: `startSessionFromHoot`, `getSessionState`, `sendChat`,
-  `finishTeaching`, `retryProblem`, `endSession`.
+- Session lifecycle: `startSessionFromHoot`, `getSessionState`,
+  `sendChat(sessionId, message, askHoot?)`, `finishTeaching`, `retryProblem`,
+  `endSession`. `askHoot` (INTERACTION4's "Ask Hoot" button, [chat.md](chat.md))
+  adds `ask_hoot: true` to the request body only when true — normal teaching
+  submits' body is unchanged.
 - Standalone browse/practice: `listConcepts`, `listProblems`, `startSession`,
   `nextProblem`, `restartProblem`, `getStudentProgressDetailed`.
 - P3 negotiation: `challengeEntry`, `paraphraseEntry`, `skipEntry`,
@@ -72,3 +81,4 @@ proxies only forward `Authorization` if present.
   ([session-proxies.md](session-proxies.md), [practice-proxies.md](practice-proxies.md),
   [kg-proxies.md](kg-proxies.md)); [qa-proxies.md](../hoot/qa-proxies.md)
   (`/api/my-classes`); [progress-card.md](progress-card.md).
+- [citation-chip.md](../shared-ui/citation-chip.md) — `CitationMeta`, reused by `ChatAside.citations`.

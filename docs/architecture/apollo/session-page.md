@@ -5,7 +5,7 @@ owns:
   - app/apollo/page.tsx
   - app/apollo/ApolloPageClient.tsx
 related: [apollo/api-client, apollo/chat, apollo/kg-panel, apollo/problem-panel, apollo/report-panel, apollo/coverage-celebrations, apollo/error-surface, apollo/top-bar, shell/feature-flags]
-last_verified: 2026-07-25
+last_verified: 2026-07-27
 stub: false
 ---
 
@@ -21,7 +21,10 @@ Monolith-hub (R2) for the teaching-session screen.
 
 ## Data flow
 Reads `?session=` (missing + `?class=` ⇒ renders `ApolloBrowse`; missing both ⇒
-inline "open from your class page"). GETs `getSessionState`, then renders inside
+inline "open from your class page"). GETs `getSessionState` and forwards each
+history turn's `intent` string (if any) straight through to `ApolloChat`'s
+`initialMessages` — INTERACTION4 reference-aside styling on reload keys off
+that tag. Then renders inside
 `.apollo-session-shell` (flex column, 100dvh): `ApolloTopBar`,
 `ApolloProblemPanel`, `ApolloChat`, `ApolloKGPanel` (in a right off-canvas
 `.apollo-kg-drawer` toggled by the top-bar "Understanding" action),

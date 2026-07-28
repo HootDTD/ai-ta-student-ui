@@ -980,7 +980,61 @@ button:disabled {
 
 .apollo-chat__send-row {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* INTERACTION4 (Ask Hoot): a distinct accent border marks the composer as
+   "asking a reference question" rather than "teaching" while active. */
+.apollo-textarea--ask-mode {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.apollo-ask-hoot {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.apollo-ask-hoot__status {
+  font-size: 0.86rem;
+  color: var(--accent);
+}
+
+/* The Ask Hoot entry point earns real visibility: accent outline + soft fill
+   so it reads as a feature, not a ghost action — while staying quieter than
+   the primary Send button beside it. */
+.apollo-ask-hoot__button {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.apollo-ask-hoot__button:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--bg);
+  transform: translateY(-1px);
+}
+
+.apollo-ask-hoot__button:disabled {
+  border-color: var(--border);
+  background: transparent;
+}
+
+/* INTERACTION3 review card — reading directions below Next step. */
+.apollo-scorecard__review {
+  margin-top: 0.75rem;
+}
+
+.apollo-scorecard__review-line {
+  margin: 0.35rem 0 0;
+}
+
+.apollo-scorecard__review-topic {
+  font-weight: 600;
 }
 
 /* The session's one loud affordance: a full-width band below the composer
@@ -1041,6 +1095,28 @@ button:disabled {
 
 .apollo-turn--student {
   justify-items: start;
+}
+
+/* INTERACTION4: reference-question aside — a distinct, bordered card so it
+   never reads as the (possibly confused) persona's own voice. */
+.apollo-aside {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: var(--notice-bg);
+}
+
+.apollo-aside[data-in-scope="false"] {
+  border-left-color: var(--warning-border);
+}
+
+.apollo-aside__citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
 }
 
 .apollo-avatar {
@@ -2370,6 +2446,14 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-size: 0.82rem;
   font-style: italic;
   opacity: 0.85;
+}
+
+/* INTERACTION3: weak-topic review pointers, e.g.
+   "Review: Mason 1986, p. 4 · Module 9 Ethics Slides, p. 7". */
+.apollo-topic__review {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 /* MathMarkdown wraps single-line text in a block <p>; flatten the inline

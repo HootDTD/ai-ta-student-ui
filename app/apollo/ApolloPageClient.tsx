@@ -413,7 +413,11 @@ export default function ApolloPageClient() {
         ) : (
           <ApolloChat
             sessionId={sessionId}
-            initialMessages={state.messages.map((m) => ({ role: m.role, content: m.content }))}
+            initialMessages={state.messages.map((m) => ({
+              role: m.role,
+              content: m.content,
+              intent: m.intent,
+            }))}
             onKgUpdate={(newKg) => setKg(newKg)}
             onCoverageSnapshot={handleCoverageSnapshot}
             onDoneClicked={handleDone}
