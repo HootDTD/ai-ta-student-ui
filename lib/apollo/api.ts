@@ -4,6 +4,7 @@
 // render each code explicitly (NO FALLBACKS).
 
 import { authHeaders, loadStoredSession } from "@/app/lib/auth";
+import type { CitationMeta } from "@/components/CitationChip";
 
 export type ApolloErrorCode =
   | "parser_could_not_extract"
@@ -125,12 +126,27 @@ export interface ApolloSessionState {
   phase: "INIT" | "TEACHING" | "PROBLEM_REVEAL" | "SOLVING" | "REPORT" | "BETWEEN";
   problem: ApolloProblem | null;
   kg: ApolloKG;
-  messages: Array<{ role: string; content: string; turn_index: number }>;
+  // `intent` tags a stored turn's kind on reload; INTERACTION4 reference
+  // asides come back as `intent: "reference_aside"` apollo-role turns
+  // (transcript replay carries no citations — the aside still renders,
+  // just without the citation strip a live turn has).
+  messages: Array<{ role: string; content: string; turn_index: number; intent?: string }>;
 }
 
 export interface CoveredTopic {
   node_id: string;
   display_name: string;
+}
+
+// INTERACTION4: a cited reference-question aside, rendered as a distinct
+// card between the student's question and the persona's resume line — same
+// citation shape as Hoot's /ask flow (`CitationMeta`), reused rather than
+// redefined. `in_scope: false` still renders as an aside (the text itself is
+// the polite "outside this course" refusal).
+export interface ChatAside {
+  text: string;
+  citations: CitationMeta[];
+  in_scope: boolean;
 }
 
 export interface ChatResponse {
@@ -150,11 +166,15 @@ export interface ChatResponse {
   };
   // When a pending `done` is affirmed, the handler dispatches handle_done
   // inline and returns the result here so the UI can switch to the report
-  // view without a second round-trip.
-  intent_executed?: {
-    intent: "done";
-    result: DoneResponse;
-  };
+  // view without a second round-trip. `reference_question` (INTERACTION4)
+  // fires alongside `message_kind`/`aside` below, on the same response.
+  intent_executed?:
+    | { intent: "done"; result: DoneResponse }
+    | { intent: "reference_question"; aside_count: number };
+  // Discriminator for the reference-aside path; absent on normal teaching
+  // turns. Present ⇒ `aside` is present.
+  message_kind?: "reference_aside";
+  aside?: ChatAside;
 }
 
 export interface RubricAxis {
@@ -205,7 +225,43 @@ export interface TopicCredit {
   status: "covered" | "partial" | "missing";
   credit: number;
   weight: number;
+  // Verbatim gated student quote for this topic (scorecard PR1, backend PR
+  // #200); null when no evidence span was gated. Absent on backends
+  // predating PR #200 — treat as null.
+  evidence_span?: string | null;
   misconceptions: TopicMisconception[];
+}
+
+// Structured per-topic feedback (scorecard PR1, backend PR #200). Served as
+// `student_response["feedback"]` only when the topic score computed AND the
+// diagnostic LLM call/parse succeeded — absent whenever either soft-fails,
+// even though `topics` is present. Never assume `feedback` implies `topics`
+// is non-empty, but the reverse (feedback present ⇒ topics present) holds.
+// INTERACTION3: pointers back to the course material each weak-topic note
+// drew on. `doc_id` is unused for now (kept typed for a future deep-link;
+// v1 renders label + page only). Optional, max 3 entries.
+export interface TopicReviewPointer {
+  doc_id: string | number;
+  label: string;
+  page: number | null;
+}
+
+export interface TopicFeedbackItem {
+  canonical_key: string;
+  note: string;
+  // Verbatim gated student quote backing this note; null when the model
+  // didn't cite one or its citation failed the verbatim gate.
+  quote: string | null;
+  review?: TopicReviewPointer[];
+}
+
+export interface DoneFeedback {
+  headline: string;
+  topic_feedback: TopicFeedbackItem[];
+  // Deterministic, code-generated recap lines (misconception/negotiation
+  // summaries) — never model output.
+  recap: string[];
+  next_step: string;
 }
 
 export interface DoneResponse {
@@ -233,6 +289,9 @@ export interface DoneResponse {
   // spec §3, flag-gated). Non-empty ⇒ UI renders the topic checklist
   // instead of the three axis rows.
   topics?: TopicCredit[];
+  // Structured feedback block (scorecard PR2). See `DoneFeedback` — served
+  // only alongside a non-empty `topics`, and only on LLM/parse success.
+  feedback?: DoneFeedback;
 }
 
 export interface StudentProgress {
@@ -275,11 +334,20 @@ export async function getSessionState(sessionId: number): Promise<ApolloSessionS
   return (await _handle(res)) as ApolloSessionState;
 }
 
-export async function sendChat(sessionId: number, message: string): Promise<ChatResponse> {
+// `askHoot` tags the utterance as a reference question (INTERACTION4's
+// "Ask Hoot" button) rather than a normal teaching turn — the backend
+// treats it as the reference question and, when allowed, responds with
+// `message_kind: "reference_aside"`. Omitted entirely on normal teaching
+// submits so the request body is unchanged for that path.
+export async function sendChat(
+  sessionId: number,
+  message: string,
+  askHoot?: boolean,
+): Promise<ChatResponse> {
   const res = await fetch(`/api/apollo/sessions/${sessionId}/chat`, {
     method: "POST",
     headers: apolloHeaders(true),
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, ...(askHoot ? { ask_hoot: true } : {}) }),
   });
   return (await _handle(res)) as ChatResponse;
 }
@@ -308,11 +376,6 @@ export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
     headers: apolloHeaders(),
   });
   return (await _handle(res)) as { ok: boolean };
-}
-
-export async function getStudentProgress(): Promise<StudentProgress> {
-  const res = await fetch("/api/apollo/progress", { headers: apolloHeaders() });
-  return (await _handle(res)) as StudentProgress;
 }
 
 // ---------------------------------------------------------------------------
@@ -366,11 +429,23 @@ export interface ApolloConceptSummary {
   display_name: string;
 }
 
+export interface ApolloProblemGrade {
+  score: number;
+  letter: string;
+  /** Narrative of the SAME best-grade attempt (what the Done panel served).
+   *  Absent on older backends, null when the attempt has no usable narrative
+   *  — either way the chip renders without a feedback panel. */
+  feedback?: string | null;
+}
+
 export interface ApolloProblemSummary {
   id: string;
   difficulty: string;
   problem_text: string;
   attempted: boolean;
+  /** Best served overall across the student's graded attempts, else null.
+   *  Absent on older backends — treat undefined like null. */
+  grade?: ApolloProblemGrade | null;
 }
 
 export interface StartSessionResponse {
