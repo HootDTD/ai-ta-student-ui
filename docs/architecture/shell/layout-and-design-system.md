@@ -5,7 +5,7 @@ owns:
   - app/layout.tsx
   - app/globals.css
 related: [shell/session-refresh, shared-ui/math-markdown]
-last_verified: 2026-07-28
+last_verified: 2026-07-30
 stub: false
 ---
 
@@ -52,6 +52,9 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
 - **Single label treatment:** use `.eyebrow`; do not hand-roll
   bold-UPPERCASE-gray labels (the two intentional exceptions are the mono
   `citation-chip` label voice and KG-pill card eyebrows).
+- `.citation-chip__label--link` (2026-07-30) — linkable chips render the label
+  as a real `<button>`; the modifier only adds the pointer cursor and strips
+  UA button leftovers (see `shared-ui/citation-chip.md`).
 - Legacy CSS `apollo-topics`/`apollo-topic__*`/`apollo-rubric` is retained but
   now **unreferenced by JS** after `ApolloReportPanel` was slimmed (see
   `apollo/report-panel.md`).

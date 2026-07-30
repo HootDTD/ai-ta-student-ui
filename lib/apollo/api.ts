@@ -256,6 +256,10 @@ export interface TopicReviewPointer {
   doc_id: string | number;
   label: string;
   page: number | null;
+  // app.uploads.id when the pointer's source PDF is in storage — feeds the
+  // citation chip's file link (GET /materials/file-url). Absent/null on
+  // older backends and pre-storage ingestion paths.
+  upload_id?: number | null;
 }
 
 export interface TopicFeedbackItem {
