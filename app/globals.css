@@ -2114,6 +2114,10 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-size: 1rem;
   line-height: 1.55;
   color: var(--text);
+  /* The one rounded element in the chat: student turns are speech, not
+     document. Panels/cards/chips stay hard-cornered; the square
+     bottom-right corner points at the sender's side. */
+  border-radius: 12px 12px 0 12px;
 }
 
 .msg-ai__sources {

@@ -59,6 +59,11 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
 - **Single label treatment:** use `.eyebrow`; do not hand-roll
   bold-UPPERCASE-gray labels (the two intentional exceptions are the mono
   `citation-chip` label voice and KG-pill card eyebrows).
+- **Corner language (2026-07-30):** hard corners mean "document" (panels,
+  aside cards, chips, scorecard); `.msg-user` is the one rounded element
+  (`border-radius: 12px 12px 0 12px`, square corner pointing at the sender) —
+  student turns are speech, not document. The only other curves are the
+  pill-shaped progress bar tracks. Don't round anything else.
 - `.citation-chip__label--link` (2026-07-30) — linkable chips render the label
   as a real `<button>`; the modifier only adds the pointer cursor and strips
   UA button leftovers (see `shared-ui/citation-chip.md`).
