@@ -418,6 +418,7 @@ export default function ApolloPageClient() {
               role: m.role,
               content: m.content,
               intent: m.intent,
+              aside: m.aside,
             }))}
             onKgUpdate={(newKg) => setKg(newKg)}
             onCoverageSnapshot={handleCoverageSnapshot}
