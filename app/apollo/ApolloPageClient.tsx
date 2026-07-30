@@ -413,6 +413,7 @@ export default function ApolloPageClient() {
         ) : (
           <ApolloChat
             sessionId={sessionId}
+            askHootAvailable={state.ask_hoot_available ?? false}
             initialMessages={state.messages.map((m) => ({
               role: m.role,
               content: m.content,

@@ -4,7 +4,7 @@ description: lib/apollo/api.ts (types + fetchers hub)
 owns:
   - lib/apollo/api.ts
 related: [shell/auth-client, apollo/error-surface, apollo/session-proxies, apollo/practice-proxies, apollo/kg-proxies, hoot/qa-proxies, apollo/progress-card]
-last_verified: 2026-07-28
+last_verified: 2026-07-29
 stub: false
 ---
 
@@ -54,7 +54,9 @@ fields behave like null).
   `sendChat(sessionId, message, askHoot?)`, `finishTeaching`, `retryProblem`,
   `endSession`. `askHoot` (INTERACTION4's "Ask Hoot" button, [chat.md](chat.md))
   adds `ask_hoot: true` to the request body only when true — normal teaching
-  submits' body is unchanged.
+  submits' body is unchanged. `ApolloSessionState` carries optional
+  `ask_hoot_available` (backend aside gate: INTERACTION4 + concept allowlist);
+  absent = hidden, so older backend payloads fail closed.
 - Standalone browse/practice: `listConcepts`, `listProblems`, `startSession`,
   `nextProblem`, `restartProblem`, `getStudentProgressDetailed`.
 - P3 negotiation: `challengeEntry`, `paraphraseEntry`, `skipEntry`,

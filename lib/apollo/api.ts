@@ -126,6 +126,10 @@ export interface ApolloSessionState {
   phase: "INIT" | "TEACHING" | "PROBLEM_REVEAL" | "SOLVING" | "REPORT" | "BETWEEN";
   problem: ApolloProblem | null;
   kg: ApolloKG;
+  // Server-authoritative Ask Hoot visibility (INTERACTION4 + concept
+  // allowlist, computed by the backend aside gate). Optional so an older
+  // backend payload without the field reads as hidden.
+  ask_hoot_available?: boolean;
   // `intent` tags a stored turn's kind on reload; INTERACTION4 reference
   // asides come back as `intent: "reference_aside"` apollo-role turns
   // (transcript replay carries no citations — the aside still renders,
