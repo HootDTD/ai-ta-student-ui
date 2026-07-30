@@ -4,7 +4,7 @@ description: ApolloChat
 owns:
   - components/apollo/ApolloChat.tsx
 related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
-last_verified: 2026-07-27
+last_verified: 2026-07-29
 stub: false
 ---
 
@@ -33,7 +33,13 @@ back, only `role`/`content`/`intent`).
 
 **Ask Hoot (button-gated entry to the aside lane):** the reference-aside path is
 never auto-detected — it fires only when the student explicitly opens ask-mode via
-the "Unsure? Ask Hoot!" button in `.apollo-chat__send-row`. Clicking it sets
+the "Unsure? Ask Hoot!" button in `.apollo-chat__send-row`. The whole affordance
+is visibility-gated by the `askHootAvailable` prop (default false), the
+server-authoritative mirror of the backend aside gate (INTERACTION4 + concept
+allowlist, `ask_hoot_available` in the session snapshot): off-allowlist concepts
+render no button at all instead of a button whose submits silently degrade to
+teaching turns. `enterAskMode` re-checks it, so ask-mode is unreachable when
+hidden. Clicking it sets
 `askMode`, which swaps the textarea placeholder to "Ask a question about the
 course material…", adds the `.apollo-textarea--ask-mode` accent border, and shows
 an inline "Cancel" affordance (`role`-less status text + button, `aria-live` on the

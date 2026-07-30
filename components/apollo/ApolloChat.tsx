@@ -26,6 +26,11 @@ interface ChatMessage {
 interface Props {
   sessionId: number;
   initialMessages: ChatMessage[];
+  // Server-authoritative Ask Hoot visibility: mirrors the backend aside gate
+  // (INTERACTION4 + concept allowlist). Off-allowlist concepts must not show
+  // the button — the backend would silently treat ask_hoot as a normal
+  // teaching turn. Missing field (older backend) reads as hidden.
+  askHootAvailable?: boolean;
   onKgUpdate: (kg: ApolloKG) => void;
   onCoverageSnapshot: (topics: CoveredTopic[]) => void;
   onDoneClicked: () => void;
@@ -73,6 +78,7 @@ function ApolloAvatar({ thinking = false }: { thinking?: boolean }) {
 export default function ApolloChat({
   sessionId,
   initialMessages,
+  askHootAvailable = false,
   onKgUpdate,
   onCoverageSnapshot,
   onDoneClicked,
@@ -97,7 +103,7 @@ export default function ApolloChat({
   const askHootCapped = asideCount >= ASK_HOOT_CAP;
 
   function enterAskMode() {
-    if (askHootCapped) return;
+    if (!askHootAvailable || askHootCapped) return;
     setAskMode(true);
   }
 
@@ -269,6 +275,7 @@ export default function ApolloChat({
         />
 
         <div className="apollo-chat__send-row">
+          {askHootAvailable && (
           <div className="apollo-ask-hoot" aria-live="polite">
             {askMode ? (
               <>
@@ -302,6 +309,7 @@ export default function ApolloChat({
               </button>
             )}
           </div>
+          )}
           <button
             onClick={handleSend}
             disabled={disabled || sending || !draft.trim()}
