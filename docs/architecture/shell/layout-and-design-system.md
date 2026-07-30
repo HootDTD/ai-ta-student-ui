@@ -38,11 +38,18 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `apollo-session-shell`/`apollo-turn*`/`apollo-chat*`/`apollo-finish*`/
   `apollo-kg*`/`kg-pill*`/`apollo-progress-card*`/`apollo-mastery*`/
   `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`, plus the report
-  scorecard set `apollo-scorecard*` (header/headline/overall-bar/recap/
-  next-step/review — the INTERACTION3 review card + `apollo-ask-hoot*`
-  composer affordance live here too) and `apollo-topic*` (row/glyph/label/bar/credit/body/note/quote,
-  status-colored via `data-status`) — added 2026-07-26 for the per-topic
-  feedback scorecard (`ApolloReportPanel`).
+  scorecard set `apollo-scorecard*` (card shell + header/letter/headline/
+  overall-bar/recap/next-step/review — the INTERACTION3 review card +
+  `apollo-ask-hoot*` composer affordance live here too) and `apollo-topic*`
+  (row/glyph/label/bar/credit/body/note/quote, status-colored via
+  `data-status`) — added 2026-07-26 for the per-topic feedback scorecard
+  (`ApolloReportPanel`). 2026-07-30: `.apollo-scorecard` became the report
+  card's own shell (Hoot-answer-panel look, tone on the left border);
+  `.apollo-turn--student` right-aligns `.msg-user` bubbles and Apollo turns
+  reuse `.msg-ai`, so `msg-user`/`msg-ai`/`msg-ai__sources` are now shared by
+  the Apollo chat, not Hoot-home-only; `.apollo-aside` (serif, tinted) is
+  Hoot's distinct speaker card. `.apollo-aside__citations` and the
+  `.apollo-turn--aside` wrapper were retired.
 - **Grade-band tokens (2026-07-26):** `--grade-{a,b,c,d,f}-{border,bg,solid}`
   in both `:root` and `html.dark` — A/C/F reuse the success/warning/danger
   families, B (olive) and D (burnt orange) sit between so the letters read as
@@ -55,8 +62,8 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
 - `.citation-chip__label--link` (2026-07-30) — linkable chips render the label
   as a real `<button>`; the modifier only adds the pointer cursor and strips
   UA button leftovers (see `shared-ui/citation-chip.md`).
-- Legacy CSS `apollo-topics`/`apollo-topic__*`/`apollo-rubric` is retained but
-  now **unreferenced by JS** after `ApolloReportPanel` was slimmed (see
+- `apollo-topics`/`apollo-topic__*`/`apollo-rubric` are live again — the
+  per-topic scorecard rows in `ApolloReportPanel` reuse them (see
   `apollo/report-panel.md`).
 - Load-bearing assets ride here (described, not code-owned): `public/thinking.mp4`
   (owl avatar), `public/*.svg` (default Next), `app/favicon.ico`.
