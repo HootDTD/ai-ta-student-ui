@@ -36,7 +36,9 @@ Render ladder, best-available first:
    topic — topic label (only when >1 sections) + one `CitationChip` per
    pointer via `reviewChipMeta` (marker-shaped label kept bracketed, page
    appended only when the label doesn't carry it; `doc_type: "Course
-   material"` and the bare label as `file` feed the chip's hover preview).
+   material"` and the bare label as `file` feed the chip's hover preview;
+   `upload_id`/`doc_id` pass through as the chip's source-PDF link keys —
+   see `shared-ui/citation-chip.md`).
    `review[].doc_id` is typed but unused — no deep-linking in v1. When
    `report.feedback` exists, its `headline` renders above the list, `recap[]`
    as muted lines, `next_step` as a `.notice` callout footer, and the flat

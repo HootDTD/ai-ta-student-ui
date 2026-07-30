@@ -12,10 +12,11 @@ import ApolloErrorSurface from "./ApolloErrorSurface";
 
 // A chat turn. `intent`/`aside` are only ever set on apollo-role turns:
 // `intent === "reference_aside"` (from a live reply or transcript reload)
-// renders the distinct "From the course materials" card instead of a normal
-// persona bubble. `aside` (citations included) is only available on turns
-// built from a live `sendChat` response — reloaded history carries the
-// `intent` tag but not the structured citations.
+// renders the distinct Hoot "From the course materials" card instead of a
+// normal persona bubble. `aside` (citations included) comes from a live
+// `sendChat` response or from the session snapshot's replay of stored aside
+// metadata; asides persisted before the backend stored that metadata reload
+// with the `intent` tag but no citations.
 interface ChatMessage {
   role: string;
   content: string;

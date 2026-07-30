@@ -59,7 +59,16 @@ function reviewChipMeta(r: TopicReviewPointer): CitationMeta {
     typeof r.page === "number" && !bare.includes(`p. ${r.page}`)
       ? `[${bare}, p. ${r.page}]`
       : `[${bare}]`;
-  return { label, doc_type: "Course material", file: bare, page: r.page };
+  return {
+    label,
+    doc_type: "Course material",
+    file: bare,
+    page: r.page,
+    // Source-link keys: upload_id when the backend stored the source PDF,
+    // doc_id as the chip's fallback; either makes the chip clickable.
+    upload_id: r.upload_id ?? null,
+    doc_id: r.doc_id,
+  };
 }
 
 function TopicRow({

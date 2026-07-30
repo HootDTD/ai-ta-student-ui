@@ -34,10 +34,11 @@ Apollo's `.msg-ai`) labeled "Hoot — from the course materials", citations in a
 `.msg-ai__sources` row ("Sources referenced" + the reused `CitationChip`,
 [citation-chip.md](../shared-ui/citation-chip.md)); `in_scope: false` still
 renders as an aside — the text itself is the refusal. On session reload,
-`ApolloPageClient` forwards each history turn's `intent` string through
-verbatim, so a reloaded `reference_aside` turn renders with the same card
-styling — but without citations (the transcript replay doesn't carry them
-back, only `role`/`content`/`intent`).
+`ApolloPageClient` forwards each history turn's `intent` string and `aside`
+payload through verbatim, so a reloaded `reference_aside` turn renders the
+same card — citation chips included (the snapshot rebuilds `aside` from
+stored row metadata; asides persisted before the backend stored that
+metadata reload without chips).
 
 **Ask Hoot (button-gated entry to the aside lane):** the reference-aside path is
 never auto-detected — it fires only when the student explicitly opens ask-mode via
