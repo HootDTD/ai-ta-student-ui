@@ -59,6 +59,9 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
 - **Single label treatment:** use `.eyebrow`; do not hand-roll
   bold-UPPERCASE-gray labels (the two intentional exceptions are the mono
   `citation-chip` label voice and KG-pill card eyebrows).
+- `.citation-chip__label--link` (2026-07-30) — linkable chips render the label
+  as a real `<button>`; the modifier only adds the pointer cursor and strips
+  UA button leftovers (see `shared-ui/citation-chip.md`).
 - `apollo-topics`/`apollo-topic__*`/`apollo-rubric` are live again — the
   per-topic scorecard rows in `ApolloReportPanel` reuse them (see
   `apollo/report-panel.md`).
