@@ -4,7 +4,7 @@ description: ApolloChat
 owns:
   - components/apollo/ApolloChat.tsx
 related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
-last_verified: 2026-07-29
+last_verified: 2026-07-30
 stub: false
 ---
 
@@ -18,13 +18,21 @@ onCoverageSnapshot(topics), onDoneClicked(), onDoneFromChat?(result:DoneResponse
 disabled?, busy?})`. `ChatMessage = {role, content, intent?, aside?:ChatAside}`.
 Owns local `messages`/`draft`/`sending`/`error`/`askMode`/`asideCount`.
 
+**Turn styling (2026-07-30):** the transcript reuses the Hoot chat home's
+bubble vocabulary so both chats read as one product. Student turns are
+right-aligned `.msg-user` bubbles (no speaker label); Apollo persona turns are
+`.msg-ai` panels (opaque paper, 4px accent left border) under an "Apollo"
+eyebrow with the owl avatar in the gutter.
+
 INTERACTION4: when `sendChat`'s response has `message_kind === "reference_aside"`,
 `handleSend` pushes two apollo-role turns instead of one — the aside turn
 (`content: aside.text`, `intent: "reference_aside"`, `aside` carrying the full
 `ChatAside` incl. citations) followed by a normal turn for `apollo_reply` (the
-persona's resume line). Rendered as a bordered `.apollo-aside` card labeled
-"From the course materials", citations via the reused `CitationChip`
-([citation-chip.md](../shared-ui/citation-chip.md)); `in_scope: false` still
+persona's resume line). The aside is attributed to **Hoot**, not Apollo: same
+avatar-gutter layout but a tinted `.apollo-aside` card (visually distinct from
+Apollo's `.msg-ai`) labeled "Hoot — from the course materials", citations in a
+`.msg-ai__sources` row ("Sources referenced" + the reused `CitationChip`,
+[citation-chip.md](../shared-ui/citation-chip.md)); `in_scope: false` still
 renders as an aside — the text itself is the refusal. On session reload,
 `ApolloPageClient` forwards each history turn's `intent` string through
 verbatim, so a reloaded `reference_aside` turn renders with the same card
@@ -48,9 +56,14 @@ wrapper announces the mode change) in place of the button. `handleSend` snapshot
 adds `ask_hoot: true` to the request body only for that submit — normal teaching
 sends are byte-for-byte unchanged. After the response resolves, ask-mode always
 exits (whether or not the reply came back as an aside): if `message_kind` isn't
-`"reference_aside"` (flag off, or the concept wasn't reference-eligible), the reply
-renders as an ordinary teaching turn with no error surfaced — ask-mode just quietly
-closes. `asideCount` seeds from the reload count described below and, on a live
+`"reference_aside"` (flag off, or the concept wasn't reference-eligible), the
+reply is tagged with the **live-only** `intent: "hoot_answer"` — it renders as
+a Hoot-attributed aside card (eyebrow "Hoot", no citations) with no error
+surfaced, and ask-mode quietly closes. The tag is client-side only: the
+backend stores that turn as a plain teaching turn, so a transcript reload
+shows it as an ordinary Apollo turn. While an ask-mode send is in flight, the
+thinking placeholder also swaps to the aside card + "Hoot" eyebrow (`askMode`
+is still true until the response lands). `asideCount` seeds from the reload count described below and, on a live
 aside response, is overwritten with `resp.intent_executed.aside_count` (the
 backend's authoritative per-session tally, `intent: "reference_question"`) rather
 than incremented locally. The button disables at the 3-per-session cap
@@ -78,6 +91,9 @@ success-green `.ui-button--done` "I'm done teaching" → `onDoneClicked`; shows
 
 ## Invariants & gotchas
 - Both roles render `content` through shared `MathMarkdown` (`.prose.md-body`).
+- Three speaker treatments, deliberately distinct: student `.msg-user` bubble,
+  Apollo `.msg-ai` panel, Hoot `.apollo-aside` tinted card. Don't collapse
+  Hoot back into the Apollo styling — the split is the product requirement.
 - Per-turn owl (`ApolloAvatar`, `/thinking.mp4`) takes a `thinking` prop — only
   the in-flight placeholder animates; settled turns hold a paused first frame.
 - `ApolloPageClient` passes both `disabled` and `busy` as its own `busy` (true

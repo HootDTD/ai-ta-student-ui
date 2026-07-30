@@ -3,8 +3,8 @@ doc: apollo/report-panel
 description: ApolloReportPanel
 owns:
   - components/apollo/ApolloReportPanel.tsx
-related: [shared-ui/math-markdown, apollo/api-client, apollo/session-page]
-last_verified: 2026-07-27
+related: [shared-ui/math-markdown, shared-ui/citation-chip, apollo/api-client, apollo/session-page]
+last_verified: 2026-07-30
 stub: false
 ---
 
@@ -20,21 +20,29 @@ busy?})`.
 
 ## Data flow
 Tone `success`/`danger` is keyed on `rubric.overall.score >= 75` (`PASS_SCORE`).
+The card shell is `.apollo-scorecard` (2026-07-30 restyle: mirrors the Hoot
+answer panel `.msg-ai` — opaque paper panel, serif prose, tone carried on the
+accent left border rather than tinting the whole card).
 Render ladder, best-available first:
-1. **Scorecard** (`report.topics` non-empty): grade header (letter + overall
-   credit bar), topic rows sorted by `weight` desc — each a `<details
-   class="apollo-topic" data-status=…>` with status glyph, `display_name`,
-   credit bar + whole-number percent; expanded body shows the topic's
-   `feedback.topic_feedback[]` note (matched by `canonical_key`, rendered via
-   `MathMarkdown`), a "You said:" quote, and — INTERACTION3 —  a compact
-   `.apollo-topic__review` line ("Review: Mason 1986, p. 4 · Module 9 Ethics
-   Slides, p. 7") from that item's optional `review[]` (max 3; label + page,
-   page-less entries render label only). `review[].doc_id` is typed but
-   unused — no deep-linking in v1. When `report.feedback` exists, its
-   `headline` renders above the list, `recap[]` as muted lines, `next_step` as
-   a `.notice` callout footer, and the flat `diagnostic_narrative` is
-   **suppressed** (same content, flattened). Without `feedback`, topics still
-   render and the narrative `<details>` appears as before.
+1. **Scorecard** (`report.topics` non-empty): grade header (serif
+   `.apollo-scorecard__letter` + overall credit bar), topic rows sorted by
+   `weight` desc — each a `<details class="apollo-topic" data-status=…>` with
+   status glyph, `display_name`, credit bar + whole-number percent; expanded
+   body shows the topic's `feedback.topic_feedback[]` note (matched by
+   `canonical_key`, rendered via `MathMarkdown`) and a "You said:" quote.
+   INTERACTION3 review pointers from each item's optional `review[]` render in
+   their own `.apollo-scorecard__review` card below Next step (accent-edged,
+   like the Hoot sources block): one `.apollo-scorecard__review-line` per weak
+   topic — topic label (only when >1 sections) + one `CitationChip` per
+   pointer via `reviewChipMeta` (marker-shaped label kept bracketed, page
+   appended only when the label doesn't carry it; `doc_type: "Course
+   material"` and the bare label as `file` feed the chip's hover preview).
+   `review[].doc_id` is typed but unused — no deep-linking in v1. When
+   `report.feedback` exists, its `headline` renders above the list, `recap[]`
+   as muted lines, `next_step` as a `.notice` callout footer, and the flat
+   `diagnostic_narrative` is **suppressed** (same content, flattened). Without
+   `feedback`, topics still render and the narrative `<details>` appears as
+   before.
 2. No topics → legacy rubric fallback + `diagnostic_narrative` (pre-topic-score
    behavior, unchanged).
 Quote source (`resolveQuote`): with a feedback block, ONLY its (already

@@ -1,6 +1,8 @@
 "use client";
 
 import MathMarkdown from "@/components/MathMarkdown";
+import { CitationChip } from "@/components/CitationChip";
+import type { CitationMeta } from "@/components/CitationChip";
 import type {
   DoneResponse,
   TopicCredit,
@@ -46,21 +48,18 @@ function resolveQuote(
   return topic.evidence_span ?? null;
 }
 
-// INTERACTION3: "Mason 1986, p. 4 · Module 9 Ethics Slides, p. 7". Labels
-// arrive marker-shaped ("[Young et al. 2020, p. 3]") with the page already
-// inside, so strip the brackets and only append the page when the label
-// doesn't carry it. doc_id is deliberately unused here; it's kept on the
-// type for a future deep-link, not rendered in v1.
-function formatReviewLine(review: TopicReviewPointer[]): string {
-  return review
-    .map((r) => {
-      const label = r.label.replace(/^\[/, "").replace(/\]$/, "");
-      if (typeof r.page === "number" && !label.includes(`p. ${r.page}`)) {
-        return `${label}, p. ${r.page}`;
-      }
-      return label;
-    })
-    .join(" · ");
+// INTERACTION3 review pointers render as the same citation chips the Hoot
+// answering engine uses ("[YOUNG ET AL. 2020, P. 3]"). Labels arrive
+// marker-shaped with the page usually already inside, so only append the
+// page when the label doesn't carry it. doc_id is deliberately unused here;
+// it's kept on the type for a future deep-link, not rendered in v1.
+function reviewChipMeta(r: TopicReviewPointer): CitationMeta {
+  const bare = r.label.replace(/^\[/, "").replace(/\]$/, "");
+  const label =
+    typeof r.page === "number" && !bare.includes(`p. ${r.page}`)
+      ? `[${bare}, p. ${r.page}]`
+      : `[${bare}]`;
+  return { label, doc_type: "Course material", file: bare, page: r.page };
 }
 
 function TopicRow({
@@ -224,11 +223,11 @@ export default function ApolloReportPanel({
       : [];
 
   return (
-    <section className="notice" data-tone={tone}>
+    <section className="apollo-scorecard" data-tone={tone}>
       <div className="eyebrow">Teaching grade</div>
 
       <div className="apollo-scorecard__header">
-        <strong style={{ fontSize: "1.25rem" }}>{rubric.overall.letter}</strong>
+        <strong className="apollo-scorecard__letter">{rubric.overall.letter}</strong>
         {hasTopics && (
           <div
             className="apollo-scorecard__overall-bar-track"
@@ -276,14 +275,16 @@ export default function ApolloReportPanel({
             <div className="notice apollo-scorecard__review">
               <span className="eyebrow">Review the course materials</span>
               {reviewSections.map((section) => (
-                <p key={section.key} className="apollo-scorecard__review-line">
+                <div key={section.key} className="apollo-scorecard__review-line">
                   {reviewSections.length > 1 && (
                     <span className="apollo-scorecard__review-topic">
-                      {section.label}:{" "}
+                      {section.label}
                     </span>
                   )}
-                  {formatReviewLine(section.review)}
-                </p>
+                  {section.review.map((r, ri) => (
+                    <CitationChip key={ri} meta={reviewChipMeta(r)} />
+                  ))}
+                </div>
               ))}
             </div>
           )}

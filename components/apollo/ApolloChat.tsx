@@ -160,8 +160,18 @@ export default function ApolloChat({
       } else {
         // Ask-mode submit that didn't come back as an aside (flag off, or
         // the concept isn't reference-eligible) falls through to a normal
-        // teaching turn — no error state, just quietly leave ask-mode.
-        setMessages((m) => [...m, { role: "apollo", content: resp.apollo_reply }]);
+        // teaching turn — no error state, just quietly leave ask-mode. The
+        // reply still answers the student's question, so keep the Hoot
+        // attribution for this live turn (a transcript reload shows it as a
+        // plain teaching turn — the backend stores it as one).
+        setMessages((m) => [
+          ...m,
+          {
+            role: "apollo",
+            content: resp.apollo_reply,
+            intent: wasAskMode ? "hoot_answer" : undefined,
+          },
+        ]);
       }
       if (wasAskMode) setAskMode(false);
       onKgUpdate(resp.kg);
@@ -188,30 +198,35 @@ export default function ApolloChat({
               if (m.role === "student") {
                 return (
                   <div key={i} className="apollo-turn apollo-turn--student">
-                    <span className="eyebrow">You</span>
-                    <div className="prose md-body">
+                    <div className="msg-user prose md-body">
                       <MathMarkdown>{m.content}</MathMarkdown>
                     </div>
                   </div>
                 );
               }
-              if (m.intent === "reference_aside") {
+              if (m.intent === "reference_aside" || m.intent === "hoot_answer") {
                 return (
-                  <div key={i} className="apollo-turn apollo-turn--aside">
+                  <div key={i} className="apollo-turn apollo-turn--apollo">
+                    <ApolloAvatar />
                     <div
-                      className="apollo-aside"
+                      className="apollo-turn__body apollo-aside"
                       role="note"
-                      aria-label="From the course materials"
+                      aria-label="Hoot — from the course materials"
                       data-in-scope={m.aside ? m.aside.in_scope : true}
                     >
                       <span className="eyebrow" aria-hidden>
-                        From the course materials
+                        {m.intent === "reference_aside"
+                          ? "Hoot — from the course materials"
+                          : "Hoot"}
                       </span>
                       <div className="prose md-body">
                         <MathMarkdown>{m.content}</MathMarkdown>
                       </div>
                       {m.aside && m.aside.citations.length > 0 && (
-                        <div className="apollo-aside__citations">
+                        <div className="msg-ai__sources">
+                          <span className="msg-ai__sources-label">
+                            Sources referenced
+                          </span>
                           {m.aside.citations.map((c, ci) => (
                             <CitationChip key={ci} meta={c} />
                           ))}
@@ -224,7 +239,7 @@ export default function ApolloChat({
               return (
                 <div key={i} className="apollo-turn apollo-turn--apollo">
                   <ApolloAvatar />
-                  <div className="apollo-turn__body">
+                  <div className="apollo-turn__body msg-ai">
                     <span className="eyebrow">Apollo</span>
                     <div className="prose md-body">
                       <MathMarkdown>{m.content}</MathMarkdown>
@@ -236,8 +251,11 @@ export default function ApolloChat({
             {sending && (
               <div className="apollo-turn apollo-turn--apollo" aria-live="polite">
                 <ApolloAvatar thinking />
-                <div className="apollo-turn__body">
-                  <span className="eyebrow">Apollo</span>
+                {/* askMode is still true while an ask-mode send is in flight
+                    (it only resets after the response), so it names the
+                    speaker the student is actually waiting on. */}
+                <div className={`apollo-turn__body ${askMode ? "apollo-aside" : "msg-ai"}`}>
+                  <span className="eyebrow">{askMode ? "Hoot" : "Apollo"}</span>
                   <em className="note" style={{ margin: 0 }}>
                     thinking…
                   </em>

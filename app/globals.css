@@ -1024,13 +1024,19 @@ button:disabled {
   background: transparent;
 }
 
-/* INTERACTION3 review card — reading directions below Next step. */
+/* INTERACTION3 review card — reading directions below Next step, styled
+   like the Hoot engine's sources block: accent-edged card + citation chips. */
 .apollo-scorecard__review {
   margin-top: 0.75rem;
+  border-left: 3px solid var(--accent);
 }
 
 .apollo-scorecard__review-line {
   margin: 0.35rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .apollo-scorecard__review-topic {
@@ -1093,14 +1099,21 @@ button:disabled {
   margin-bottom: 0;
 }
 
+/* Student turns are right-aligned .msg-user bubbles — the same visual
+   language as the Hoot chat home, so both chats read as one product. */
 .apollo-turn--student {
-  justify-items: start;
+  justify-items: end;
 }
 
-/* INTERACTION4: reference-question aside — a distinct, bordered card so it
-   never reads as the (possibly confused) persona's own voice. */
+/* Apollo persona turns reuse the Hoot answer panel (.msg-ai). Hoot's
+   reference-aside answers use .apollo-aside below instead — the two speakers
+   must stay visually distinct. */
+
+/* INTERACTION4: Hoot's reference-question answer — a tinted card (vs
+   Apollo's opaque .msg-ai panel) so it never reads as the (possibly
+   confused) persona's own voice. Serif body matches the Hoot engine's
+   answer typography. */
 .apollo-aside {
-  display: grid;
   gap: 0.4rem;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--border);
@@ -1108,15 +1121,14 @@ button:disabled {
   background: var(--notice-bg);
 }
 
-.apollo-aside[data-in-scope="false"] {
-  border-left-color: var(--warning-border);
+.apollo-aside,
+.apollo-aside p,
+.apollo-aside li {
+  font-family: var(--serif-body);
 }
 
-.apollo-aside__citations {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.15rem;
+.apollo-aside[data-in-scope="false"] {
+  border-left-color: var(--warning-border);
 }
 
 .apollo-avatar {
@@ -2325,6 +2337,43 @@ html.dark .apollo-progress-card[data-level="5"] {
    bar-track/bar-fill pattern at a smaller scale; rows below reuse the
    pre-existing `.apollo-topic` checklist shell (design spec §5) plus new
    per-row bar + expandable body classes. */
+
+/* The card shell mirrors the Hoot answer panel (.msg-ai): opaque paper
+   panel + soft shadow, with the pass/fail tone carried on the accent left
+   border instead of tinting the whole card. Serif is scoped to prose so
+   mono topic rows and buttons keep their own faces. */
+.apollo-scorecard {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  background: var(--bg-panel);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.06);
+}
+
+.apollo-scorecard[data-tone="success"] {
+  border-left-color: var(--success-solid);
+}
+
+.apollo-scorecard[data-tone="danger"] {
+  border-left-color: var(--danger-solid);
+}
+
+.apollo-scorecard .prose,
+.apollo-scorecard .prose p,
+.apollo-scorecard .prose li,
+.apollo-scorecard__recap,
+.apollo-scorecard__next-step {
+  font-family: var(--serif-body);
+}
+
+.apollo-scorecard__letter {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
 .apollo-scorecard__header {
   display: flex;
   align-items: center;
