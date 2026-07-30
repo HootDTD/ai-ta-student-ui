@@ -5,7 +5,7 @@ owns:
   - app/apollo/page.tsx
   - app/apollo/ApolloPageClient.tsx
 related: [apollo/api-client, apollo/chat, apollo/kg-panel, apollo/problem-panel, apollo/report-panel, apollo/coverage-celebrations, apollo/error-surface, apollo/top-bar, shell/feature-flags]
-last_verified: 2026-07-29
+last_verified: 2026-07-30
 stub: false
 ---
 
@@ -22,9 +22,11 @@ Monolith-hub (R2) for the teaching-session screen.
 ## Data flow
 Reads `?session=` (missing + `?class=` ⇒ renders `ApolloBrowse`; missing both ⇒
 inline "open from your class page"). GETs `getSessionState` and forwards each
-history turn's `intent` string (if any) straight through to `ApolloChat`'s
-`initialMessages` — INTERACTION4 reference-aside styling on reload keys off
-that tag. Also forwards `state.ask_hoot_available ?? false` as `ApolloChat`'s
+history turn's `intent` string and `aside` payload (if any) straight through to
+`ApolloChat`'s `initialMessages` — INTERACTION4 reference-aside styling on
+reload keys off the tag, and the forwarded `aside` restores the card's
+citation chips (absent on rows persisted before the backend stored aside
+metadata — the card then renders without chips). Also forwards `state.ask_hoot_available ?? false` as `ApolloChat`'s
 `askHootAvailable` (server-authoritative Ask Hoot button visibility,
 [chat.md](chat.md)). Then renders inside
 `.apollo-session-shell` (flex column, 100dvh): `ApolloTopBar`,

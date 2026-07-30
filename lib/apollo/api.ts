@@ -131,10 +131,18 @@ export interface ApolloSessionState {
   // backend payload without the field reads as hidden.
   ask_hoot_available?: boolean;
   // `intent` tags a stored turn's kind on reload; INTERACTION4 reference
-  // asides come back as `intent: "reference_aside"` apollo-role turns
-  // (transcript replay carries no citations — the aside still renders,
-  // just without the citation strip a live turn has).
-  messages: Array<{ role: string; content: string; turn_index: number; intent?: string }>;
+  // asides come back as `intent: "reference_aside"` apollo-role turns with
+  // an `aside` payload rebuilt from the stored row metadata, so the reloaded
+  // card keeps its citation chips. Aside rows persisted before the backend
+  // stored that metadata carry the intent but no `aside` — the card still
+  // renders, just without the citation strip a live turn has.
+  messages: Array<{
+    role: string;
+    content: string;
+    turn_index: number;
+    intent?: string;
+    aside?: ChatAside;
+  }>;
 }
 
 export interface CoveredTopic {
@@ -248,6 +256,10 @@ export interface TopicReviewPointer {
   doc_id: string | number;
   label: string;
   page: number | null;
+  // app.uploads.id when the pointer's source PDF is in storage — feeds the
+  // citation chip's file link (GET /materials/file-url). Absent/null on
+  // older backends and pre-storage ingestion paths.
+  upload_id?: number | null;
 }
 
 export interface TopicFeedbackItem {
