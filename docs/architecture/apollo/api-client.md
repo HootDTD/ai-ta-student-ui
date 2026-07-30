@@ -4,7 +4,7 @@ description: lib/apollo/api.ts (types + fetchers hub)
 owns:
   - lib/apollo/api.ts
 related: [shell/auth-client, apollo/error-surface, apollo/session-proxies, apollo/practice-proxies, apollo/kg-proxies, hoot/qa-proxies, apollo/progress-card]
-last_verified: 2026-07-29
+last_verified: 2026-07-30
 stub: false
 ---
 
@@ -27,7 +27,9 @@ variable_mapping / procedure_step, each with typed `content`) over `ApolloNodeBa
 `status` ACCEPTED|DISPUTED|DUAL, `student_belief?`), `ApolloEdge`
 (PRECEDES|USES|DEPENDS_ON|SCOPES), `ApolloKG {nodes, edges}`, `ApolloSessionState`
 (`phase` INIT|TEACHING|PROBLEM_REVEAL|SOLVING|REPORT|BETWEEN, `messages[].intent?`
-— reload tag, e.g. `"reference_aside"`), `CoveredTopic`, `ChatAside`
+— reload tag, e.g. `"reference_aside"` — and `messages[].aside?:ChatAside`, the
+citation payload the backend rebuilds from stored row metadata so reloaded aside
+cards keep their chips; absent on pre-metadata rows), `CoveredTopic`, `ChatAside`
 (INTERACTION4: `text`, `citations:CitationMeta[]` — reuses Hoot's `/ask` citation
 type rather than redefining it, `in_scope`), `ChatResponse` (`apollo_reply`, `kg`,
 `covered_topics?`, `intent_pending?`, `intent_executed?{intent:'done',
