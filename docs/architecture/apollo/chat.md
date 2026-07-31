@@ -4,7 +4,7 @@ description: ApolloChat
 owns:
   - components/apollo/ApolloChat.tsx
 related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
-last_verified: 2026-07-30
+last_verified: 2026-07-31
 stub: false
 ---
 
@@ -51,8 +51,9 @@ teaching turns. `enterAskMode` re-checks it, so ask-mode is unreachable when
 hidden. Clicking it sets
 `askMode`, which swaps the textarea placeholder to "Ask a question about the
 course material…", adds the `.apollo-textarea--ask-mode` accent border, and shows
-an inline "Cancel" affordance (`role`-less status text + button, `aria-live` on the
-wrapper announces the mode change) in place of the button. `handleSend` snapshots
+the inline instruction "Type in your question above and click 'Ask'" plus a
+"Cancel" affordance (`role`-less status text + button, `aria-live` on the wrapper
+announces the mode change) in place of the button. `handleSend` snapshots
 `askMode` at submit time and passes it through as `sendChat`'s third arg, which
 adds `ask_hoot: true` to the request body only for that submit — normal teaching
 sends are byte-for-byte unchanged. After the response resolves, ask-mode always

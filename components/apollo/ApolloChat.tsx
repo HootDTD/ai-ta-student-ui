@@ -298,7 +298,9 @@ export default function ApolloChat({
           <div className="apollo-ask-hoot" aria-live="polite">
             {askMode ? (
               <>
-                <span className="apollo-ask-hoot__status">Ask Hoot mode — asking a question, not teaching</span>
+                <span className="apollo-ask-hoot__status">
+                  Type in your question above and click &apos;Ask&apos;
+                </span>
                 <button
                   onClick={cancelAskMode}
                   type="button"
