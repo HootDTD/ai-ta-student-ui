@@ -12,9 +12,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { APOLLO_ONLY } from "@/lib/flags";
-import { ChevronDown, ChevronLeft, MoreVertical, PanelLeft } from "lucide-react";
+import { ChevronDown, ChevronLeft, Moon, MoreVertical, PanelLeft, Sun } from "lucide-react";
 
 import { listMyClasses, type ApolloClassOption } from "@/lib/apollo/api";
+import { clearStoredSession, loadStoredSession } from "@/app/lib/auth";
 
 interface Props {
   classId?: number | null;
@@ -45,6 +46,40 @@ export default function ApolloTopBar({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const closeMenu = () => setMenuOpen(false);
+
+  // Theme handling mirrors Hoot's header menu (app/page.tsx). The mount
+  // effect matters beyond the toggle itself: under APOLLO_ONLY the Hoot
+  // chat never renders, so this is the only place the stored preference
+  // gets applied at all.
+  const [darkMode, setDarkMode] = useState(false);
+  const [accountLabel, setAccountLabel] = useState("this account");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = stored ? stored === "dark" : prefersDark;
+    setDarkMode(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+
+    const session = loadStoredSession();
+    setAccountLabel(session?.user_email || session?.user_id || "this account");
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !darkMode;
+    document.documentElement.classList.add("theme-transition");
+    setDarkMode(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+    setTimeout(() => document.documentElement.classList.remove("theme-transition"), 450);
+  };
+
+  // Signing out lands on `/`, which serves the sign-in card even under
+  // APOLLO_ONLY (only signed-in users get redirected back to Apollo).
+  const handleSignOut = () => {
+    clearStoredSession();
+    router.push("/");
+  };
 
   // Class switcher — mirrors Hoot's own header dropdown (app/page.tsx) so
   // students can hop between courses from anywhere in Apollo, not just from
@@ -158,6 +193,14 @@ export default function ApolloTopBar({
             </button>
             {menuOpen && (
               <div className="header-menu">
+                <button
+                  type="button"
+                  className="dropdown-item text-sm flex items-center gap-2"
+                  onClick={toggleTheme}
+                >
+                  {darkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                  {darkMode ? "Light mode" : "Dark mode"}
+                </button>
                 {!hideProgressLink && classId ? (
                   <Link
                     href={`/apollo/progress?class=${classId}`}
@@ -179,6 +222,16 @@ export default function ApolloTopBar({
                     Return to Hoot
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="dropdown-item text-sm"
+                  onClick={() => {
+                    closeMenu();
+                    handleSignOut();
+                  }}
+                >
+                  Sign out of {accountLabel}
+                </button>
               </div>
             )}
           </div>

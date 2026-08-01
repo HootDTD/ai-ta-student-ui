@@ -3,14 +3,14 @@ doc: apollo/top-bar
 description: ApolloTopBar
 owns:
   - components/apollo/ApolloTopBar.tsx
-related: [apollo/api-client, hoot/qa-proxies, shell/feature-flags]
-last_verified: 2026-07-25
+related: [apollo/api-client, hoot/qa-proxies, shell/feature-flags, shell/auth-client]
+last_verified: 2026-07-31
 stub: false
 ---
 
 # ApolloTopBar
 
-Chrome shared by every Apollo page (~189 lines).
+Chrome shared by every Apollo page (~240 lines).
 
 ## Interface
 default `ApolloTopBar({classId?, onBack?, backLabel?, onToggleSidebar?,
@@ -26,14 +26,21 @@ uses) so the two headers can't drift.
 - Center: the "Apollo" brand, absolutely centered, pointer-events-none.
 - Right cluster: any `actions` as visible `.apollo-topbar__action` buttons (the
   session view passes the "Understanding" KG-drawer toggle + "Start over"), then
-  the ⋮ overflow menu ("My progress" unless `hideProgressLink`, + "Return to
-  Hoot").
+  the ⋮ overflow menu: theme toggle, "My progress" (unless `hideProgressLink`),
+  "Return to Hoot", "Sign out of {email}".
+- The theme toggle and sign-out mirror Hoot's header menu (`app/page.tsx`):
+  toggle flips the `dark` class + `localStorage.theme` with the
+  `theme-transition` fade; sign-out calls `clearStoredSession()` then
+  `router.push('/')` (the `/` sign-in card still serves under `APOLLO_ONLY`).
 
 ## Invariants & gotchas
 - The class switcher fetches **independently of the `classId` prop** (which is
   only ever the current course), so it still renders on the "no class in URL"
   error screens and lets the student fix that.
 - "Return to Hoot" is hidden under `APOLLO_ONLY`.
+- The mount effect that applies `localStorage.theme` to `<html>` is
+  load-bearing under `APOLLO_ONLY`: the Hoot page's equivalent effect never
+  runs there, so this is the only theme initializer on Apollo-only builds.
 - Consumed by `ApolloBrowse`, `ApolloPageClient`, `ProgressClient`.
 
 ## Env flags
