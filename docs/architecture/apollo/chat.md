@@ -3,8 +3,9 @@ doc: apollo/chat
 description: ApolloChat
 owns:
   - components/apollo/ApolloChat.tsx
+  - components/apollo/echoGuard.ts
 related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
-last_verified: 2026-07-31
+last_verified: 2026-08-07
 stub: false
 ---
 
@@ -72,6 +73,17 @@ than incremented locally. The button disables at the 3-per-session cap
 (`askHootCapped`), with both a `title` tooltip and an `aria-label` spelling out the
 same "You've used all 3 Ask Hoot questions for this session." reason so the
 disabled state is exposed to screen readers too, not just on hover.
+
+**Echo guard (2026-08-07, bimodal-fix P0.6 / defect I8):** pilot students
+submitted Apollo's previous turn as their own message (verbatim, and once
+minus its first 2 chars — manual select-copy-paste; there is no programmatic
+prefill path in the UI). `handleSend` now runs `isEchoOfApolloTurn(draft,
+lastApolloMessage)` (`echoGuard.ts` — whitespace-normalized substring
+containment covering ≥90% of Apollo's most recent apollo-role turn, asides
+included) before sending; a hit asks `window.confirm` ("…send it anyway?",
+same native-confirm precedent as restart) and a cancel keeps the draft in the
+composer. Short legitimate quotes of a phrase stay under the 90% span and
+never prompt. Applies to ask-mode submits too.
 
 ## Data flow
 `handleSend` → `sendChat(sessionId, msg, wasAskMode)`; appends Apollo's reply, calls
