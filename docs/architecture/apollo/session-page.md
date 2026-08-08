@@ -5,7 +5,7 @@ owns:
   - app/apollo/page.tsx
   - app/apollo/ApolloPageClient.tsx
 related: [apollo/api-client, apollo/chat, apollo/kg-panel, apollo/problem-panel, apollo/report-panel, apollo/coverage-celebrations, apollo/error-surface, apollo/top-bar, shell/feature-flags]
-last_verified: 2026-07-30
+last_verified: 2026-08-07
 stub: false
 ---
 
@@ -53,7 +53,16 @@ without a class id). Top-bar "Start over" → `restartProblem` behind a
 - Owns **per-attempt coverage dedup/reset** (by `node_id` AND normalized
   `display_name`), fed to `ApolloCoverageCelebrations` via the chat's
   `onCoverageSnapshot` callback: transient pops clear after ~3.6s; the checklist
-  persists for the attempt.
+  persists for the attempt. Retry / next / restart are all **fresh-attempt
+  boundaries** and must clear the whole set — pops, the `coveredTopics`
+  checklist, and BOTH dedup refs (2026-08-07: the name ref and the checklist
+  were previously left behind, so the next attempt showed the old attempt's
+  covered rows and could never celebrate again).
+- `ApolloChat` is keyed by `attemptNonce`, bumped on those same three paths, so
+  a fresh attempt **remounts** the chat. Without the key, "Start over" (the only
+  fresh-attempt path reachable with no report on screen) left the chat mounted
+  and holding the previous attempt's transcript and P2.2 coverage meter —
+  `initialMessages` seeds `useState` once and never resyncs.
 - Passes both `disabled` and `busy` to `ApolloChat` as its own `busy`, which is
   true only during the Done click.
 - Sets `data-apollo-level={level}` on `<main>` for CSS avatar theming.
