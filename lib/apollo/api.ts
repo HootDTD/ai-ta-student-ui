@@ -168,6 +168,13 @@ export interface ChatResponse {
   // Current covered-node snapshot from the active reference-driven Q&A path.
   // The chat compares node IDs across turns and celebrates only new coverage.
   covered_topics?: CoveredTopic[];
+  // P2.2 pre-Done coverage meter (2026-08-07). `graded_topic_total` = graded
+  // nodes in the reference graph; `open_graded_topics` = graded nodes the
+  // tally has not marked understood yet. Both optional: a backend without
+  // them leaves the meter hidden and the Done button unguarded (fail closed,
+  // same convention as `ask_hoot_available`).
+  graded_topic_total?: number;
+  open_graded_topics?: number;
   // Item #5: when the chat handler classifies a non-teaching intent
   // above the confidence threshold, it stashes a pending intent and
   // replies with a confirmation prompt. The student's next turn either
@@ -234,13 +241,20 @@ export interface TopicMisconception {
 export interface TopicCredit {
   canonical_key: string;
   display_name?: string | null;
-  status: "covered" | "partial" | "missing";
+  // `unprobed` (P1.2b, 2026-08-07): a graded node Apollo never asked about
+  // this attempt. The backend gives it weight 0 and leaves it out of the
+  // denominator, so the row renders as "not counted" rather than a zero.
+  status: "covered" | "partial" | "missing" | "unprobed";
   credit: number;
   weight: number;
   // Verbatim gated student quote for this topic (scorecard PR1, backend PR
   // #200); null when no evidence span was gated. Absent on backends
   // predating PR #200 — treat as null.
   evidence_span?: string | null;
+  // P2.3 / decision D2 (2026-08-07): the reference statement for this graded
+  // node, served ONLY when the topic scored credit < 0.6 — never the full
+  // worked solution, never before grading. null/absent ⇒ render nothing.
+  reference_text?: string | null;
   misconceptions: TopicMisconception[];
 }
 

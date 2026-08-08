@@ -46,6 +46,44 @@ interface Props {
   busy?: boolean;
 }
 
+// P2.2 pre-Done coverage. Both counts come from the chat response; the meter
+// stays hidden until a turn has reported them (older backend ⇒ no meter, no
+// Done guard — the pre-P2.2 behavior exactly).
+interface GradedCoverage {
+  total: number;
+  open: number;
+}
+
+// A response only updates the meter when BOTH counts came back as finite
+// numbers and the totals are self-consistent; anything else keeps the last
+// known snapshot rather than flashing a wrong count at the student.
+export function readGradedCoverage(resp: {
+  graded_topic_total?: number;
+  open_graded_topics?: number;
+}): GradedCoverage | null {
+  const { graded_topic_total: total, open_graded_topics: open } = resp;
+  if (typeof total !== "number" || typeof open !== "number") return null;
+  if (!Number.isFinite(total) || !Number.isFinite(open)) return null;
+  if (total <= 0 || open < 0 || open > total) return null;
+  return { total, open };
+}
+
+// "3 of 5 topics addressed — 2 still open" / "All 5 topics addressed".
+export function coverageMeterLabel(coverage: GradedCoverage): string {
+  const addressed = coverage.total - coverage.open;
+  if (coverage.open === 0) {
+    return `All ${coverage.total} topics addressed`;
+  }
+  return `${addressed} of ${coverage.total} topics addressed — ${coverage.open} still open`;
+}
+
+// The Done-guard copy (design spec P2.2). Singular/plural matters here: this
+// is the sentence that decides whether a student walks into an unfair grade.
+export function doneWarningText(open: number): string {
+  const subject = open === 1 ? "1 topic is unaddressed" : `${open} topics are unaddressed`;
+  return `${subject} — Apollo's last question is one of them. Grade anyway?`;
+}
+
 // The owl animates only while Apollo is processing a turn; settled turns
 // hold the first frame so old answers don't read as still "thinking".
 function ApolloAvatar({ thinking = false }: { thinking?: boolean }) {
@@ -98,6 +136,10 @@ export default function ApolloChat({
   const [asideCount, setAsideCount] = useState(
     () => initialMessages.filter((m) => m.intent === "reference_aside").length,
   );
+  // P2.2: last graded-topic snapshot the backend reported, and whether the
+  // Done click is currently held behind the unaddressed-topics confirm.
+  const [coverage, setCoverage] = useState<GradedCoverage | null>(null);
+  const [confirmingDone, setConfirmingDone] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const ASK_HOOT_CAP = 3;
@@ -110,6 +152,18 @@ export default function ApolloChat({
 
   function cancelAskMode() {
     setAskMode(false);
+  }
+
+  // Done is guarded, never blocked: with open graded topics the first click
+  // opens the warning and the second ("Grade anyway") goes through. No
+  // coverage snapshot (older backend) ⇒ straight through, as before.
+  function handleDoneClick() {
+    if (coverage && coverage.open > 0 && !confirmingDone) {
+      setConfirmingDone(true);
+      return;
+    }
+    setConfirmingDone(false);
+    onDoneClicked();
   }
 
   function insertChar(ch: string) {
@@ -140,6 +194,8 @@ export default function ApolloChat({
     const wasAskMode = askMode;
     setDraft("");
     setError(null);
+    // The student kept teaching, so any pending Done warning is stale.
+    setConfirmingDone(false);
     setMessages((m) => [...m, { role: "student", content: myMsg }]);
     setSending(true);
     try {
@@ -177,6 +233,8 @@ export default function ApolloChat({
       if (wasAskMode) setAskMode(false);
       onKgUpdate(resp.kg);
       onCoverageSnapshot(resp.covered_topics ?? []);
+      const nextCoverage = readGradedCoverage(resp);
+      if (nextCoverage) setCoverage(nextCoverage);
       if (resp.intent_executed?.intent === "done" && onDoneFromChat) {
         onDoneFromChat(resp.intent_executed.result);
       }
@@ -341,6 +399,33 @@ export default function ApolloChat({
           </button>
         </div>
 
+        {confirmingDone && coverage && coverage.open > 0 && (
+          <div className="notice apollo-finish-confirm" data-tone="warning" role="alert">
+            <span className="eyebrow">Before you finish</span>
+            <p className="apollo-finish-confirm__text">{doneWarningText(coverage.open)}</p>
+            <div className="apollo-finish-confirm__actions">
+              <button
+                onClick={() => setConfirmingDone(false)}
+                type="button"
+                className="ui-button ui-button--primary ui-button--small"
+              >
+                Keep teaching
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmingDone(false);
+                  onDoneClicked();
+                }}
+                disabled={disabled || sending}
+                type="button"
+                className="ui-button ui-button--ghost ui-button--small"
+              >
+                Grade anyway
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="apollo-finish">
           <div className="apollo-finish__copy">
             <span className="eyebrow">Finished teaching?</span>
@@ -348,9 +433,33 @@ export default function ApolloChat({
               Apollo will try to solve the problem using only what you taught
               it.
             </p>
+            {coverage && (
+              <div className="apollo-finish__meter" data-open={coverage.open > 0}>
+                <div
+                  className="apollo-finish__meter-track"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={coverage.total}
+                  aria-valuenow={coverage.total - coverage.open}
+                  aria-label="Topics addressed"
+                >
+                  <div
+                    className="apollo-finish__meter-fill"
+                    style={{
+                      width: `${Math.round(
+                        ((coverage.total - coverage.open) / coverage.total) * 100,
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <span className="apollo-finish__meter-label">
+                  {coverageMeterLabel(coverage)}
+                </span>
+              </div>
+            )}
           </div>
           <button
-            onClick={onDoneClicked}
+            onClick={handleDoneClick}
             disabled={disabled || sending}
             type="button"
             className="ui-button ui-button--done"

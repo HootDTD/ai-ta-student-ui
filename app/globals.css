@@ -1070,6 +1070,63 @@ button:disabled {
   flex-shrink: 0;
 }
 
+/* P2.2 pre-Done coverage meter: how many graded topics Apollo still has open,
+   sitting right next to the Done button so the count is read at the moment it
+   matters. Reuses the progress-track vocabulary (pill track, groove shadow). */
+.apollo-finish__meter {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+
+.apollo-finish__meter-track {
+  flex: 0 0 6rem;
+  height: 0.35rem;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: var(--meter-groove);
+}
+
+.apollo-finish__meter-fill {
+  height: 100%;
+  background: var(--success-solid);
+  border-radius: inherit;
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.apollo-finish__meter-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.apollo-finish__meter[data-open="true"] .apollo-finish__meter-fill {
+  background: var(--warning-solid);
+}
+
+.apollo-finish__meter[data-open="true"] .apollo-finish__meter-label {
+  color: var(--warning-solid);
+}
+
+/* The Done guard: shown above the finish band when the student clicks Done
+   with graded topics still open. Never blocks — "Grade anyway" is one click. */
+.apollo-finish-confirm {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.apollo-finish-confirm__text {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.apollo-finish-confirm__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .apollo-scrollback {
   display: grid;
   gap: 0.9rem;
@@ -2467,6 +2524,16 @@ html.dark .apollo-progress-card[data-level="5"] {
   color: var(--success-solid);
 }
 
+/* P1.2b never-asked topic: muted throughout — it carries no credit and no
+   blame, so it must not read as either a pass or a failure. */
+.apollo-topic[data-status="unprobed"] {
+  opacity: 0.72;
+}
+
+.apollo-topic[data-status="unprobed"] .apollo-topic__glyph {
+  color: var(--muted);
+}
+
 .apollo-topic__bar-track {
   height: 0.4rem;
   background: var(--accent-soft);
@@ -2516,6 +2583,32 @@ html.dark .apollo-progress-card[data-level="5"] {
   margin: 0;
   font-size: 0.82rem;
   color: var(--muted);
+}
+
+.apollo-topic__unprobed {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* P2.3 / D2: "What full credit looks like" — the reference statement for a
+   topic that missed credit. Collapsed by default (the student's own work is
+   the headline); accent left rule marks it as course-authored, not feedback. */
+.apollo-topic__model {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.6rem;
+}
+
+.apollo-topic__model-summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.apollo-topic__model-body {
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
 }
 
 /* MathMarkdown wraps single-line text in a block <p>; flatten the inline

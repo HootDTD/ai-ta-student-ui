@@ -4,7 +4,7 @@ description: lib/apollo/api.ts (types + fetchers hub)
 owns:
   - lib/apollo/api.ts
 related: [shell/auth-client, apollo/error-surface, apollo/session-proxies, apollo/practice-proxies, apollo/kg-proxies, hoot/qa-proxies, apollo/progress-card]
-last_verified: 2026-07-30
+last_verified: 2026-08-07
 stub: false
 ---
 
@@ -32,11 +32,16 @@ citation payload the backend rebuilds from stored row metadata so reloaded aside
 cards keep their chips; absent on pre-metadata rows), `CoveredTopic`, `ChatAside`
 (INTERACTION4: `text`, `citations:CitationMeta[]` — reuses Hoot's `/ask` citation
 type rather than redefining it, `in_scope`), `ChatResponse` (`apollo_reply`, `kg`,
-`covered_topics?`, `intent_pending?`, `intent_executed?{intent:'done',
+`covered_topics?`, `graded_topic_total?`/`open_graded_topics?` (P2.2 grading-fix
+contract, 2026-08-07 — graded reference nodes in total vs still-open in the
+tally; both optional so an older backend just hides the meter),
+`intent_pending?`, `intent_executed?{intent:'done',
 result:DoneResponse} | {intent:'reference_question', aside_count:number}`,
 `message_kind?:'reference_aside'`, `aside?:ChatAside`), `Rubric`/`RubricAxis`,
 `ProgressEnvelope`, `TopicCredit`/`TopicMisconception` (flag-gated topic grading;
-`TopicCredit.evidence_span?` = verbatim gated student quote, backend PR #200),
+`TopicCredit.evidence_span?` = verbatim gated student quote, backend PR #200;
+`TopicCredit.status` gained `'unprobed'` and `TopicCredit.reference_text?` was
+added 2026-08-07 — see [report-panel.md](report-panel.md)),
 `TopicFeedbackItem`/`DoneFeedback` (structured scorecard feedback: `headline`,
 per-topic `note`+code-gated `quote|null`+optional `review?:TopicReviewPointer[]`
 (INTERACTION3, max 3, `{doc_id, label, page, upload_id?}` — `upload_id` feeds
@@ -78,6 +83,10 @@ proxies only forward `Authorization` if present.
   FALLBACKS** (see `apollo/error-surface.md`).
 - The `ApolloErrorCode` union and `ApolloProgressCard`'s XP tiers are
   frontend copies of backend contracts — keep in sync.
+- Same for the 2026-08-07 grading-fix fields (`graded_topic_total`,
+  `open_graded_topics`, `TopicCredit.reference_text`, status `'unprobed'`):
+  every one is optional here, so the UI degrades to its pre-P2 rendering
+  against a backend that hasn't shipped them yet.
 
 ## Related
 - [auth-client.md](../shell/auth-client.md) — token source.

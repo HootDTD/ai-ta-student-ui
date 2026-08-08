@@ -4,7 +4,7 @@ description: ApolloChat
 owns:
   - components/apollo/ApolloChat.tsx
 related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
-last_verified: 2026-07-31
+last_verified: 2026-08-07
 stub: false
 ---
 
@@ -16,7 +16,28 @@ Apollo teaching conversation + composer (~250 lines).
 default `ApolloChat({sessionId, initialMessages:ChatMessage[], onKgUpdate(kg),
 onCoverageSnapshot(topics), onDoneClicked(), onDoneFromChat?(result:DoneResponse),
 disabled?, busy?})`. `ChatMessage = {role, content, intent?, aside?:ChatAside}`.
-Owns local `messages`/`draft`/`sending`/`error`/`askMode`/`asideCount`.
+Owns local `messages`/`draft`/`sending`/`error`/`askMode`/`asideCount`/
+`coverage`/`confirmingDone`. Also exports three pure helpers (kept exported so
+they can be unit-tested the day a runner lands): `readGradedCoverage(resp)`,
+`coverageMeterLabel(coverage)`, `doneWarningText(open)`.
+
+**Pre-Done coverage meter + Done guard (P2.2, 2026-08-07).** Each `sendChat`
+response may carry `graded_topic_total`/`open_graded_topics`;
+`readGradedCoverage` accepts them only when both are finite, `total > 0` and
+`0 ≤ open ≤ total`, otherwise the previous snapshot is kept — a rejected or
+absent pair leaves `coverage` null, which hides the meter and leaves Done
+completely unguarded (pre-P2.2 behavior, fail closed like `ask_hoot_available`).
+The meter renders inside `.apollo-finish__copy`: a short pill track
+(`.apollo-finish__meter-*`, `role="progressbar"` over addressed-of-total) plus
+`coverageMeterLabel` text, tinted `--warning-solid` while topics are open and
+`--success-solid` once none are. Clicking "I'm done teaching" with
+`coverage.open > 0` does **not** call `onDoneClicked` — it opens a
+`.notice[data-tone="warning"] .apollo-finish-confirm` alert above the band
+carrying `doneWarningText` ("N topics are unaddressed — Apollo's last question
+is one of them. Grade anyway?") with "Keep teaching" (dismiss) and "Grade
+anyway" (calls `onDoneClicked`); a second click on the Done button itself also
+grades. Sending another turn clears the pending warning. The chat-affirmed-done
+path (`intent_executed`) is server-side and therefore unguarded by design.
 
 **Turn styling (2026-07-30):** the transcript reuses the Hoot chat home's
 bubble vocabulary so both chats read as one product. Student turns are
@@ -88,8 +109,9 @@ first turn: centered `OwlVideo` + "I'm listening…". Composer: `SpecialCharsPal
 insert, then `.apollo-chat__send-row` (space-between: the Ask Hoot affordance/status
 on the left, Send on the right — "Sending…"/"Ask" while sending or in ask-mode),
 then the full-width `.apollo-finish` band (the session's one loud affordance: solid
-success-green `.ui-button--done` "I'm done teaching" → `onDoneClicked`; shows
-`.ui-button__spinner` + "Grading your teaching…" while `busy`).
+success-green `.ui-button--done` "I'm done teaching" → `handleDoneClick` →
+`onDoneClicked`; shows `.ui-button__spinner` + "Grading your teaching…" while
+`busy`), preceded by the Done-guard notice when one is pending.
 
 ## Invariants & gotchas
 - Both roles render `content` through shared `MathMarkdown` (`.prose.md-body`).
@@ -100,6 +122,8 @@ success-green `.ui-button--done` "I'm done teaching" → `onDoneClicked`; shows
   the in-flight placeholder animates; settled turns hold a paused first frame.
 - `ApolloPageClient` passes both `disabled` and `busy` as its own `busy` (true
   only for the Done click).
+- The Done guard **warns, never blocks** — a student who wants an early grade
+  is always one click away from it. Don't turn it into a hard gate.
 
 ## Related
 - [api-client.md](api-client.md), [error-surface.md](error-surface.md),
