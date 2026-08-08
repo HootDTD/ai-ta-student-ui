@@ -135,10 +135,15 @@ function TopicRow({
   return (
     // Weak topics open pre-expanded: their note + Review pointers are the
     // actionable part of the grade, not something to hide behind a click.
+    // `unprobed` rows are the exception — there can be several of them
+    // (P1.2b probes only a subset per attempt) and their body is a single
+    // "not counted" line, so auto-expanding them would bury the actionable
+    // feedback under a wall of non-findings. The summary row already says it
+    // with the ○ glyph and the "n/a" abbr tooltip.
     <details
       className="apollo-topic"
       data-status={topic.status}
-      open={topic.status !== "covered"}
+      open={topic.status !== "covered" && !unprobed}
     >
       <summary className="apollo-topic__summary">{summary}</summary>
 

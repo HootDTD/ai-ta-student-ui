@@ -51,7 +51,10 @@ Render ladder, best-available first:
    cell with an `<abbr title>` explaining it, a muted row
    (`.apollo-topic[data-status="unprobed"]`), and the body line "Apollo never
    asked you about this one, so it isn't counted in your grade." Weight-desc
-   sorting puts these rows last on their own. When
+   sorting puts these rows last on their own, and unlike the other
+   below-full-credit statuses they render **collapsed** — a typical attempt
+   leaves several nodes unprobed, and auto-expanding a stack of one-line
+   non-findings would bury the recap/next-step. When
    `report.feedback` exists, its `headline` renders above the list, `recap[]`
    as muted lines, `next_step` as a `.notice` callout footer, and the flat
    `diagnostic_narrative` is **suppressed** (same content, flattened). Without

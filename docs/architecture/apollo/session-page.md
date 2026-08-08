@@ -64,7 +64,10 @@ without a class id). Top-bar "Start over" → `restartProblem` behind a
   and holding the previous attempt's transcript and P2.2 coverage meter —
   `initialMessages` seeds `useState` once and never resyncs.
 - Passes both `disabled` and `busy` to `ApolloChat` as its own `busy`, which is
-  true only during the Done click.
+  true only during the Done click, plus `initialCoverage={readGradedCoverage(
+  state)}` — the session snapshot's graded-topic counts, reusing the chat's own
+  reader so the P2.2 meter and Done guard survive a reload/resume instead of
+  reappearing only after the next turn.
 - Sets `data-apollo-level={level}` on `<main>` for CSS avatar theming.
 - `state.phase` exists on the payload but is **not** branched on — view selection
   is report-state vs `status==='ended'`.

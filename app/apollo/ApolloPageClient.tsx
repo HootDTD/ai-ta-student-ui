@@ -20,7 +20,7 @@ import {
   type StudentProgress,
 } from "@/lib/apollo/api";
 import ApolloBrowse from "@/components/apollo/ApolloBrowse";
-import ApolloChat from "@/components/apollo/ApolloChat";
+import ApolloChat, { readGradedCoverage } from "@/components/apollo/ApolloChat";
 import ApolloCoverageCelebrations, {
   type CoverageCelebration,
 } from "@/components/apollo/ApolloCoverageCelebrations";
@@ -438,6 +438,11 @@ export default function ApolloPageClient() {
             }))}
             onKgUpdate={(newKg) => setKg(newKg)}
             onCoverageSnapshot={handleCoverageSnapshot}
+            // P2.2: seed the coverage meter / Done guard from the session
+            // snapshot so a reload or a resume mid-attempt doesn't quietly
+            // un-guard Done. Same acceptance rules as the chat response; a
+            // snapshot without the counts reads as "no meter yet".
+            initialCoverage={readGradedCoverage(state)}
             onDoneClicked={handleDone}
             onDoneFromChat={(result) => setReport(result)}
             disabled={busy}

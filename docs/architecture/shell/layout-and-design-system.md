@@ -71,8 +71,11 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   per-topic scorecard rows in `ApolloReportPanel` reuse them (see
   `apollo/report-panel.md`).
 - **Grading-fix classes (2026-08-07):** `.apollo-finish__meter*` (pre-Done
-  coverage meter — pill track + groove like the progress bars, label and fill
-  flip `--warning-solid` → `--success-solid` via `data-open`) and
+  coverage meter — pill track + groove like the progress bars; `data-open`
+  flips the **fill** `--success-solid` → `--warning-solid` and bolds the label,
+  which stays `--muted`: `--warning-solid` text on that tinted band measures
+  ~3.1:1 in light theme, under AA for 0.82rem type, so state tint never moves
+  onto the label) and
   `.apollo-finish-confirm*` (the Done guard, a plain `.notice[data-tone=
   "warning"]` shell + actions row) in `apollo/chat.md`; `.apollo-topic__model*`
   (collapsed "What full credit looks like" reveal, accent left rule),

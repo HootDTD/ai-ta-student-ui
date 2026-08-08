@@ -40,6 +40,12 @@ interface Props {
   // the chat response. We forward that pre-fetched result to the parent
   // so it can render the report without a redundant API call.
   onDoneFromChat?: (result: DoneResponse) => void;
+  // P2.2 rehydration: the graded-topic snapshot carried by the session
+  // state, so a reload / resume mid-attempt keeps the meter and the Done
+  // guard instead of silently dropping both until the next turn. Null (or a
+  // backend that doesn't serve the counts on the snapshot) ⇒ pre-P2.2
+  // behavior — no meter, unguarded Done — until a chat response reports them.
+  initialCoverage?: GradedCoverage | null;
   disabled?: boolean;
   // True while the parent is processing the "I'm done teaching" click
   // (awaiting finishTeaching); drives the button's loading state.
@@ -49,7 +55,7 @@ interface Props {
 // P2.2 pre-Done coverage. Both counts come from the chat response; the meter
 // stays hidden until a turn has reported them (older backend ⇒ no meter, no
 // Done guard — the pre-P2.2 behavior exactly).
-interface GradedCoverage {
+export interface GradedCoverage {
   total: number;
   open: number;
 }
@@ -122,6 +128,7 @@ export default function ApolloChat({
   onCoverageSnapshot,
   onDoneClicked,
   onDoneFromChat,
+  initialCoverage = null,
   disabled,
   busy,
 }: Props) {
@@ -138,12 +145,20 @@ export default function ApolloChat({
   );
   // P2.2: last graded-topic snapshot the backend reported, and whether the
   // Done click is currently held behind the unaddressed-topics confirm.
-  const [coverage, setCoverage] = useState<GradedCoverage | null>(null);
+  // Seeded from the session snapshot so a reload mid-attempt doesn't drop the
+  // meter and silently un-guard Done.
+  const [coverage, setCoverage] = useState<GradedCoverage | null>(initialCoverage);
   const [confirmingDone, setConfirmingDone] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const keepTeachingRef = useRef<HTMLButtonElement | null>(null);
   const ASK_HOOT_CAP = 3;
   const askHootCapped = asideCount >= ASK_HOOT_CAP;
+  // Derived, never trusted from `confirmingDone` alone: the guard is "open"
+  // only while the notice is actually on screen, so the Done button can never
+  // be left disabled by a warning that stopped rendering (e.g. a later turn
+  // closed the last open topic).
+  const doneGuardOpen = confirmingDone && coverage !== null && coverage.open > 0;
 
   function enterAskMode() {
     if (!askHootAvailable || askHootCapped) return;
@@ -154,16 +169,26 @@ export default function ApolloChat({
     setAskMode(false);
   }
 
-  // Done is guarded, never blocked: with open graded topics the first click
-  // opens the warning and the second ("Grade anyway") goes through. No
-  // coverage snapshot (older backend) ⇒ straight through, as before.
+  // Done is guarded, never blocked: with open graded topics a click opens the
+  // warning, and grading requires an explicit "Grade anyway". The Done button
+  // itself is disabled while the warning is up, so a double-click (or a
+  // double-Enter — the button neither moves nor loses focus when the notice
+  // appears above the bottom-pinned band) can't blow past a warning the
+  // student never read. No coverage snapshot (older backend) ⇒ straight
+  // through, as before.
   function handleDoneClick() {
-    if (coverage && coverage.open > 0 && !confirmingDone) {
+    if (coverage && coverage.open > 0) {
       setConfirmingDone(true);
       return;
     }
-    setConfirmingDone(false);
     onDoneClicked();
+  }
+
+  // Dismissing the guard hands focus to the composer — the action the button
+  // promises — instead of stranding it on the just-disabled Done button.
+  function dismissDoneGuard() {
+    setConfirmingDone(false);
+    requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
   function insertChar(ch: string) {
@@ -187,6 +212,13 @@ export default function ApolloChat({
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
+
+  // Move focus into the guard when it opens: the Done button goes disabled at
+  // the same moment, and a keyboard student left focused on a disabled control
+  // would be stranded (and would never reach the decision).
+  useEffect(() => {
+    if (doneGuardOpen) keepTeachingRef.current?.focus();
+  }, [doneGuardOpen]);
 
   async function handleSend() {
     if (!draft.trim() || sending) return;
@@ -399,13 +431,14 @@ export default function ApolloChat({
           </button>
         </div>
 
-        {confirmingDone && coverage && coverage.open > 0 && (
+        {doneGuardOpen && coverage && (
           <div className="notice apollo-finish-confirm" data-tone="warning" role="alert">
             <span className="eyebrow">Before you finish</span>
             <p className="apollo-finish-confirm__text">{doneWarningText(coverage.open)}</p>
             <div className="apollo-finish-confirm__actions">
               <button
-                onClick={() => setConfirmingDone(false)}
+                ref={keepTeachingRef}
+                onClick={dismissDoneGuard}
                 type="button"
                 className="ui-button ui-button--primary ui-button--small"
               >
@@ -460,7 +493,7 @@ export default function ApolloChat({
           </div>
           <button
             onClick={handleDoneClick}
-            disabled={disabled || sending}
+            disabled={disabled || sending || doneGuardOpen}
             type="button"
             className="ui-button ui-button--done"
           >

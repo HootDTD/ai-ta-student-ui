@@ -29,7 +29,9 @@ variable_mapping / procedure_step, each with typed `content`) over `ApolloNodeBa
 (`phase` INIT|TEACHING|PROBLEM_REVEAL|SOLVING|REPORT|BETWEEN, `messages[].intent?`
 — reload tag, e.g. `"reference_aside"` — and `messages[].aside?:ChatAside`, the
 citation payload the backend rebuilds from stored row metadata so reloaded aside
-cards keep their chips; absent on pre-metadata rows), `CoveredTopic`, `ChatAside`
+cards keep their chips; absent on pre-metadata rows; plus optional
+`graded_topic_total?`/`open_graded_topics?` mirroring the chat response so a
+reload rehydrates the P2.2 meter/Done guard), `CoveredTopic`, `ChatAside`
 (INTERACTION4: `text`, `citations:CitationMeta[]` — reuses Hoot's `/ask` citation
 type rather than redefining it, `in_scope`), `ChatResponse` (`apollo_reply`, `kg`,
 `covered_topics?`, `graded_topic_total?`/`open_graded_topics?` (P2.2 grading-fix
@@ -84,9 +86,13 @@ proxies only forward `Authorization` if present.
 - The `ApolloErrorCode` union and `ApolloProgressCard`'s XP tiers are
   frontend copies of backend contracts — keep in sync.
 - Same for the 2026-08-07 grading-fix fields (`graded_topic_total`,
-  `open_graded_topics`, `TopicCredit.reference_text`, status `'unprobed'`):
-  every one is optional here, so the UI degrades to its pre-P2 rendering
-  against a backend that hasn't shipped them yet.
+  `open_graded_topics` on BOTH `ChatResponse` and `ApolloSessionState`,
+  `TopicCredit.reference_text`, status `'unprobed'`): every one is optional
+  here, so the UI degrades to its pre-P2 rendering against a backend that
+  hasn't shipped them yet. The session-state pair is the weaker half of the
+  contract — the brief pinned the counts to the chat response only, so until
+  the backend also serves them on the snapshot, a mid-attempt reload shows no
+  meter until the next turn.
 
 ## Related
 - [auth-client.md](../shell/auth-client.md) — token source.

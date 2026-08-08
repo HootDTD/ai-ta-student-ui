@@ -1105,8 +1105,14 @@ button:disabled {
   background: var(--warning-solid);
 }
 
+/* The open-topics state is carried by the FILL colour, not the label colour:
+   --warning-solid over the finish band's tinted surface measures ~3.1:1 in
+   light theme, below WCAG AA for 0.82rem text (and worse than the --muted it
+   would replace, ~9:1). The label keeps --muted and takes weight instead —
+   this one sentence is the whole point of the feature, so it has to be
+   readable in exactly the state where it matters. */
 .apollo-finish__meter[data-open="true"] .apollo-finish__meter-label {
-  color: var(--warning-solid);
+  font-weight: 600;
 }
 
 /* The Done guard: shown above the finish band when the student clicks Done
