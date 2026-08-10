@@ -9,6 +9,7 @@ import OwlVideo from "@/components/OwlVideo";
 import MathMarkdown from "@/components/MathMarkdown";
 import { CitationChip } from "@/components/CitationChip";
 import ApolloErrorSurface from "./ApolloErrorSurface";
+import { isEchoOfApolloTurn } from "./echoGuard";
 
 // A chat turn. `intent`/`aside` are only ever set on apollo-role turns:
 // `intent === "reference_aside"` (from a live reply or transcript reload)
@@ -137,6 +138,21 @@ export default function ApolloChat({
   async function handleSend() {
     if (!draft.trim() || sending) return;
     const myMsg = draft.trim();
+    // Echo guard (P0.6): a message that is essentially Apollo's own last turn
+    // copied back would be graded as the student's words. Confirm-gated, not
+    // a hard block — window.confirm matches the restart precedent — and the
+    // draft stays in the composer on cancel so the student can rewrite it.
+    const lastApolloMessage =
+      [...messages].reverse().find((m) => m.role === "apollo")?.content ?? "";
+    if (
+      isEchoOfApolloTurn(myMsg, lastApolloMessage) &&
+      !window.confirm(
+        "That looks like Apollo's last message copied back. Apollo can only " +
+          "learn from your own words — send it anyway?",
+      )
+    ) {
+      return;
+    }
     const wasAskMode = askMode;
     setDraft("");
     setError(null);

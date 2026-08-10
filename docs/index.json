@@ -1,7 +1,7 @@
 {
   "$schema_version": 1,
   "generated_by": "check_owns_coverage.py --emit-index",
-  "generated_at": "2026-07-25",
+  "generated_at": "2026-08-07",
   "repo": "student-ui",
   "docs_root": "docs/architecture",
   "source_to_doc": {
@@ -29,6 +29,7 @@
     "app/api/classes/route.ts": "hoot/qa-proxies",
     "app/api/invite-links/redeem/[code]/route.ts": "hoot/enrollment-proxies",
     "app/api/invite-links/resolve/[code]/route.ts": "hoot/enrollment-proxies",
+    "app/api/materials/file-url/route.ts": "hoot/qa-proxies",
     "app/api/my-classes/route.ts": "hoot/qa-proxies",
     "app/api/reports/ai-use/[id]/pdf/route.ts": "hoot/report-proxies",
     "app/api/reports/ai-use/[id]/route.ts": "hoot/report-proxies",
@@ -63,6 +64,7 @@
     "components/apollo/KGEntryParaphrase.tsx": "apollo/kg-entry-cards",
     "components/apollo/KGEntryPill.tsx": "apollo/kg-entry-pill",
     "components/apollo/KGEntryTrace.tsx": "apollo/kg-entry-cards",
+    "components/apollo/echoGuard.ts": "apollo/chat",
     "eslint.config.mjs": "shell/build-config",
     "lib/apollo/api.ts": "apollo/api-client",
     "lib/flags.ts": "shell/feature-flags",
@@ -106,7 +108,8 @@
       "kind": "leaf",
       "description": "ApolloChat",
       "owns": [
-        "components/apollo/ApolloChat.tsx"
+        "components/apollo/ApolloChat.tsx",
+        "components/apollo/echoGuard.ts"
       ]
     },
     "apollo/coverage-celebrations": {
@@ -272,14 +275,15 @@
     "hoot/qa-proxies": {
       "path": "docs/architecture/hoot/qa-proxies.md",
       "kind": "leaf",
-      "description": "6 ask/chats/classes proxies",
+      "description": "7 ask/chats/classes/materials proxies",
       "owns": [
         "app/api/ask/route.ts",
         "app/api/ask/stream/route.ts",
         "app/api/chats/route.ts",
         "app/api/chats/[chat_id]/route.ts",
         "app/api/classes/route.ts",
-        "app/api/my-classes/route.ts"
+        "app/api/my-classes/route.ts",
+        "app/api/materials/file-url/route.ts"
       ]
     },
     "hoot/report-proxies": {
