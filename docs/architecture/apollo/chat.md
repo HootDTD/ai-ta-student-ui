@@ -5,7 +5,7 @@ owns:
   - components/apollo/ApolloChat.tsx
   - components/apollo/echoGuard.ts
 related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
-last_verified: 2026-08-07
+last_verified: 2026-08-10
 stub: false
 ---
 
