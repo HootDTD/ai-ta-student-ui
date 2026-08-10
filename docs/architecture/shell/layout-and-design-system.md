@@ -5,7 +5,7 @@ owns:
   - app/layout.tsx
   - app/globals.css
 related: [shell/session-refresh, shared-ui/math-markdown]
-last_verified: 2026-07-30
+last_verified: 2026-08-07
 stub: false
 ---
 
@@ -70,6 +70,18 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
 - `apollo-topics`/`apollo-topic__*`/`apollo-rubric` are live again — the
   per-topic scorecard rows in `ApolloReportPanel` reuse them (see
   `apollo/report-panel.md`).
+- **Grading-fix classes (2026-08-07):** `.apollo-finish__meter*` (pre-Done
+  coverage meter — pill track + groove like the progress bars; `data-open`
+  flips the **fill** `--success-solid` → `--warning-solid` and bolds the label,
+  which stays `--muted`: `--warning-solid` text on that tinted band measures
+  ~3.1:1 in light theme, under AA for 0.82rem type, so state tint never moves
+  onto the label) and
+  `.apollo-finish-confirm*` (the Done guard, a plain `.notice[data-tone=
+  "warning"]` shell + actions row) in `apollo/chat.md`; `.apollo-topic__model*`
+  (collapsed "What full credit looks like" reveal, accent left rule),
+  `.apollo-topic__unprobed`, and `.apollo-topic[data-status="unprobed"]`
+  (muted, `--muted` glyph) in `apollo/report-panel.md`. All reuse existing
+  tokens — no new CSS variables.
 - Load-bearing assets ride here (described, not code-owned): `public/thinking.mp4`
   (owl avatar), `public/*.svg` (default Next), `app/favicon.ico`.
 

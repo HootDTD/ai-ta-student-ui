@@ -4,7 +4,7 @@ description: ApolloReportPanel
 owns:
   - components/apollo/ApolloReportPanel.tsx
 related: [shared-ui/math-markdown, shared-ui/citation-chip, apollo/api-client, apollo/session-page]
-last_verified: 2026-07-30
+last_verified: 2026-08-07
 stub: false
 ---
 
@@ -39,7 +39,22 @@ Render ladder, best-available first:
    material"` and the bare label as `file` feed the chip's hover preview;
    `upload_id`/`doc_id` pass through as the chip's source-PDF link keys —
    see `shared-ui/citation-chip.md`).
-   `review[].doc_id` is typed but unused — no deep-linking in v1. When
+   `review[].doc_id` is typed but unused — no deep-linking in v1.
+   **2026-08-07 grading-fix additions.** (a) *P2.3 / decision D2* — a topic
+   whose `reference_text` is non-null (backend serves it only for
+   `credit < 0.6`) gets a collapsed `<details class="apollo-topic__model">`
+   "What full credit looks like" inside the row body, rendering the reference
+   statement through `MathMarkdown`. Collapsed by default and post-grade only;
+   it is the node's reference statement, never a full worked solution.
+   (b) *P1.2b* — `status: "unprobed"` (a graded node Apollo never asked about,
+   weight 0, out of the denominator) renders the `○` glyph, an `n/a` credit
+   cell with an `<abbr title>` explaining it, a muted row
+   (`.apollo-topic[data-status="unprobed"]`), and the body line "Apollo never
+   asked you about this one, so it isn't counted in your grade." Weight-desc
+   sorting puts these rows last on their own, and unlike the other
+   below-full-credit statuses they render **collapsed** — a typical attempt
+   leaves several nodes unprobed, and auto-expanding a stack of one-line
+   non-findings would bury the recap/next-step. When
    `report.feedback` exists, its `headline` renders above the list, `recap[]`
    as muted lines, `next_step` as a `.notice` callout footer, and the flat
    `diagnostic_narrative` is **suppressed** (same content, flattened). Without
@@ -54,8 +69,13 @@ fresh-slate new empty attempt) / "End session" unchanged.
 
 ## Invariants & gotchas
 - **Deploy-order safe:** every scorecard field (`feedback`, `evidence_span`,
-  `topic_feedback[].review`) is optional — against a pre-PR#200 backend, or a
-  backend without INTERACTION3, the panel renders exactly the prior view.
+  `topic_feedback[].review`, `reference_text`) is optional and `"unprobed"` is
+  additive — against a pre-PR#200 backend, a backend without INTERACTION3, or
+  one that hasn't shipped the 2026-08-07 grading fixes, the panel renders
+  exactly the prior view.
+- **Reveal policy:** `reference_text` is the ONLY model-answer surface in the
+  student UI and it is backend-gated (missed topics, post-grade). Never derive
+  a fuller answer client-side and never show it before the grade.
 - Misconception sub-row rendering is retained but runtime-dead (backend detector
   retired; `misconceptions` always `()`).
 - Still not rendered: numeric overall score/XP line/level-up banner. Migration

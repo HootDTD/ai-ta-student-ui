@@ -24,6 +24,9 @@ const STATUS_GLYPH: Record<TopicCredit["status"], string> = {
   covered: "✓",
   partial: "◐",
   missing: "✗",
+  // P1.2b: never asked this attempt — an empty circle, not a cross. It is
+  // excluded from the denominator, so it must not read as a failure.
+  unprobed: "○",
 };
 
 // dock_points is stored as a fraction of the 0.30 severity clamp (design
@@ -81,13 +84,21 @@ function TopicRow({
   hasFeedback: boolean;
 }) {
   const label = topic.display_name ?? topic.canonical_key;
-  const percent = Math.round(topic.credit * 100);
+  const unprobed = topic.status === "unprobed";
+  const percent = unprobed ? 0 : Math.round(topic.credit * 100);
   // Network data: guard the nested array so a mid-deploy payload without
   // `misconceptions` degrades to "no findings" instead of a crash.
   const misconceptions = topic.misconceptions ?? [];
   const note = feedbackItem?.note;
   const quote = resolveQuote(topic, feedbackItem, hasFeedback);
-  const hasBody = Boolean(note) || Boolean(quote) || misconceptions.length > 0;
+  // D2 / P2.3: the reference statement for a topic that missed full credit.
+  const referenceText = topic.reference_text ?? null;
+  const hasBody =
+    Boolean(note) ||
+    Boolean(quote) ||
+    Boolean(referenceText) ||
+    unprobed ||
+    misconceptions.length > 0;
 
   const summary = (
     <div className="apollo-topic__row">
@@ -101,7 +112,15 @@ function TopicRow({
           style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
         />
       </div>
-      <span className="apollo-topic__credit">{percent}%</span>
+      <span className="apollo-topic__credit">
+        {unprobed ? (
+          <abbr title="Apollo never asked about this topic — it isn't counted in your grade.">
+            n/a
+          </abbr>
+        ) : (
+          `${percent}%`
+        )}
+      </span>
     </div>
   );
 
@@ -116,14 +135,25 @@ function TopicRow({
   return (
     // Weak topics open pre-expanded: their note + Review pointers are the
     // actionable part of the grade, not something to hide behind a click.
+    // `unprobed` rows are the exception — there can be several of them
+    // (P1.2b probes only a subset per attempt) and their body is a single
+    // "not counted" line, so auto-expanding them would bury the actionable
+    // feedback under a wall of non-findings. The summary row already says it
+    // with the ○ glyph and the "n/a" abbr tooltip.
     <details
       className="apollo-topic"
       data-status={topic.status}
-      open={topic.status !== "covered"}
+      open={topic.status !== "covered" && !unprobed}
     >
       <summary className="apollo-topic__summary">{summary}</summary>
 
       <div className="apollo-topic__body">
+        {unprobed && (
+          <p className="apollo-topic__unprobed">
+            Apollo never asked you about this one, so it isn&apos;t counted in
+            your grade.
+          </p>
+        )}
         {note && (
           <div className="apollo-topic__note prose md-body">
             <MathMarkdown>{note}</MathMarkdown>
@@ -133,6 +163,20 @@ function TopicRow({
           <p className="apollo-topic__quote">
             You said: &ldquo;<MathMarkdown>{quote}</MathMarkdown>&rdquo;
           </p>
+        )}
+        {referenceText && (
+          // D2 (2026-08-07): the ONE sanctioned reveal — the reference
+          // statement for a topic that missed credit, collapsed by default so
+          // the student's own work stays the headline. Never the full worked
+          // solution, and only after grading.
+          <details className="apollo-topic__model">
+            <summary className="apollo-topic__model-summary">
+              What full credit looks like
+            </summary>
+            <div className="apollo-topic__model-body prose md-body">
+              <MathMarkdown>{referenceText}</MathMarkdown>
+            </div>
+          </details>
         )}
 
         {misconceptions.length > 0 && (

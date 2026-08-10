@@ -20,7 +20,7 @@ import {
   type StudentProgress,
 } from "@/lib/apollo/api";
 import ApolloBrowse from "@/components/apollo/ApolloBrowse";
-import ApolloChat from "@/components/apollo/ApolloChat";
+import ApolloChat, { readGradedCoverage } from "@/components/apollo/ApolloChat";
 import ApolloCoverageCelebrations, {
   type CoverageCelebration,
 } from "@/components/apollo/ApolloCoverageCelebrations";
@@ -48,6 +48,12 @@ export default function ApolloPageClient() {
   // The lasting checklist: every covered topic stays here for the whole
   // attempt, one row per concept. `celebrations` is only the transient pop.
   const [coveredTopics, setCoveredTopics] = useState<CoverageCelebration[]>([]);
+  // Remount key for ApolloChat. Retry/next/restart all start a fresh attempt
+  // server-side, but "Start over" is reachable without a report on screen, so
+  // the chat element keeps its position and React preserves its internal state
+  // (transcript, P2.2 coverage meter) across the swap. Bumping this on every
+  // fresh-attempt path forces the chat to re-seed from the reloaded session.
+  const [attemptNonce, setAttemptNonce] = useState(0);
   const seenCoveredRef = useRef(new Set<string>());
   const seenCoveredNamesRef = useRef(new Set<string>());
   const celebrationIdRef = useRef(0);
@@ -179,7 +185,10 @@ export default function ApolloPageClient() {
       setReport(null);
       setKgOpen(false);
       setCelebrations([]);
+      setCoveredTopics([]);
+      setAttemptNonce((n) => n + 1);
       seenCoveredRef.current.clear();
+      seenCoveredNamesRef.current.clear();
       celebrationTimersRef.current.forEach(clearTimeout);
       celebrationTimersRef.current = [];
     } catch (e) {
@@ -203,7 +212,10 @@ export default function ApolloPageClient() {
       setReport(null);
       setKgOpen(false);
       setCelebrations([]);
+      setCoveredTopics([]);
+      setAttemptNonce((n) => n + 1);
       seenCoveredRef.current.clear();
+      seenCoveredNamesRef.current.clear();
       celebrationTimersRef.current.forEach(clearTimeout);
       celebrationTimersRef.current = [];
     } catch (e) {
@@ -232,7 +244,10 @@ export default function ApolloPageClient() {
       setReport(null);
       setKgOpen(false);
       setCelebrations([]);
+      setCoveredTopics([]);
+      setAttemptNonce((n) => n + 1);
       seenCoveredRef.current.clear();
+      seenCoveredNamesRef.current.clear();
       celebrationTimersRef.current.forEach(clearTimeout);
       celebrationTimersRef.current = [];
     } catch (e) {
@@ -412,6 +427,7 @@ export default function ApolloPageClient() {
           />
         ) : (
           <ApolloChat
+            key={attemptNonce}
             sessionId={sessionId}
             askHootAvailable={state.ask_hoot_available ?? false}
             initialMessages={state.messages.map((m) => ({
@@ -422,6 +438,11 @@ export default function ApolloPageClient() {
             }))}
             onKgUpdate={(newKg) => setKg(newKg)}
             onCoverageSnapshot={handleCoverageSnapshot}
+            // P2.2: seed the coverage meter / Done guard from the session
+            // snapshot so a reload or a resume mid-attempt doesn't quietly
+            // un-guard Done. Same acceptance rules as the chat response; a
+            // snapshot without the counts reads as "no meter yet".
+            initialCoverage={readGradedCoverage(state)}
             onDoneClicked={handleDone}
             onDoneFromChat={(result) => setReport(result)}
             disabled={busy}
