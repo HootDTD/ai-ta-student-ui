@@ -1,7 +1,23 @@
-# Untested changes — Apollo band swap (student UI)
+# Untested changes — Apollo bands + latency (student UI)
 
-> Append-only log for the `feat/apollo-study-bands-latency` branch — one H1
-> section per task, each self-contained. Task 5a is at the bottom.
+> **Placement:** transient QA material, so it lives in `docs/_archive/runs/`
+> per the workspace doc contract (durable descriptions go in
+> `docs/architecture/`; `_archive/` is committed but skipped by navigation).
+> It was at the repo root until 2026-08-23. Paths inside it are repo-relative.
+>
+> Append-only QA log for the `feat/apollo-study-bands-latency` branch, in task
+> order: **Task 3** (bands) → **5a** (Done staged progress + perf) → **3b**
+> (band-only display) → **5b** (turn streaming), newest at the bottom.
+>
+> **Read it as ONE artifact, not four self-contained ones.** Later tasks
+> revised earlier ones; where that happened the earlier text carries a
+> **SUPERSEDED BY …** marker pointing forward. When two sections disagree, the
+> later one wins — always check for a marker before testing against an
+> earlier section's expectation.
+
+---
+
+# Untested changes — Apollo band swap (student UI)
 
 Study-prep design spec §A.3 (2026-08-18), Task 3 of the bands+latency build.
 
@@ -85,17 +101,26 @@ was a live student-visible letter render.
 ### 5. `app/globals.css`
 - `.apollo-scorecard__letter` → `.apollo-scorecard__band`, `font-size`
   1.5rem → 1.25rem, added `white-space: nowrap`.
+  → **SUPERSEDED BY TASK 3b** (§5 at the bottom): 3b reverted BOTH — the band
+  word is back at 1.5rem and `nowrap` was dropped, so it wraps instead of
+  clipping. Only the class rename survives from this line.
 - `.apollo-attempts__grade` gained `white-space: nowrap`.
+  → **PARTLY SUPERSEDED BY TASK 3b**: `nowrap` stands, but 3b dropped
+  `tabular-nums` from the same rule (no digits left in that cell).
 - Comment-only updates on the `--grade-*` token block.
 
 ## Manual staging QA checklist (spec §A.5)
 
 Run one full session per band outcome (beginner / intermediate / advanced):
 
-- [ ] Done report header shows the band word, correctly sized, no wrap, and
-      no letter anywhere on the panel.
-- [ ] Long band word ("Intermediate") does not squash the credit bar at narrow
-      viewport widths (≤400px) — the header is a flex row.
+- [ ] Done report header shows the band word, correctly sized, and no letter
+      anywhere on the panel. (Task 3 said "no wrap" — **superseded by 3b**: the
+      word now wraps by design.)
+- [ ] **(rewritten for the 3b markup — the credit bar and the
+      `.apollo-scorecard__header` flex row it refers to were both DELETED by
+      3b.)** At ≤400px the band word `.apollo-scorecard__band` sits on its own
+      grid row at 1.5rem and must **wrap, not clip or overflow** — check
+      "Intermediate" specifically, in both themes.
 - [ ] Browse cards show band chips; card tint, chip color and feedback-panel
       left rule agree; chip click still opens the feedback panel.
 - [ ] Chip `title`/`aria-label` read "Your best result: …" — check with a
@@ -136,7 +161,7 @@ client timing, no network, no props; mount/unmount is its entire lifecycle.
 
 | Behavior | Expected | How to check |
 |---|---|---|
-| Grace delay | Nothing renders for the first 600ms after the Done click | Grade a session that returns fast; only the button spinner should appear |
+| Grace delay | No **visible** panel renders for the first 600ms after the Done click (the visually-hidden live region mounts at t=0, empty — that is deliberate, see the Live region row) | Grade a session that returns fast; only the button spinner should appear |
 | Stage schedule | Stage advances at 0 / 2.5s / 6.5s / 12s elapsed | Watch a real slow grade with a stopwatch |
 | Terminal stage | "Writing your feedback…" holds indefinitely; no 5th stage, no "done" state, no percentage | Let a 20s+ grade run to completion |
 | Reveal | The panel vanishes the instant the report renders, whatever stage it was on | Slow grade AND fast grade |
@@ -152,11 +177,20 @@ client timing, no network, no props; mount/unmount is its entire lifecycle.
   `.apollo-finish` band.
 - **Deliberately NOT keyed off `busy`:** the parent raises `busy` for "Start
   over" as well, and the panel must never narrate a grade during a restart.
+  → **EXTENDED BY TASK 5b:** the `grading` prop is no longer the only mount
+  trigger. The panel now mounts on `showGradingPanel = grading || turn.grading`,
+  where `turn.grading` is the stream's own `working(grading)` signal on an
+  **auto-done** turn. Same component, same schedule; test both entry points.
 - UNCHANGED and must be verified as unchanged: the Done button's own spinner
   and "Grading your teaching…" label (still driven by `busy`, including the
   pre-existing quirk that a "Start over" shows that label — see Concerns),
   the coverage meter, `doneWarningText` and the whole Done guard incl. focus
   handling, the composer, Ask Hoot, the echo guard, the transcript.
+  → **SUPERSEDED BY TASK 5b** for the button only: the spinner and label are
+  now keyed on `showGradingPanel`, not `busy`. That deliberately FIXES the
+  "Start over shows Grading your teaching…" quirk recorded above, and also
+  fixes the auto-done case where the button still read "I'm done teaching"
+  through a live grade. Everything else on this line is still unchanged.
 
 ### 2. `app/apollo/ApolloPageClient.tsx` — `grading` state
 - New `grading` state, set alongside `busy` in `handleDone` and cleared in the
@@ -380,6 +414,19 @@ warning/guard, the reveal panel (`reference_text`), and every wire type —
       than clip now that `nowrap` is gone.
 - [ ] **Back-compat:** a pre-band cached payload still shows a band derived
       from `score` — and still no number.
+- [ ] **Long topic label at ≤400px:** the status column went 3rem → 4.5rem to
+      fit the status WORD, and that width came out of the topic-label column.
+      Open a report whose topic `display_name` is long (or force one) at
+      ≤400px: the label must ellipsize or wrap acceptably — it must not clip
+      mid-word, push the status word off-row, or overflow the card. Check the
+      widest word, "Intermediate"/"Partial", in both themes.
+- [ ] **Amber contrast, measured not eyeballed:** `--grade-c-solid` is now the
+      MODAL grade colour (every Intermediate, 50–84, i.e. most results) where
+      it used to be an edge case. On staging, measure the contrast ratio of
+      `.apollo-browse__grade` text against its actual chip background with a
+      contrast picker — light AND dark theme — and record the numbers. Amber
+      on a light surface is the classic AA failure; if it lands under 4.5:1 for
+      body text, that is a real defect, not a nit.
 
 ---
 
@@ -395,7 +442,15 @@ Automated checks that DID run: `npx tsc --noEmit` (clean), `npm run lint`
 (0 errors; the same 4 pre-existing warnings in untouched files),
 `npm run build` (clean, `/api/apollo/sessions/[id]/chat/stream` registered),
 `python scripts/docs/check_owns_coverage.py --check-size` (0 errors) and the
-`--check-last-verified` PR-path gate vs `origin/staging` (0 errors).
+`--check-last-verified` PR-path gate vs `origin/staging` (0 errors). All five
+were re-run after the 2026-08-23 final-review fix wave, with the same results.
+
+**Fix wave (2026-08-23, post-review).** Changes folded in below rather than
+listed separately: the Done button's spinner/label moved from `busy` to
+`showGradingPanel` (the `busy` prop is gone — see the new QA line at the end of
+this section and the SUPERSEDED marker in Task 5a §1), a `if (replied) return`
+guard was added to the stream's reply handler, and this whole file moved from
+the repo root into `docs/_archive/runs/`.
 
 **What changed:** the Apollo teaching turn now streams over SSE by default. The
 blocking `POST .../chat` path is untouched and still fully live behind a flag.
@@ -526,6 +581,15 @@ Content-Type fallback differ. `resp.body` is passed through un-buffered.
       bubble alongside the panel).
 - [ ] **Auto-done, grading failure:** if reachable, confirm reply, then grading
       panel, then error notice — with the reply still on screen afterwards.
+- [ ] **Done button label agrees with the panel (fix wave, 2026-08-23):** the
+      spinner + "Grading your teaching…" now key on the same condition that
+      mounts the staged panel. Verify all three cases: (1) clicked Done —
+      spinner + "Grading your teaching…", as before; (2) **"Start over"** — the
+      button must now read **"I'm done teaching" with NO spinner** (it used to
+      wrongly claim it was grading); (3) **auto-done** — the button must now
+      show the spinner + "Grading your teaching…" while the panel is up (it
+      used to wrongly read "I'm done teaching"). In all three the button stays
+      disabled while the parent is busy.
 - [ ] **Mid-stream disconnect then refresh:** send a turn, then kill the
       network (devtools offline) before the reply lands. Expected: the error
       notice reads "The connection to Apollo dropped mid-turn… reload the page
