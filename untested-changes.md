@@ -380,3 +380,177 @@ warning/guard, the reveal panel (`reference_text`), and every wire type —
       than clip now that `nowrap` is gone.
 - [ ] **Back-compat:** a pre-band cached payload still shows a band derived
       from `score` — and still no number.
+
+---
+
+# Untested changes — Apollo turn streaming (student UI)
+
+Task 5b of the bands+latency build (study-prep design spec B.1; backend event
+contract from Task 4 + the 2026-08-23 contract correction). Same standing rule
+as above: **no test runner in this repo**, so every behavior changed here is
+enumerated with the manual QA that must cover it on staging. Nothing below is
+covered by an automated test.
+
+Automated checks that DID run: `npx tsc --noEmit` (clean), `npm run lint`
+(0 errors; the same 4 pre-existing warnings in untouched files),
+`npm run build` (clean, `/api/apollo/sessions/[id]/chat/stream` registered),
+`python scripts/docs/check_owns_coverage.py --check-size` (0 errors) and the
+`--check-last-verified` PR-path gate vs `origin/staging` (0 errors).
+
+**What changed:** the Apollo teaching turn now streams over SSE by default. The
+blocking `POST .../chat` path is untouched and still fully live behind a flag.
+
+## New modules
+
+**`lib/sse.ts`** — the SSE framing both streaming surfaces share, extracted
+from `app/page.tsx`. Framing only; event vocabulary stays with each caller.
+
+| Behavior | Expected | How to check |
+|---|---|---|
+| Frame split | Events delimited by a blank line; `event: `/`data: ` lines read per frame; multiple data lines joined with a newline | Hoot Q&A still streams token-by-token, identically to `main` |
+| Nameless / data-less frame | Skipped, not yielded | Pre-existing behavior; regression only |
+| Trailing partial frame | **Dropped, never flushed** | Kill the network mid-answer — no half-parsed garbage should reach the transcript |
+| Early exit | Reader cancelled, connection released | Apollo turn: `complete` arrives, connection closes promptly (network panel) |
+
+**`lib/apollo/chatStream.ts`** — `sendChatStreamed(sessionId, message, askHoot?,
+{onWorking, onReply})`. Same args and same resolved `ChatResponse` as
+`sendChat`; throws the same `ApolloApiError` values.
+
+| Behavior | Expected | How to check |
+|---|---|---|
+| Pre-stream HTTP failure | 401/403/404/422 throw `ApolloApiError` exactly as the blocking path does | Expire the token mid-session, then send |
+| In-band `error` frame | `{status, body}` becomes the same `ApolloApiError` the blocking route would raise; the frame-level `message` is used only when `body.message` is missing | Force `session_frozen` (409) via an already-finalized session |
+| Unknown `working` stage | Copy still renders (stage is passed through as a string) | Requires a backend change; reason about it in review |
+| Unknown event name | Ignored, not fatal | Same |
+| `complete` with no payload | Treated as an interrupted stream, not a silent success | Reason about it in review |
+| Stream ends with no terminal event | `ChatStreamInterruptedError` — a plain `Error`, NOT an `ApolloApiError` | Disconnect mid-turn (below) |
+
+**`app/api/apollo/sessions/[id]/chat/stream/route.ts`** — near-copy of the
+blocking `chat` proxy; only the upstream path and the `text/event-stream`
+Content-Type fallback differ. `resp.body` is passed through un-buffered.
+
+## Changed student-visible behavior
+
+### 1. `lib/flags.ts` — turn-streaming kill switch
+- New `APOLLO_TURN_STREAMING_DEFAULT` (env `NEXT_PUBLIC_APOLLO_TURN_STREAMING`,
+  **off-tokens only**, so unset means streaming ON).
+- New `apolloTurnStreamingEnabled()`, read **per send**, with a localStorage
+  override at `hoot.apollo.turn_streaming` (`off`/`on`; anything else falls
+  back to the build default). SSR-safe and safe against a throwing
+  `localStorage`.
+- The override exists because `NEXT_PUBLIC_*` is inlined at build time and
+  Railway is known to skip variable-only redeploys — without it the kill switch
+  would need a rebuild to take effect.
+- `APOLLO_ONLY` is untouched.
+
+### 2. `components/apollo/ApolloChat.tsx` — the send path
+- **Transport branch.** One `await` differs; nothing else. If a reviewer finds
+  turn-state logic duplicated per transport, that is a bug.
+- **In-flight placeholder copy.** Was always the literal "thinking…". Now, on a
+  streamed turn, it shows the backend's `working.message` ("Got it — Apollo is
+  listening.", "Apollo is reading what you taught…", "Apollo is thinking it
+  through…"). It falls back to "thinking…" before the first frame and on the
+  blocking path. The placeholder wrapper already carried `aria-live="polite"`,
+  so each phase now produces an announcement where previously there were none.
+- **Reply renders early.** Apollo's bubble is appended on the `reply` event, and
+  the placeholder disappears at that moment. The settled payload then REPLACES
+  that provisional bubble.
+- **Reference-aside turns visibly re-shape.** The `reply` event carries only
+  `apollo_reply`, so an Ask-Hoot turn briefly shows the resume line as a Hoot
+  card, then swaps to [aside card, plain Apollo bubble] when `complete` lands.
+  On the blocking path both appear at once. The short aside lane makes the gap
+  small, but it IS a new visible transition.
+- **Auto-done.** `working(grading)` after `reply` sets `turn.grading`, which
+  mounts `ApolloGradingProgress` — the same panel a clicked Done mounts, with
+  the same 600ms grace and the same stage schedule. The reply stays readable
+  behind it and the placeholder is suppressed so the wait is narrated once.
+- **Rollback rule changed for one case.** On error the optimistic student turn
+  is still popped — UNLESS the stream already delivered `reply`, in which case
+  both the student turn and Apollo's reply stay on screen with the error notice
+  above them. Rationale: past `reply` the backend owns the turn's final text
+  and commits it server-side even if the client vanishes.
+  - **Known gap:** if the failure lands between `reply` and the reply row's
+    commit, the kept bubble will not survive a refresh. Narrow window, failed
+    turn either way; flagged rather than papered over.
+- **New exports** (no behavior of their own): `ChatMessage`,
+  `apolloTurnMessages(resp, wasAskMode)`.
+- Unchanged and must be verified as unchanged: the echo guard, the Ask Hoot cap
+  and gating, the P2.2 coverage meter, the Done guard and its focus handling,
+  the composer disable rules, and the scroll-to-bottom effect.
+
+### 3. `app/page.tsx` — Hoot Q&A (refactor only, no intended behavior change)
+- The inline SSE loop was replaced by `readSseFrames`. The `status` /
+  `reasoning` / `token` / `answer` / `error` dispatch is byte-identical.
+- One narrow difference: `res.body?.getReader()` became `res.body`, so the
+  "[error] No response stream" branch now triggers on a missing body rather
+  than a missing reader. Same condition in practice.
+
+### 4. `lib/apollo/api.ts` — no call-site behavior change
+- `_handle`'s error branch was extracted to exported `apolloErrorFromBody` +
+  `readErrorBody`; `apolloHeaders` became exported. Same values, one mapping.
+- Micro-change: the fallback message is now trimmed, so a response with an
+  empty `statusText` (HTTP/2) reads "404" rather than "404 " with a trailing
+  space.
+
+## Manual staging QA checklist
+
+- [ ] **Streamed turn, happy path:** send a teaching message with the network
+      panel open. `POST .../chat/stream` returns 200 `text/event-stream`; a
+      phase line appears **under 1s**; the copy advances (listening, reading,
+      thinking); Apollo's reply renders as soon as it is ready; the KG drawer,
+      the covered-topic celebrations and the coverage meter all update exactly
+      as they do on `main`.
+- [ ] **Compare against blocking, same session:** flip the switch off (below),
+      send an equivalent message, and confirm the settled transcript, KG,
+      celebrations and meter are identical — only the wait differs.
+- [ ] **Kill-switch flip mid-session:** with a session open, run
+      `localStorage.setItem('hoot.apollo.turn_streaming','off')` in the console
+      and send again **without reloading** — the request must go to `.../chat`
+      (not `/stream`) and the turn must complete normally with the old
+      "thinking…" placeholder. `removeItem` and send again returns to
+      streaming. Also verify a build with
+      `NEXT_PUBLIC_APOLLO_TURN_STREAMING=0` streams nothing at all.
+- [ ] **Error event surface:** trigger a real in-band failure (e.g. a frozen
+      session, or a concept that hits `coverage_grading_failed`). The SAME
+      `ApolloErrorSurface` copy must appear as on the blocking path, the
+      student turn must be popped (no reply had landed), and the draft/ask-mode
+      state must behave as before. Confirm the HTTP status is **200** and the
+      failure is in-band — a 5xx dashboard will not see it.
+- [ ] **Pre-stream error:** clear the stored token and send. A 401 must surface
+      through the normal error path, not as an interrupted stream.
+- [ ] **Auto-done, reply-then-grading:** say something that triggers the
+      done-intent confirmation, then affirm it. Expected order: Apollo's reply
+      appears, THEN the staged grading panel appears below the composer, THEN
+      the report replaces the chat. The reply must stay readable the whole
+      time, and there must be exactly one narration of the wait (no "thinking…"
+      bubble alongside the panel).
+- [ ] **Auto-done, grading failure:** if reachable, confirm reply, then grading
+      panel, then error notice — with the reply still on screen afterwards.
+- [ ] **Mid-stream disconnect then refresh:** send a turn, then kill the
+      network (devtools offline) before the reply lands. Expected: the error
+      notice reads "The connection to Apollo dropped mid-turn… reload the page
+      to check", and the student turn is popped. Reload with the network back:
+      **both the student turn and Apollo's reply must be there** — the backend
+      finished the turn regardless. Repeat, dropping the network AFTER the
+      reply renders: this time both bubbles stay on screen under the notice,
+      and a reload shows the same two turns (not duplicates).
+- [ ] **Long silent gap:** the ~8-12s unified-question call has no heartbeat.
+      Confirm no intermediary (Railway, the Next proxy) closes the stream —
+      watch one slow turn end to end without a drop.
+- [ ] **Ask Hoot over streaming:** ask a reference question. The resume line
+      may appear before the aside card; confirm the settled state is the normal
+      two-card shape, the citation chips are present, ask-mode exits, and the
+      3-per-session cap still counts correctly.
+- [ ] **Ask Hoot fall-through:** an ask-mode submit that comes back as a plain
+      teaching turn still renders the Hoot-attributed card with no error.
+- [ ] **Echo guard still fires** on a streamed send (the confirm runs before
+      the transport branch).
+- [ ] **Screen reader:** the in-flight placeholder now announces each phase.
+      Confirm one line per advance (not the whole bubble), and that the
+      auto-done grading panel's own live region is not announcing at the same
+      time.
+- [ ] **Hoot Q&A regression:** ask a question on `/` and confirm streaming
+      tokens, the status line, citations and the error path all behave exactly
+      as before the reader extraction.
+- [ ] **Concurrency:** two students (or two browsers) streaming turns in the
+      same class at once — no cross-talk, no stalled stream.
