@@ -1,5 +1,8 @@
 # Untested changes — Apollo band swap (student UI)
 
+> Append-only log for the `feat/apollo-study-bands-latency` branch — one H1
+> section per task, each self-contained. Task 5a is at the bottom.
+
 Study-prep design spec §A.3 (2026-08-18), Task 3 of the bands+latency build.
 
 This repo has **no test runner**. Per the workspace standing rule and the
@@ -100,3 +103,122 @@ Run one full session per band outcome (beginner / intermediate / advanced):
 - [ ] Dark mode on all three surfaces.
 - [ ] Back-compat: with a pre-band backend payload (or a cached one) the
       surfaces still show a band derived from score — and never a letter.
+
+---
+
+# Untested changes — Done staged progress + client perf (student UI)
+
+Study-prep design spec §B.2/§B.3 (2026-08-18), Task 5a of the bands+latency
+build. Same standing rule as above: **no test runner in this repo**, so every
+behavior changed here is enumerated with the manual QA that must cover it on
+staging. Nothing below is covered by an automated test.
+
+Automated checks that DID run: `npx tsc --noEmit` (clean), `npm run lint`
+(0 errors; the same 4 pre-existing warnings in untouched files),
+`npm run build` (clean), `python scripts/docs/check_owns_coverage.py
+--repo-name student-ui --check-size` (0 errors) and the
+`--check-last-verified` PR-path gate vs `origin/staging` (0 errors).
+
+**Out of scope, unchanged:** the Done request itself, its error handling and
+timeout behavior, grading semantics of any kind, the coverage meter, the Done
+warning/guard, and the reveal panel. The turn-send transport is untouched (the
+streaming reader and its kill-switch flag are a separate, later task).
+
+## New module
+
+**`components/apollo/ApolloGradingProgress.tsx`** — the staged Done wait. Pure
+client timing, no network, no props; mount/unmount is its entire lifecycle.
+
+| Behavior | Expected | How to check |
+|---|---|---|
+| Grace delay | Nothing renders for the first 600ms after the Done click | Grade a session that returns fast; only the button spinner should appear |
+| Stage schedule | Stage advances at 0 / 2.5s / 6.5s / 12s elapsed | Watch a real slow grade with a stopwatch |
+| Terminal stage | "Writing your feedback…" holds indefinitely; no 5th stage, no "done" state, no percentage | Let a 20s+ grade run to completion |
+| Reveal | The panel vanishes the instant the report renders, whatever stage it was on | Slow grade AND fast grade |
+| Timer cleanup | No stage text ever appears in a later attempt | Grade → "Try again from scratch" → watch the composer |
+| Live region | Only the *current* stage label is announced, once per advance | Screen reader (NVDA/VoiceOver); the `<ol>` is `aria-hidden` |
+| Reduced motion | The active dot does not pulse | OS "reduce motion" on — covered by the global reset, verify it actually lands |
+
+## Changed student-visible behavior
+
+### 1. `components/apollo/ApolloChat.tsx` — new `grading` prop + panel slot
+- New optional prop `grading?: boolean` (default `false`). When true, renders
+  `<ApolloGradingProgress />` between the Done-guard notice and the
+  `.apollo-finish` band.
+- **Deliberately NOT keyed off `busy`:** the parent raises `busy` for "Start
+  over" as well, and the panel must never narrate a grade during a restart.
+- UNCHANGED and must be verified as unchanged: the Done button's own spinner
+  and "Grading your teaching…" label (still driven by `busy`, including the
+  pre-existing quirk that a "Start over" shows that label — see Concerns),
+  the coverage meter, `doneWarningText` and the whole Done guard incl. focus
+  handling, the composer, Ask Hoot, the echo guard, the transcript.
+
+### 2. `app/apollo/ApolloPageClient.tsx` — `grading` state
+- New `grading` state, set alongside `busy` in `handleDone` and cleared in the
+  same `finally`; also reset on the `?session=` state boundary.
+- No other handler touches it — `handleRetry` / `handleNext` / `handleRestart`
+  / `handleEnd` still only move `busy`.
+- The chat-affirmed-done path (`onDoneFromChat`, where the backend runs
+  `handle_done` inside the chat response) does **not** raise `grading`; that
+  wait still shows the normal "thinking…" turn placeholder. Unchanged from
+  before, but worth knowing when QA'ing.
+
+### 3. `app/apollo/ApolloPageClient.tsx` — parallel session load
+- `getSessionState` and `getStudentProgressDetailed` now start together
+  instead of the progress call waiting inside the session-state `.then`.
+- Error semantics preserved **per call** and deliberately not `Promise.all`:
+  each promise keeps its own handler, so a failing progress fetch cannot
+  reach the session-state error path and vice versa.
+- **Behavior delta:** when the session-state fetch *fails*, the progress
+  request is now still issued (previously it was never reached). It is a
+  read-only course-scoped GET whose result is dropped on that path — no user
+  visible effect, one extra request on an error that already ends the screen.
+- The `classId`-absent skip is unchanged: no progress request at all.
+- `cancelled`-flag guarding is unchanged on both paths.
+
+### 4. `components/MathMarkdown.tsx` — `React.memo`
+- Default export is now `memo(MathMarkdown)`. No API change: same single
+  `children: string` prop, same output, same `normalizeMath` behavior, and
+  `normalizeMath` is still exported unchanged.
+- Effect: a long KaTeX-heavy scrollback is no longer re-parsed on every
+  keystroke in the composer.
+- Risk to watch: memoization means a call site that mutates a string in place
+  (impossible for JS strings) or relies on a re-render for side effects would
+  break. No call site does either — all 12 pass one expression child that
+  evaluates to a string.
+
+### 5. `app/globals.css`
+- New `.apollo-grading`, `__stages`, `__stage[data-state]`, `__dot`,
+  `__note`, `__live` rules and the `apolloGradingPulse` keyframe. Additive
+  only — no existing rule was edited, so nothing else can shift.
+
+## Manual staging QA checklist (spec §A.5)
+
+- [ ] **Slow grade:** click Done on a full session; the panel appears after a
+      beat and walks Reading → Checking → Scoring → Writing without ever
+      showing a completed/100% state, then is replaced by the report.
+- [ ] **Fast grade:** contrive a short session (or a cached/fast grade); a
+      sub-2s grade must show at most the first stage — no strobe through
+      labels — and a sub-0.6s grade must show no panel at all.
+- [ ] **Failure path:** force the Done request to fail (offline the tab
+      mid-grade); the panel disappears, `ApolloErrorSurface` shows the same
+      copy as before, and the Done button becomes clickable again.
+- [ ] **Restart:** click "Start over" from the top bar — the grading panel
+      must NOT appear.
+- [ ] **Retry after a grade:** report → "Try again from scratch" → no stale
+      stage text anywhere.
+- [ ] **Narrow viewport (≤400px):** the panel stacks above the finish band and
+      does not push the Done button off screen.
+- [ ] **Dark mode** on the panel.
+- [ ] **Screen reader:** each stage announced once; the visual list silent.
+- [ ] **Reduced motion:** no dot pulse.
+- [ ] **Typing latency:** open a long, KaTeX-heavy session (20+ turns with
+      equations) and type a paragraph into the composer — keystrokes should
+      feel immediate. Compare against `main` on the same session if possible;
+      this is the whole point of the memo.
+- [ ] **Session load:** open a session deep link with the network panel open —
+      `GET .../sessions/{id}` and `GET .../progress` must overlap, not stack.
+      Confirm the greeting/avatar level still renders correctly.
+- [ ] **Session load, error path:** open a session id that 404s — the error
+      surface renders as before (the extra progress request in flight must not
+      change what is shown).
