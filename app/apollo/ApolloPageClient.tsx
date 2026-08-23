@@ -116,26 +116,37 @@ export default function ApolloPageClient() {
     celebrationTimersRef.current.forEach(clearTimeout);
     celebrationTimersRef.current = [];
 
-    getSessionState(sessionId)
+    // Both requests are fired here, in PARALLEL. They used to be a waterfall
+    // (progress was requested inside the session-state `.then`), which cost a
+    // full extra round-trip of session-open latency for no reason: the two
+    // endpoints are independent and neither reads the other's result.
+    //
+    // Deliberately NOT `Promise.all`: each request keeps its own handler, so
+    // one failing can never mask or short-circuit the other's handling — the
+    // session state still surfaces its error, and progress still fails silent.
+    const sessionRequest = getSessionState(sessionId);
+    // Progress feeds the greeting + avatar level. Non-blocking; errors fall
+    // back silently (greeting renders level 1 defaults). Course-scoped
+    // endpoint — skipped entirely without a class id, as before.
+    const progressRequest = classId ? getStudentProgressDetailed(classId) : null;
+
+    sessionRequest
       .then((s) => {
         if (cancelled) return;
         setState(s);
         setLoadedSessionId(sessionId);
         setKg(s.kg);
-        // Fetch progress for the greeting + avatar level. Non-blocking;
-        // errors fall back silently (greeting renders level 1 defaults).
-        // Course-scoped endpoint — skip entirely without a class id.
-        if (!classId) return;
-        getStudentProgressDetailed(classId)
-          .then((nextProgress) => {
-            if (!cancelled) setProgress(nextProgress);
-          })
-          .catch(() => {
-            if (!cancelled) setProgress(null);
-          });
       })
       .catch((e) => {
         if (!cancelled) setError(e as Error);
+      });
+
+    progressRequest
+      ?.then((nextProgress) => {
+        if (!cancelled) setProgress(nextProgress);
+      })
+      .catch(() => {
+        if (!cancelled) setProgress(null);
       });
 
     return () => {

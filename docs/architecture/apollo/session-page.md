@@ -34,7 +34,11 @@ metadata — the card then renders without chips). Also forwards `state.ask_hoot
 `.apollo-kg-drawer` toggled by the top-bar "Understanding" action),
 `ApolloCoverageCelebrations`, `ApolloErrorSurface`. A non-blocking
 `getStudentProgressDetailed(classId)` feeds the avatar level (skipped without a
-class id).
+class id); since 2026-08-23 it is fired **in parallel** with `getSessionState`
+rather than inside its `.then` — each keeps its own handler (session error →
+`ApolloErrorSurface`; progress error → silent `setProgress(null)`), so neither
+can mask the other. Do not fold them into a `Promise.all`: a rejected progress
+fetch would then take the session state's error path with it.
 
 Done path: "I'm done teaching" → `finishTeaching(sessionId)` **or** chat-detected
 `intent_executed` (`onDoneFromChat`) → swaps chat for `ApolloReportPanel` and
