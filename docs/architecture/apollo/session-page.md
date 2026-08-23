@@ -67,11 +67,14 @@ without a class id). Top-bar "Start over" → `restartProblem` behind a
   fresh-attempt path reachable with no report on screen) left the chat mounted
   and holding the previous attempt's transcript and P2.2 coverage meter —
   `initialMessages` seeds `useState` once and never resyncs.
-- Passes both `disabled` and `busy` to `ApolloChat` as its own `busy` — which
-  "Start over" raises as well, so a **separate** `grading` flag (set only around
-  `finishTeaching`, cleared in the same `finally`, and reset on the session
-  boundary) drives the staged wait panel: `busy` would narrate a grade during a
-  restart. Also passes `initialCoverage={readGradedCoverage(state)}` — the
+- Passes `busy` to `ApolloChat` as `disabled` only — it is raised by "Start
+  over" as well, so it gates input and nothing else. A **separate** `grading`
+  flag (set only around `finishTeaching`, cleared in the same `finally`, and
+  reset on the session boundary) is what the chat treats as "a grade is
+  running", driving both the staged wait panel and the Done button's
+  spinner/label: `busy` would narrate a grade during a restart. The chat ORs it
+  with its own auto-done signal, so the parent is authoritative for a clicked
+  Done only — don't re-add a `busy` prop to close that gap. Also passes `initialCoverage={readGradedCoverage(state)}` — the
   session snapshot's graded-topic counts, reusing the chat's own reader so the
   P2.2 meter and Done guard survive a reload/resume instead of reappearing only
   after the next turn.

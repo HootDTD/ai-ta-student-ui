@@ -83,6 +83,13 @@ export default function ApolloGradingProgress() {
       <p className="apollo-grading__live" role="status" aria-live="polite">
         {active ? active.label : ""}
       </p>
+      {/*
+        `data-stage` below styles nothing — it is deliberately kept as the
+        QA/automation hook. This repo has no test runner, the stage list is
+        aria-hidden, and the schedule is verified by stopwatch, so it is the
+        only stable programmatic handle on "which stage is active now". Keep
+        it in sync with GRADING_STAGES[].id; don't drop it as dead markup.
+      */}
       {active && (
         <div className="notice apollo-grading" data-stage={active.id}>
           <span className="eyebrow">Grading in progress</span>

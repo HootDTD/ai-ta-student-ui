@@ -86,13 +86,13 @@ interface Props {
   // backend that doesn't serve the counts on the snapshot) ⇒ pre-P2.2
   // behavior — no meter, unguarded Done — until a chat response reports them.
   initialCoverage?: GradedCoverage | null;
+  // Raised by the parent for ANY in-flight session action — a Done grade or a
+  // "Start over" — and used only to gate input.
   disabled?: boolean;
-  // True while the parent is processing the "I'm done teaching" click
-  // (awaiting finishTeaching); drives the button's loading state.
-  busy?: boolean;
-  // True ONLY while a Done grade is in flight — narrower than `busy`, which
-  // the parent also raises for "Start over". Drives the staged-progress panel,
-  // which must never appear for a restart.
+  // True ONLY while a CLICKED Done grade is in flight; never raised for
+  // "Start over". Together with the stream's own auto-done signal it drives
+  // both the staged-progress panel and the Done button's loading state, so the
+  // two can never disagree about whether a grade is running.
   grading?: boolean;
 }
 
@@ -174,7 +174,6 @@ export default function ApolloChat({
   onDoneFromChat,
   initialCoverage = null,
   disabled,
-  busy,
   grading = false,
 }: Props) {
   const [messages, setMessages] = useState(initialMessages);
@@ -312,6 +311,13 @@ export default function ApolloChat({
                 t ? { ...t, note, grading: t.grading || stage === GRADING_STAGE } : t,
               ),
             onReply: (text) => {
+              // Guard, not an assertion: the contract says exactly one `reply`
+              // precedes the terminal event, but a second one would append a
+              // second provisional bubble while the settle path only ever
+              // slices ONE off — decapitating the turn before it. Ignore any
+              // repeat rather than let a backend regression corrupt the
+              // transcript.
+              if (replied) return;
               replied = true;
               // Apollo's text is final at this point, so it goes into the
               // transcript immediately — on an auto-done turn the student
@@ -363,6 +369,14 @@ export default function ApolloChat({
       // has the turn's final text and finishes it server-side even if the
       // connection died, so tearing a reply the student already read back off
       // the screen would be the dishonest option, not the safe one.
+      //
+      // `replied` is the RIGHT key for that rule, and the ordering is what
+      // makes it right: backend `chat.py` emits the reply phase (916), then
+      // persists the reply row (918 → `_persist_apollo_reply`, 322), and only
+      // then can any later failure raise an in-band `error` frame. So a reply
+      // the student has seen is already durable, and an error arriving after
+      // it does not un-persist the turn. Do not "fix" this to roll back
+      // unconditionally — that would delete a turn a refresh will show.
       if (!replied) setMessages((m) => m.slice(0, -1));
     } finally {
       setSending(false);
@@ -614,8 +628,16 @@ export default function ApolloChat({
             type="button"
             className="ui-button ui-button--done"
           >
-            {busy && <span className="ui-button__spinner" aria-hidden />}
-            {busy ? "Grading your teaching…" : "I'm done teaching"}
+            {/* Keyed on `showGradingPanel`, NOT `busy`. `busy` is also raised
+                by "Start over", which made the button claim "Grading your
+                teaching…" during a restart; and it is NOT raised by an
+                auto-done, which left it reading "I'm done teaching" while a
+                grade was actually running. The same condition that mounts the
+                staged panel is the honest one for this label — the button and
+                the panel now always agree about whether a grade is in
+                flight. */}
+            {showGradingPanel && <span className="ui-button__spinner" aria-hidden />}
+            {showGradingPanel ? "Grading your teaching…" : "I'm done teaching"}
           </button>
         </div>
       </div>

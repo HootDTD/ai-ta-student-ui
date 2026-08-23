@@ -10,12 +10,12 @@ stub: false
 
 # ApolloChat
 
-Apollo teaching conversation + composer (~300 lines).
+Apollo teaching conversation + composer (624 lines).
 
 ## Interface
 default `ApolloChat({sessionId, initialMessages:ChatMessage[], onKgUpdate(kg),
 onCoverageSnapshot(topics), onDoneClicked(), onDoneFromChat?(result:DoneResponse),
-initialCoverage?:GradedCoverage|null, disabled?, busy?, grading?})`. `ChatMessage = {role, content,
+initialCoverage?:GradedCoverage|null, disabled?, grading?})`. `ChatMessage = {role, content,
 intent?, aside?:ChatAside}` (exported). Owns local `messages`/`draft`/`sending`/
 `error`/`askMode`/`asideCount`/`coverage`/`confirmingDone`/`turn`. Also exports `GradedCoverage`
 and four pure helpers (exported so they can be unit-tested the day a runner lands, and so the
@@ -128,8 +128,8 @@ Composer: `SpecialCharsPalette` insert, then `.apollo-chat__send-row` (space-bet
 affordance/status left, Send right — "Sending…"/"Ask" while sending or in ask-mode), then the
 full-width `.apollo-finish` band (the session's one loud affordance: solid success-green
 `.ui-button--done` "I'm done teaching" → `handleDoneClick` → `onDoneClicked`; `.ui-button__spinner`
-+ "Grading your teaching…" while `busy`), preceded by the Done-guard notice when one is pending
-and, while `showGradingPanel`, by `ApolloGradingProgress`.
++ "Grading your teaching…" while `showGradingPanel`), preceded by the Done-guard notice when
+pending and, while `showGradingPanel`, by `ApolloGradingProgress`.
 
 ## Invariants & gotchas
 - Both roles render `content` through shared `MathMarkdown` (`.prose.md-body`).
@@ -144,16 +144,16 @@ and, while `showGradingPanel`, by `ApolloGradingProgress`.
   the turn's final text and finishes it server-side even if the connection dies, so tearing a reply
   the student already read off the screen is the dishonest option. Pre-`reply` failures still roll
   back, byte-identical to the blocking path.
-- `ApolloPageClient` passes both `disabled` and `busy` as its own `busy` — raised by "Start over"
-  too, not only Done — so the staged grading panel is gated on `grading || turn.grading`, never
-  `busy`; don't collapse them.
+- **`showGradingPanel` is the single "a grade is running" signal** — staged panel AND the Done
+  button's spinner/label both read it. There is no `busy` prop; `ApolloPageClient`'s `busy` (raised
+  by "Start over" too) arrives only as `disabled`. Keying the label off it again re-introduces both
+  bugs it had: "Grading your teaching…" during a restart, "I'm done teaching" through auto-done.
 - The Done guard **warns, never blocks** — a student who wants an early grade is always one click
   away ("Grade anyway"). Don't turn it into a hard gate — and don't make the Done button itself the
   second click either, that is exactly the double-click bypass the disabled state exists to close.
 
 ## Related
 - [api-client.md](api-client.md), [echo-guard.md](echo-guard.md), [error-surface.md](error-surface.md),
-  [feature-flags.md](../shell/feature-flags.md), [sse-reader.md](../shell/sse-reader.md),
   [grading-progress.md](grading-progress.md), [session-page.md](session-page.md),
-  [math-markdown.md](../shared-ui/math-markdown.md), [entry-chrome.md](../shared-ui/entry-chrome.md),
-  [special-chars-palette.md](../shared-ui/special-chars-palette.md).
+  [feature-flags.md](../shell/feature-flags.md), [sse-reader.md](../shell/sse-reader.md),
+  [math-markdown.md](../shared-ui/math-markdown.md), [entry-chrome.md](../shared-ui/entry-chrome.md), [special-chars-palette.md](../shared-ui/special-chars-palette.md).

@@ -24,7 +24,8 @@ spec B.2, 2026-08-23). Grading blocks 6-20s; the old UI was a bare spinner.
 ## Data flow
 Client-only: it never calls the backend and never sees the `DoneResponse`. One
 `setTimeout` per stage is armed on mount at `max(stage.atMs,
-GRADING_PANEL_DELAY_MS)` and fires `setStage(i)` — four timers, four renders,
+GRADING_PANEL_DELAY_MS)` and fires `setStage(i)` — four timers, five renders
+(the t=0 mount of the empty live region, then one per stage),
 deliberately not a 250ms elapsed-time ticker (~80 renders over a long grade).
 
 Schedule, shaped to the measured `POST /done` spread (p50 ~8s, tail past 20s):
@@ -38,7 +39,12 @@ Markup is a fragment of two siblings. First, the visually-hidden
 `.notice.apollo-grading` shell above `.apollo-finish`: `.eyebrow` label, an
 `aria-hidden` `<ol class="apollo-grading__stages">` whose rows carry
 `data-state="past|active|upcoming"`, and `.apollo-grading__note` ("Usually
-10–20 seconds…"). The panel carries no ARIA role at all.
+10–20 seconds…"). The panel carries no ARIA role at all, and its
+`data-stage={active.id}` styles nothing — it is deliberately kept as the
+**QA/automation hook**: with no test runner in this repo and the stage `<ol>`
+`aria-hidden`, it is the only stable programmatic handle on which stage is
+active. Keep it in sync with `GRADING_STAGES[].id`; don't remove it as dead
+markup.
 
 ## Invariants & gotchas
 - **Never claims completion.** Labels stay present-progressive, a passed row
