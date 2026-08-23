@@ -423,7 +423,7 @@ from `app/page.tsx`. Framing only; event vocabulary stays with each caller.
 | Unknown `working` stage | Copy still renders (stage is passed through as a string) | Requires a backend change; reason about it in review |
 | Unknown event name | Ignored, not fatal | Same |
 | `complete` with no payload | Treated as an interrupted stream, not a silent success | Reason about it in review |
-| Stream ends with no terminal event | `ChatStreamInterruptedError` — a plain `Error`, NOT an `ApolloApiError` | Disconnect mid-turn (below) |
+| No terminal event arrives | `ChatStreamInterruptedError` — a plain `Error`, NOT an `ApolloApiError`. Covers BOTH a stream that ends without one and a read that rejects outright (offline tab, cut proxy); the raw network error is kept as `cause`, never shown | Disconnect mid-turn (below) |
 
 **`app/api/apollo/sessions/[id]/chat/stream/route.ts`** — near-copy of the
 blocking `chat` proxy; only the upstream path and the `text/event-stream`

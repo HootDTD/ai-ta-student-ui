@@ -107,10 +107,12 @@ before 2026-08-23) for `chatStream.ts` only.
 failures (401/403/404/422) go through `apolloErrorFromBody` directly, and an in-band `error` frame
 carries the status and error JSON the blocking route WOULD have returned, so it goes through the
 same factory — one mapping, no parallel copy that can drift. Its one distinct failure is
-`ChatStreamInterruptedError` (a plain `Error`, not an `ApolloApiError`): the stream ended with no
-terminal event, i.e. the connection dropped. Its `replyReleased` flag records whether Apollo's text
-had already reached the student, which is what lets the caller decide between rolling the turn back
-and keeping it ([chat.md](chat.md)).
+`ChatStreamInterruptedError` (a plain `Error`, not an `ApolloApiError`): no terminal event arrived
+— either the stream ended without one or the read itself rejected (offline tab, cut proxy). Both
+shapes convert to that single error, so a student never sees a raw "Failed to fetch"; the original
+is kept as its `cause`. Its `replyReleased` flag records whether Apollo's text had already reached
+the student, which is what lets the caller decide between rolling the turn back and keeping it
+([chat.md](chat.md)).
 
 ## Invariants & gotchas
 - Comment policy at top: the UI renders each error code explicitly, **NO FALLBACKS** (see

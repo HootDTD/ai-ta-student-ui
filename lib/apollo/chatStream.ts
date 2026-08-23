@@ -26,7 +26,13 @@
 // Exactly one terminal event ends every stream; a stream that ends without
 // one is a transport-level drop, not a turn outcome.
 
-import { apolloErrorFromBody, apolloHeaders, readErrorBody, type ChatResponse } from "./api";
+import {
+  ApolloApiError,
+  apolloErrorFromBody,
+  apolloHeaders,
+  readErrorBody,
+  type ChatResponse,
+} from "./api";
 import { readSseFrames } from "@/lib/sse";
 
 /** Closed vocabulary at time of writing; consumers must tolerate additions. */
@@ -61,13 +67,16 @@ export interface ChatStreamHandlers {
 export class ChatStreamInterruptedError extends Error {
   readonly replyReleased: boolean;
 
-  constructor(replyReleased: boolean) {
+  constructor(replyReleased: boolean, cause?: unknown) {
     super(
       replyReleased
         ? "The connection dropped while Apollo was finishing this turn. Apollo " +
             "kept what you taught it — reload the page to see the rest."
         : "The connection to Apollo dropped mid-turn. Apollo may still have " +
             "saved this turn — reload the page to check before retyping it.",
+      // The underlying network error is kept for diagnostics but never shown:
+      // "Failed to fetch" tells a student nothing actionable.
+      cause === undefined ? undefined : { cause },
     );
     this.name = "ChatStreamInterruptedError";
     this.replyReleased = replyReleased;
@@ -106,57 +115,70 @@ export async function sendChatStreamed(
 
   let replyReleased = false;
 
-  for await (const frame of readSseFrames(res.body)) {
-    let payload: Record<string, unknown>;
-    try {
-      payload = asRecord(JSON.parse(frame.data));
-    } catch {
-      continue; // Malformed data line — skip it, same as Hoot's reader.
-    }
+  // A transport-level failure (the tab goes offline, the proxy cuts the
+  // connection) rejects the read rather than ending the stream. Both shapes
+  // mean the same thing to a student — no terminal event arrived — so both
+  // become the same honest error instead of surfacing "Failed to fetch".
+  try {
+    for await (const frame of readSseFrames(res.body)) {
+      let payload: Record<string, unknown>;
+      try {
+        payload = asRecord(JSON.parse(frame.data));
+      } catch {
+        continue; // Malformed data line — skip it, same as Hoot's reader.
+      }
 
-    switch (frame.event) {
-      case "received":
-        // Proof of life only. The very next frame is working(accepted), which
-        // carries the copy, so there is nothing to render here.
-        break;
-      case "working": {
-        const stage = payload.stage;
-        const copy = payload.message;
-        if (typeof stage === "string" && typeof copy === "string") {
-          handlers.onWorking?.(stage, copy);
+      switch (frame.event) {
+        case "received":
+          // Proof of life only. The very next frame is working(accepted), which
+          // carries the copy, so there is nothing to render here.
+          break;
+        case "working": {
+          const stage = payload.stage;
+          const copy = payload.message;
+          if (typeof stage === "string" && typeof copy === "string") {
+            handlers.onWorking?.(stage, copy);
+          }
+          break;
         }
-        break;
-      }
-      case "reply": {
-        const text = payload.apollo_reply;
-        if (typeof text === "string") {
-          replyReleased = true;
-          handlers.onReply?.(text);
+        case "reply": {
+          const text = payload.apollo_reply;
+          if (typeof text === "string") {
+            replyReleased = true;
+            handlers.onReply?.(text);
+          }
+          break;
         }
-        break;
-      }
-      case "complete": {
-        const body = payload.payload;
-        if (body && typeof body === "object") return body as ChatResponse;
-        // Terminal frame with no payload: nothing to reconcile from.
-        throw new ChatStreamInterruptedError(replyReleased);
-      }
-      case "error": {
-        const status = typeof payload.status === "number" ? payload.status : 500;
-        // `body` is the blocking route's own error JSON. The frame also
-        // carries a top-level `message` mirroring `body.message`; use it only
-        // as a fallback so a body without one still produces readable copy.
-        const body = { ...asRecord(payload.body) };
-        if (typeof body.message !== "string" && typeof payload.message === "string") {
-          body.message = payload.message;
+        case "complete": {
+          const body = payload.payload;
+          if (body && typeof body === "object") return body as ChatResponse;
+          // Terminal frame with no payload: nothing to reconcile from.
+          throw new ChatStreamInterruptedError(replyReleased);
         }
-        // No statusText: this status came from the frame, not from `res`
-        // (whose statusText is the stream's own "OK").
-        throw apolloErrorFromBody(body, status);
+        case "error": {
+          const status = typeof payload.status === "number" ? payload.status : 500;
+          // `body` is the blocking route's own error JSON. The frame also
+          // carries a top-level `message` mirroring `body.message`; use it only
+          // as a fallback so a body without one still produces readable copy.
+          const body = { ...asRecord(payload.body) };
+          if (typeof body.message !== "string" && typeof payload.message === "string") {
+            body.message = payload.message;
+          }
+          // No statusText: this status came from the frame, not from `res`
+          // (whose statusText is the stream's own "OK").
+          throw apolloErrorFromBody(body, status);
+        }
+        default:
+          break; // Forward-compatible: an unknown event is ignored, not fatal.
       }
-      default:
-        break; // Forward-compatible: an unknown event is ignored, not fatal.
     }
+  } catch (err) {
+    // An in-band `error` frame is a TURN outcome, not a transport failure —
+    // it must reach the caller as the ApolloApiError the blocking route
+    // would have thrown.
+    if (err instanceof ApolloApiError) throw err;
+    if (err instanceof ChatStreamInterruptedError) throw err;
+    throw new ChatStreamInterruptedError(replyReleased, err);
   }
 
   throw new ChatStreamInterruptedError(replyReleased);
