@@ -54,6 +54,7 @@
     "components/apollo/ApolloChat.tsx": "apollo/chat",
     "components/apollo/ApolloCoverageCelebrations.tsx": "apollo/coverage-celebrations",
     "components/apollo/ApolloErrorSurface.tsx": "apollo/error-surface",
+    "components/apollo/ApolloGradingProgress.tsx": "apollo/grading-progress",
     "components/apollo/ApolloKGPanel.tsx": "apollo/kg-panel",
     "components/apollo/ApolloProblemPanel.tsx": "apollo/problem-panel",
     "components/apollo/ApolloProgressCard.tsx": "apollo/progress-card",
@@ -128,6 +129,14 @@
       "description": "ApolloErrorSurface",
       "owns": [
         "components/apollo/ApolloErrorSurface.tsx"
+      ]
+    },
+    "apollo/grading-progress": {
+      "path": "docs/architecture/apollo/grading-progress.md",
+      "kind": "leaf",
+      "description": "ApolloGradingProgress staged Done wait",
+      "owns": [
+        "components/apollo/ApolloGradingProgress.tsx"
       ]
     },
     "apollo/kg-entry-cards": {
@@ -407,6 +416,7 @@
         "apollo/chat",
         "apollo/coverage-celebrations",
         "apollo/error-surface",
+        "apollo/grading-progress",
         "apollo/kg-entry-cards",
         "apollo/kg-entry-pill",
         "apollo/kg-panel",

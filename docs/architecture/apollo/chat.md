@@ -4,8 +4,8 @@ description: ApolloChat
 owns:
   - components/apollo/ApolloChat.tsx
   - components/apollo/echoGuard.ts
-related: [apollo/api-client, apollo/error-surface, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
-last_verified: 2026-08-10
+related: [apollo/api-client, apollo/error-surface, apollo/grading-progress, apollo/session-page, shared-ui/math-markdown, shared-ui/special-chars-palette, shared-ui/entry-chrome, shared-ui/citation-chip]
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -16,7 +16,7 @@ Apollo teaching conversation + composer (~250 lines).
 ## Interface
 default `ApolloChat({sessionId, initialMessages:ChatMessage[], onKgUpdate(kg),
 onCoverageSnapshot(topics), onDoneClicked(), onDoneFromChat?(result:DoneResponse),
-initialCoverage?:GradedCoverage|null, disabled?, busy?})`.
+initialCoverage?:GradedCoverage|null, disabled?, busy?, grading?})`.
 `ChatMessage = {role, content, intent?, aside?:ChatAside}`. Owns local
 `messages`/`draft`/`sending`/`error`/`askMode`/`asideCount`/`coverage`/
 `confirmingDone`. Also exports the `GradedCoverage` type and three pure helpers
@@ -133,7 +133,9 @@ on the left, Send on the right — "Sending…"/"Ask" while sending or in ask-mo
 then the full-width `.apollo-finish` band (the session's one loud affordance: solid
 success-green `.ui-button--done` "I'm done teaching" → `handleDoneClick` →
 `onDoneClicked`; shows `.ui-button__spinner` + "Grading your teaching…" while
-`busy`), preceded by the Done-guard notice when one is pending.
+`busy`), preceded by the Done-guard notice when one is pending and, while
+`grading`, by `ApolloGradingProgress` — the staged 6-20s Done wait
+([grading-progress.md](grading-progress.md)), mounted only for the request.
 
 ## Invariants & gotchas
 - Both roles render `content` through shared `MathMarkdown` (`.prose.md-body`).
@@ -142,8 +144,9 @@ success-green `.ui-button--done` "I'm done teaching" → `handleDoneClick` →
   Hoot back into the Apollo styling — the split is the product requirement.
 - Per-turn owl (`ApolloAvatar`, `/thinking.mp4`) takes a `thinking` prop — only
   the in-flight placeholder animates; settled turns hold a paused first frame.
-- `ApolloPageClient` passes both `disabled` and `busy` as its own `busy` (true
-  only for the Done click).
+- `ApolloPageClient` passes both `disabled` and `busy` as its own `busy` — raised
+  by "Start over" too, not only Done — so the staged grading panel is gated on
+  the separate `grading` prop instead; don't collapse the two.
 - The Done guard **warns, never blocks** — a student who wants an early grade
   is always one click away from it ("Grade anyway"). Don't turn it into a hard
   gate — and don't make the Done button itself the second click either, that

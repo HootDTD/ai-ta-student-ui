@@ -3,7 +3,7 @@ doc: apollo/_index
 description: Apollo student session UI router
 owns: []
 related: []
-last_verified: 2026-07-25
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -21,6 +21,7 @@ every component.
 | [top-bar.md](top-bar.md) | ApolloTopBar chrome + class switcher |
 | [browse.md](browse.md) | ApolloBrowse + ApolloSidebar picker |
 | [chat.md](chat.md) | ApolloChat conversation + composer |
+| [grading-progress.md](grading-progress.md) | ApolloGradingProgress staged Done wait |
 | [kg-panel.md](kg-panel.md) | ApolloKGPanel open-learner-model |
 | [kg-entry-pill.md](kg-entry-pill.md) | KGEntryPill P3 negotiation wrapper |
 | [kg-entry-cards.md](kg-entry-cards.md) | Dispute + Paraphrase + Trace cards |

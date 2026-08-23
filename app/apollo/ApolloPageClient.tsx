@@ -44,6 +44,10 @@ export default function ApolloPageClient() {
   const [progress, setProgress] = useState<StudentProgress | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
+  // Narrower than `busy`: true only while a Done grade is in flight. `busy` is
+  // also raised by "Start over" (reachable with the chat on screen), and the
+  // chat's staged grading panel must not appear for that.
+  const [grading, setGrading] = useState(false);
   const [celebrations, setCelebrations] = useState<CoverageCelebration[]>([]);
   // The lasting checklist: every covered topic stays here for the whole
   // attempt, one row per concept. `celebrations` is only the transient pop.
@@ -103,6 +107,7 @@ export default function ApolloPageClient() {
     setProgress(null);
     setError(null);
     setBusy(false);
+    setGrading(false);
     setKgOpen(false);
     setCelebrations([]);
     setCoveredTopics([]);
@@ -160,6 +165,7 @@ export default function ApolloPageClient() {
   async function handleDone() {
     if (!sessionId) return;
     setBusy(true);
+    setGrading(true);
     setError(null);
     try {
       const r = await finishTeaching(sessionId);
@@ -168,6 +174,7 @@ export default function ApolloPageClient() {
       setError(e as Error);
     } finally {
       setBusy(false);
+      setGrading(false);
     }
   }
 
@@ -447,6 +454,7 @@ export default function ApolloPageClient() {
             onDoneFromChat={(result) => setReport(result)}
             disabled={busy}
             busy={busy}
+            grading={grading}
           />
         )}
       </main>

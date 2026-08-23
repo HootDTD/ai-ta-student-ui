@@ -9,6 +9,7 @@ import OwlVideo from "@/components/OwlVideo";
 import MathMarkdown from "@/components/MathMarkdown";
 import { CitationChip } from "@/components/CitationChip";
 import ApolloErrorSurface from "./ApolloErrorSurface";
+import ApolloGradingProgress from "./ApolloGradingProgress";
 import { isEchoOfApolloTurn } from "./echoGuard";
 
 // A chat turn. `intent`/`aside` are only ever set on apollo-role turns:
@@ -51,6 +52,10 @@ interface Props {
   // True while the parent is processing the "I'm done teaching" click
   // (awaiting finishTeaching); drives the button's loading state.
   busy?: boolean;
+  // True ONLY while a Done grade is in flight — narrower than `busy`, which
+  // the parent also raises for "Start over". Drives the staged-progress panel,
+  // which must never appear for a restart.
+  grading?: boolean;
 }
 
 // P2.2 pre-Done coverage. Both counts come from the chat response; the meter
@@ -132,6 +137,7 @@ export default function ApolloChat({
   initialCoverage = null,
   disabled,
   busy,
+  grading = false,
 }: Props) {
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
@@ -474,6 +480,13 @@ export default function ApolloChat({
             </div>
           </div>
         )}
+
+        {/* Staged progress for the 6-20s grade. Mounted only while the Done
+            request is actually in flight, so its own timers start and stop
+            with the request; the reveal is this unmounting when the parent
+            swaps in the report. Nothing below changes — the Done button keeps
+            its spinner and label, and the meter/guard are untouched. */}
+        {grading && <ApolloGradingProgress />}
 
         <div className="apollo-finish">
           <div className="apollo-finish__copy">

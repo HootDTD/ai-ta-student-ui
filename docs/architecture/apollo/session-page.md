@@ -4,8 +4,8 @@ description: page.tsx + ApolloPageClient.tsx
 owns:
   - app/apollo/page.tsx
   - app/apollo/ApolloPageClient.tsx
-related: [apollo/api-client, apollo/chat, apollo/kg-panel, apollo/problem-panel, apollo/report-panel, apollo/coverage-celebrations, apollo/error-surface, apollo/top-bar, shell/feature-flags]
-last_verified: 2026-08-07
+related: [apollo/api-client, apollo/chat, apollo/grading-progress, apollo/kg-panel, apollo/problem-panel, apollo/report-panel, apollo/coverage-celebrations, apollo/error-surface, apollo/top-bar, shell/feature-flags]
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -63,11 +63,14 @@ without a class id). Top-bar "Start over" → `restartProblem` behind a
   fresh-attempt path reachable with no report on screen) left the chat mounted
   and holding the previous attempt's transcript and P2.2 coverage meter —
   `initialMessages` seeds `useState` once and never resyncs.
-- Passes both `disabled` and `busy` to `ApolloChat` as its own `busy`, which is
-  true only during the Done click, plus `initialCoverage={readGradedCoverage(
-  state)}` — the session snapshot's graded-topic counts, reusing the chat's own
-  reader so the P2.2 meter and Done guard survive a reload/resume instead of
-  reappearing only after the next turn.
+- Passes both `disabled` and `busy` to `ApolloChat` as its own `busy` — which
+  "Start over" raises as well, so a **separate** `grading` flag (set only around
+  `finishTeaching`, cleared in the same `finally`, and reset on the session
+  boundary) drives the staged wait panel: `busy` would narrate a grade during a
+  restart. Also passes `initialCoverage={readGradedCoverage(state)}` — the
+  session snapshot's graded-topic counts, reusing the chat's own reader so the
+  P2.2 meter and Done guard survive a reload/resume instead of reappearing only
+  after the next turn.
 - Sets `data-apollo-level={level}` on `<main>` for CSS avatar theming.
 - `state.phase` exists on the payload but is **not** branched on — view selection
   is report-state vs `status==='ended'`.

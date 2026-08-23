@@ -63,6 +63,16 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `.apollo-scorecard__letter` — same serif at 1.25rem (down from 1.5rem: a word,
   not a glyph) plus `white-space: nowrap`, the credit bar beside it being the
   flexible half of the header. `.apollo-attempts__grade` gained `nowrap` too.
+- **Staged Done wait (2026-08-23):** `.apollo-grading` (a `.notice` shell — no
+  `data-tone`, this is neutral status, not a warning) + `.apollo-grading__stages`
+  / `__stage[data-state="past|active|upcoming"]` / `__dot` / `__note`, plus
+  `.apollo-grading__live`, the repo's one visually-hidden-text rule (clip-path
+  inset, not `display:none` — it must stay in the a11y tree). State is carried
+  by the dot and by opacity/weight; there is deliberately **no** checkmark and
+  no determinate bar, because the stages are client-timed guesses (see
+  `apollo/grading-progress.md`). The active dot's `apolloGradingPulse` needs no
+  reduced-motion guard — the global `prefers-reduced-motion` block already
+  neutralizes every animation.
 - **Single label treatment:** use `.eyebrow`; do not hand-roll
   bold-UPPERCASE-gray labels (the two intentional exceptions are the mono
   `citation-chip` label voice and KG-pill card eyebrows).
