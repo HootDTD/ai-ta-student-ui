@@ -12,7 +12,7 @@ stub: false
 
 # Apollo API client (`lib/apollo/api.ts`)
 
-Monolith-hub (R2): the Apollo type + fetch contract (~568 lines) — the most-imported module in the
+Monolith-hub (R2): the Apollo type + fetch contract (`api.ts`, 716 lines) — the most-imported module in the
 UI. Every Apollo component and both Apollo pages import from it; other Apollo docs reference its
 types rather than redefining them.
 
@@ -140,6 +140,13 @@ the student, which is what lets the caller decide between rolling the turn back 
   `resolveBand` derives from it when `band` is absent — but never printed, and never leaked through
   an `aria-valuenow`/`aria-label` either. Grade quantities only; the coverage counts and the XP
   economy are separate and unaffected.
+- **Scope of that guarantee: UI-RENDERED output only.** This repo controls what the UI *composes*
+  — it cannot scrub a number out of backend-authored LLM prose. `DoneFeedback.headline`,
+  `TopicFeedbackItem.note` and `diagnostic_narrative` are model text rendered verbatim through
+  `MathMarkdown`; if the model writes "you scored 72", the UI will display it. Suppressing that is
+  the BACKEND's job (study-prep task T2c, narrative suppression). **Merge coupling:** this branch
+  must not reach staging ahead of the backend branch carrying T2c, or the band-only ruling is
+  observably broken in the report's prose even though every UI-composed surface obeys it.
 
 ## Related
 - [auth-client.md](../shell/auth-client.md) — token source.

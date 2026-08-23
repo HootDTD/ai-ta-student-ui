@@ -94,6 +94,12 @@ fresh-slate new empty attempt) / "End session" unchanged.
   from a pre-`band` payload) — just never rendered. Putting a grade number back
   on screen, `aria-*` included, is a regression. Non-grade percentages
   (coverage meter, XP, mastery) are unaffected and live elsewhere.
+  **Scope: UI-COMPOSED output only.** `feedback.headline`, each
+  `topic_feedback[].note` and `diagnostic_narrative` are backend-authored LLM
+  prose rendered verbatim through `MathMarkdown` — a number the model writes
+  into them will display, and this panel cannot prevent that. Backend task T2c
+  (narrative suppression) owns it, and this branch must not reach staging
+  ahead of it.
 - The status word is also a row's a11y carrier — glyph and bar track are both
   `aria-hidden`, so the percent used to be a screen reader's only per-row
   status. Don't drop it.

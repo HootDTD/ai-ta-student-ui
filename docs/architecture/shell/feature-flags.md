@@ -46,6 +46,15 @@ browser ⇒ the default, never a failed send).
 - **Read per send, never captured.** `apolloTurnStreamingEnabled()` is a
   function, not a module const, so a flip applies to the next turn instead of
   requiring a reload. Don't hoist it into a `useState`/module constant.
+- **Deploy order is an invariant, because the default is ON.** A UI build
+  carrying `APOLLO_TURN_STREAMING_DEFAULT = true` that reaches an environment
+  whose backend has no `POST /apollo/sessions/{id}/chat/stream` route will 404
+  **every teaching turn** straight into the error surface — the flag defaults
+  to streaming, so there is no silent degradation to the blocking path. The
+  backend route must be live in an environment **before** a build with this
+  default reaches it. If the UI has to ship first, ship it with
+  `NEXT_PUBLIC_APOLLO_TURN_STREAMING=0` and flip the default only after the
+  backend lands.
 - Flipping it back must stay a complete fallback: the blocking `sendChat` path
   and the `.../chat` proxy are live code, not legacy
   ([api-client.md](../apollo/api-client.md),
