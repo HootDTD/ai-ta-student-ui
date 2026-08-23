@@ -10,6 +10,7 @@
     "app/api/apollo/problems/route.ts": "apollo/practice-proxies",
     "app/api/apollo/progress/route.ts": "apollo/practice-proxies",
     "app/api/apollo/sessions/[id]/chat/route.ts": "apollo/session-proxies",
+    "app/api/apollo/sessions/[id]/chat/stream/route.ts": "apollo/session-proxies",
     "app/api/apollo/sessions/[id]/done/route.ts": "apollo/session-proxies",
     "app/api/apollo/sessions/[id]/end/route.ts": "apollo/session-proxies",
     "app/api/apollo/sessions/[id]/kg/[entry_id]/challenge/route.ts": "apollo/kg-proxies",
@@ -65,11 +66,13 @@
     "components/apollo/KGEntryParaphrase.tsx": "apollo/kg-entry-cards",
     "components/apollo/KGEntryPill.tsx": "apollo/kg-entry-pill",
     "components/apollo/KGEntryTrace.tsx": "apollo/kg-entry-cards",
-    "components/apollo/echoGuard.ts": "apollo/chat",
+    "components/apollo/echoGuard.ts": "apollo/echo-guard",
     "eslint.config.mjs": "shell/build-config",
     "lib/apollo/api.ts": "apollo/api-client",
     "lib/apollo/bands.ts": "apollo/api-client",
+    "lib/apollo/chatStream.ts": "apollo/api-client",
     "lib/flags.ts": "shell/feature-flags",
+    "lib/sse.ts": "shell/sse-reader",
     "next.config.ts": "shell/build-config",
     "package.json": "shell/build-config",
     "postcss.config.mjs": "shell/build-config",
@@ -91,10 +94,11 @@
     "apollo/api-client": {
       "path": "docs/architecture/apollo/api-client.md",
       "kind": "leaf",
-      "description": "lib/apollo/api.ts (types + fetchers hub) + lib/apollo/bands.ts",
+      "description": "lib/apollo/api.ts (types + fetchers hub) + bands.ts + chatStream.ts",
       "owns": [
         "lib/apollo/api.ts",
-        "lib/apollo/bands.ts"
+        "lib/apollo/bands.ts",
+        "lib/apollo/chatStream.ts"
       ]
     },
     "apollo/browse": {
@@ -111,8 +115,7 @@
       "kind": "leaf",
       "description": "ApolloChat",
       "owns": [
-        "components/apollo/ApolloChat.tsx",
-        "components/apollo/echoGuard.ts"
+        "components/apollo/ApolloChat.tsx"
       ]
     },
     "apollo/coverage-celebrations": {
@@ -121,6 +124,14 @@
       "description": "ApolloCoverageCelebrations",
       "owns": [
         "components/apollo/ApolloCoverageCelebrations.tsx"
+      ]
+    },
+    "apollo/echo-guard": {
+      "path": "docs/architecture/apollo/echo-guard.md",
+      "kind": "leaf",
+      "description": "echoGuard.ts copied-reply detector",
+      "owns": [
+        "components/apollo/echoGuard.ts"
       ]
     },
     "apollo/error-surface": {
@@ -233,10 +244,11 @@
     "apollo/session-proxies": {
       "path": "docs/architecture/apollo/session-proxies.md",
       "kind": "leaf",
-      "description": "7 session-lifecycle proxies",
+      "description": "8 session-lifecycle proxies",
       "owns": [
         "app/api/apollo/sessions/[id]/route.ts",
         "app/api/apollo/sessions/[id]/chat/route.ts",
+        "app/api/apollo/sessions/[id]/chat/stream/route.ts",
         "app/api/apollo/sessions/[id]/done/route.ts",
         "app/api/apollo/sessions/[id]/end/route.ts",
         "app/api/apollo/sessions/[id]/next/route.ts",
@@ -384,7 +396,7 @@
     "shell/feature-flags": {
       "path": "docs/architecture/shell/feature-flags.md",
       "kind": "leaf",
-      "description": "lib/flags.ts APOLLO_ONLY",
+      "description": "lib/flags.ts APOLLO_ONLY + Apollo turn-streaming kill switch",
       "owns": [
         "lib/flags.ts"
       ]
@@ -405,6 +417,14 @@
       "owns": [
         "components/SessionRefresher.tsx"
       ]
+    },
+    "shell/sse-reader": {
+      "path": "docs/architecture/shell/sse-reader.md",
+      "kind": "leaf",
+      "description": "lib/sse.ts shared SSE frame reader",
+      "owns": [
+        "lib/sse.ts"
+      ]
     }
   },
   "indexes": {
@@ -415,6 +435,7 @@
         "apollo/browse",
         "apollo/chat",
         "apollo/coverage-celebrations",
+        "apollo/echo-guard",
         "apollo/error-surface",
         "apollo/grading-progress",
         "apollo/kg-entry-cards",
@@ -458,7 +479,8 @@
         "shell/build-config",
         "shell/feature-flags",
         "shell/layout-and-design-system",
-        "shell/session-refresh"
+        "shell/session-refresh",
+        "shell/sse-reader"
       ]
     }
   }

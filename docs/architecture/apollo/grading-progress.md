@@ -15,7 +15,7 @@ spec B.2, 2026-08-23). Grading blocks 6-20s; the old UI was a bare spinner.
 
 ## Interface
 - default `ApolloGradingProgress()` — **no props. Mount/unmount is the whole
-  API**: `ApolloChat` renders it only while `grading` is true, so the timers
+  API**: `ApolloChat` renders it only while a grade is in flight, so the timers
   start with the request and are cleared on unmount. Nothing to "stop", and no
   stage state that can survive into the next attempt.
 - named `GRADING_STAGES: readonly GradingStage[]` (`{id, label, atMs}`) and
@@ -49,15 +49,23 @@ Markup is a fragment of two siblings. First, the visually-hidden
   all: `setReport` swaps the chat for `ApolloReportPanel`, which unmounts it.
   A response landing at 1s and one landing at 25s take the identical path, so
   "jump straight to the report whenever it lands" is structural, not timed.
+- **Two mount sites, one component (2026-08-23).** `ApolloChat` renders it on
+  `showGradingPanel = grading || turn.grading`: the clicked-Done request
+  (parent-owned `grading`, [session-page.md](session-page.md)) and an *auto-done*
+  turn, whose stream announces `working(grading)` after it has already released
+  Apollo's reply ([chat.md](chat.md)). The auto-done case is why grading is no
+  longer synonymous with "the Done button was pressed" — the student reads the
+  reply while this panel narrates the grade behind it. Both sites are still
+  pure mount/unmount; do not add a prop to distinguish them.
 - **`GRADING_PANEL_DELAY_MS = 600` is load-bearing** for "a fast grade must not
   flash a stage sequence": below it no visible panel renders (only the empty,
   1x1-clipped live region) and the student sees just the Done button's spinner,
   exactly as before. Stages advance on wall-clock,
   so a <2s grade can only ever reach stage 0 — a strobe through four labels is
   unreachable by construction.
-- **Driven by `grading`, never `busy`.** `ApolloPageClient` also raises `busy`
-  for "Start over"; keying this off `busy` would narrate a grade during a
-  restart.
+- **Driven by `grading`/`turn.grading`, never `busy`.** `ApolloPageClient` also
+  raises `busy` for "Start over"; keying this off `busy` would narrate a grade
+  during a restart.
 - **The live region holds the label and nothing else** — and that is a
   correctness requirement, not tidiness. `role="status"` implies
   `aria-atomic="true"`, so the region is re-read IN FULL on every mutation:
@@ -77,6 +85,6 @@ Markup is a fragment of two siblings. First, the visually-hidden
   the Done request; deleting it would only restore the bare spinner.
 
 ## Related
-- [chat.md](chat.md) — the only mount site; [session-page.md](session-page.md)
-  — owns the `grading` state;
+- [chat.md](chat.md) — the mount owner (both sites);
+  [session-page.md](session-page.md) — owns the clicked-Done `grading` state;
   [layout-and-design-system.md](../shell/layout-and-design-system.md).

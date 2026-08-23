@@ -1,22 +1,23 @@
 ---
 doc: apollo/session-proxies
-description: 7 session-lifecycle proxies
+description: 8 session-lifecycle proxies
 owns:
   - app/api/apollo/sessions/[id]/route.ts
   - app/api/apollo/sessions/[id]/chat/route.ts
+  - app/api/apollo/sessions/[id]/chat/stream/route.ts
   - app/api/apollo/sessions/[id]/done/route.ts
   - app/api/apollo/sessions/[id]/end/route.ts
   - app/api/apollo/sessions/[id]/next/route.ts
   - app/api/apollo/sessions/[id]/restart_problem/route.ts
   - app/api/apollo/sessions/[id]/retry/route.ts
-related: [apollo/api-client, apollo/session-page]
-last_verified: 2026-07-25
+related: [apollo/api-client, apollo/session-page, shell/sse-reader, hoot/qa-proxies]
+last_verified: 2026-08-23
 stub: false
 ---
 
 # Apollo session-lifecycle proxies
 
-The seven `sessions/[id]/*` route files (shared proxy pattern,
+The eight `sessions/[id]/*` route files (shared proxy pattern,
 [hoot/_index.md](../hoot/_index.md)). All forward `Authorization`, set
 `no-store`, and `encodeURIComponent` the `Promise`-typed `id`.
 
@@ -25,6 +26,7 @@ The seven `sessions/[id]/*` route files (shared proxy pattern,
 |---|---|---|---|
 | `/api/apollo/sessions/[id]` | GET | `/apollo/sessions/{id}` | `getSessionState` |
 | `.../[id]/chat` | POST | `.../chat` | `sendChat` |
+| `.../[id]/chat/stream` | POST | `.../chat/stream` | `sendChatStreamed` |
 | `.../[id]/done` | POST | `.../done` | `finishTeaching` |
 | `.../[id]/end` | POST | `.../end` | `endSession` |
 | `.../[id]/next` | POST | `.../next` (body `{difficulty}`) | `nextProblem` |
@@ -35,9 +37,19 @@ The seven `sessions/[id]/*` route files (shared proxy pattern,
 - Grouping is **structural**: everything under `sessions/[id]/` lives here;
   session **creation** (`sessions` POST, `from_hoot` POST) is in
   `practice-proxies.md`.
+- `chat/stream` is the ONE non-JSON route in this group (added 2026-08-23). It
+  is a near-copy of `chat` with two differences, both load-bearing: the
+  upstream path, and a `text/event-stream` Content-Type fallback instead of
+  `text/plain` (matching `app/api/ask/stream/route.ts`). It passes `resp.body`
+  straight through — **never buffer it** (`await resp.text()` here would
+  re-serialize the whole turn and delete the latency win the endpoint exists
+  for). The blocking `chat` route stays fully live: it is the kill-switch
+  fallback, not legacy.
 
 ## Env flags
 `AI_TA_API_BASE_URL`.
 
 ## Related
 - [api-client.md](api-client.md), [session-page.md](session-page.md).
+- [sse-reader.md](../shell/sse-reader.md) — the framing `chat/stream` carries;
+  [qa-proxies.md](../hoot/qa-proxies.md) — `/api/ask/stream`, the pattern it copies.

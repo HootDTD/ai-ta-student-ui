@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ApolloApiError, sendChat } from "@/lib/apollo/api";
-import type { ApolloKG, ChatAside, CoveredTopic, DoneResponse } from "@/lib/apollo/api";
+import type { ApolloKG, ChatAside, ChatResponse, CoveredTopic, DoneResponse } from "@/lib/apollo/api";
+import { GRADING_STAGE, sendChatStreamed } from "@/lib/apollo/chatStream";
+import { apolloTurnStreamingEnabled } from "@/lib/flags";
 import SpecialCharsPalette from "@/components/SpecialCharsPalette";
 import OwlVideo from "@/components/OwlVideo";
 import MathMarkdown from "@/components/MathMarkdown";
@@ -19,11 +21,47 @@ import { isEchoOfApolloTurn } from "./echoGuard";
 // `sendChat` response or from the session snapshot's replay of stored aside
 // metadata; asides persisted before the backend stored that metadata reload
 // with the `intent` tag but no citations.
-interface ChatMessage {
+export interface ChatMessage {
   role: string;
   content: string;
   intent?: string;
   aside?: ChatAside;
+}
+
+// Live progress for a STREAMED turn; null on the blocking path and between
+// turns. `note` is the backend's own phase copy for the in-flight placeholder
+// (cleared when the reply lands, re-set by any later phase); `replied` flips
+// once Apollo's text is in the transcript; `grading` latches when the turn
+// turns out to be an auto-done and grading is running behind the reply.
+interface TurnProgress {
+  note: string | null;
+  replied: boolean;
+  grading: boolean;
+}
+
+// The apollo-role turns a settled response becomes. Shared by both transports
+// so the reference-aside shape can never diverge between them: an aside turn
+// is TWO bubbles (the Hoot card, then the persona's resume line), everything
+// else is one. `wasAskMode` only tags the live-only "hoot_answer" attribution.
+export function apolloTurnMessages(resp: ChatResponse, wasAskMode: boolean): ChatMessage[] {
+  if (resp.message_kind === "reference_aside" && resp.aside) {
+    return [
+      {
+        role: "apollo",
+        content: resp.aside.text,
+        intent: "reference_aside",
+        aside: resp.aside,
+      },
+      { role: "apollo", content: resp.apollo_reply },
+    ];
+  }
+  return [
+    {
+      role: "apollo",
+      content: resp.apollo_reply,
+      intent: wasAskMode ? "hoot_answer" : undefined,
+    },
+  ];
 }
 
 interface Props {
@@ -156,6 +194,8 @@ export default function ApolloChat({
   // meter and silently un-guard Done.
   const [coverage, setCoverage] = useState<GradedCoverage | null>(initialCoverage);
   const [confirmingDone, setConfirmingDone] = useState(false);
+  // Streamed-turn progress; null whenever a turn is not streaming.
+  const [turn, setTurn] = useState<TurnProgress | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const keepTeachingRef = useRef<HTMLButtonElement | null>(null);
@@ -252,38 +292,62 @@ export default function ApolloChat({
     setConfirmingDone(false);
     setMessages((m) => [...m, { role: "student", content: myMsg }]);
     setSending(true);
+
+    // The ONLY thing the kill switch changes is which awaited call produces
+    // the `ChatResponse`. Everything downstream of it — the settled-turn
+    // reconciliation, the error surface, the rollback rule — is one
+    // implementation shared by both transports, so the blocking path can
+    // never drift out from under the streaming one.
+    const streaming = apolloTurnStreamingEnabled();
+    setTurn(streaming ? { note: null, replied: false, grading: false } : null);
+    // Local mirror of `turn.replied`: the settle and catch paths below need it
+    // synchronously, and a React state read here would be one render behind.
+    let replied = false;
+
     try {
-      const resp = await sendChat(sessionId, myMsg, wasAskMode);
-      if (resp.message_kind === "reference_aside" && resp.aside) {
-        setMessages((m) => [
-          ...m,
-          {
-            role: "apollo",
-            content: resp.aside!.text,
-            intent: "reference_aside",
-            aside: resp.aside,
-          },
-          { role: "apollo", content: resp.apollo_reply },
-        ]);
-        if (resp.intent_executed?.intent === "reference_question") {
-          setAsideCount(resp.intent_executed.aside_count);
-        }
-      } else {
-        // Ask-mode submit that didn't come back as an aside (flag off, or
-        // the concept isn't reference-eligible) falls through to a normal
-        // teaching turn — no error state, just quietly leave ask-mode. The
-        // reply still answers the student's question, so keep the Hoot
-        // attribution for this live turn (a transcript reload shows it as a
-        // plain teaching turn — the backend stores it as one).
-        setMessages((m) => [
-          ...m,
-          {
-            role: "apollo",
-            content: resp.apollo_reply,
-            intent: wasAskMode ? "hoot_answer" : undefined,
-          },
-        ]);
+      const resp = streaming
+        ? await sendChatStreamed(sessionId, myMsg, wasAskMode, {
+            onWorking: (stage, note) =>
+              setTurn((t) =>
+                t ? { ...t, note, grading: t.grading || stage === GRADING_STAGE } : t,
+              ),
+            onReply: (text) => {
+              replied = true;
+              // Apollo's text is final at this point, so it goes into the
+              // transcript immediately — on an auto-done turn the student
+              // reads it while grading is still running.
+              setMessages((m) => [
+                ...m,
+                {
+                  role: "apollo",
+                  content: text,
+                  intent: wasAskMode ? "hoot_answer" : undefined,
+                },
+              ]);
+              setTurn((t) => (t ? { ...t, replied: true, note: null } : t));
+            },
+          })
+        : await sendChat(sessionId, myMsg, wasAskMode);
+
+      // Reconcile from the terminal payload exactly as the blocking path
+      // reconciles from its response body — they are the same object. The
+      // provisional streamed bubble is dropped first, because the settled
+      // shape may be two turns (a reference aside) rather than one.
+      setMessages((m) => [
+        ...(replied ? m.slice(0, -1) : m),
+        ...apolloTurnMessages(resp, wasAskMode),
+      ]);
+      if (
+        resp.message_kind === "reference_aside" &&
+        resp.aside &&
+        resp.intent_executed?.intent === "reference_question"
+      ) {
+        setAsideCount(resp.intent_executed.aside_count);
       }
+      // Ask-mode always exits once the response lands, aside or not: a submit
+      // that fell through to a normal teaching turn (flag off, or the concept
+      // isn't reference-eligible) is not an error, it just keeps the Hoot
+      // attribution for this live turn via `apolloTurnMessages`.
       if (wasAskMode) setAskMode(false);
       onKgUpdate(resp.kg);
       onCoverageSnapshot(resp.covered_topics ?? []);
@@ -294,13 +358,29 @@ export default function ApolloChat({
       }
     } catch (err) {
       setError(err as Error);
-      setMessages((m) => m.slice(0, -1));
+      // Pop the optimistic student turn, as this path always has — UNLESS the
+      // stream already delivered Apollo's reply. Past that point the backend
+      // has the turn's final text and finishes it server-side even if the
+      // connection died, so tearing a reply the student already read back off
+      // the screen would be the dishonest option, not the safe one.
+      if (!replied) setMessages((m) => m.slice(0, -1));
     } finally {
       setSending(false);
+      setTurn(null);
     }
   }
 
   const hasConversation = messages.length > 0 || sending;
+  // Grading runs for a clicked Done (parent-owned `grading`) and for an
+  // auto-done turn, which the stream announces mid-turn as `working(grading)`.
+  // Both mount the SAME staged panel — mount/unmount is its whole API.
+  const showGradingPanel = grading || turn?.grading === true;
+  // The in-flight placeholder is the pre-reply affordance. Once Apollo's reply
+  // is on screen it disappears — unless a LATER phase reports in (the contract
+  // allows `working` after `reply`), in which case it comes back carrying that
+  // phase's copy. The grading phase is excluded because the staged panel below
+  // is already narrating it; two narrations of one wait is noise.
+  const showThinkingTurn = !showGradingPanel && (!turn?.replied || turn.note !== null);
 
   return (
     <section className="apollo-chat">
@@ -361,7 +441,7 @@ export default function ApolloChat({
                 </div>
               );
             })}
-            {sending && (
+            {sending && showThinkingTurn && (
               <div className="apollo-turn apollo-turn--apollo" aria-live="polite">
                 <ApolloAvatar thinking />
                 {/* askMode is still true while an ask-mode send is in flight
@@ -369,8 +449,13 @@ export default function ApolloChat({
                     speaker the student is actually waiting on. */}
                 <div className={`apollo-turn__body ${askMode ? "apollo-aside" : "msg-ai"}`}>
                   <span className="eyebrow">{askMode ? "Hoot" : "Apollo"}</span>
+                  {/* Streamed turns replace the static word with the backend's
+                      own phase copy, which is why activity is visible inside a
+                      second instead of after the whole 10-17s turn. The
+                      blocking path (and the gap before the first frame) keeps
+                      "thinking…" exactly as before. */}
                   <em className="note" style={{ margin: 0 }}>
-                    thinking…
+                    {turn?.note ?? "thinking…"}
                   </em>
                 </div>
               </div>
@@ -481,12 +566,15 @@ export default function ApolloChat({
           </div>
         )}
 
-        {/* Staged progress for the 6-20s grade. Mounted only while the Done
-            request is actually in flight, so its own timers start and stop
-            with the request; the reveal is this unmounting when the parent
-            swaps in the report. Nothing below changes — the Done button keeps
-            its spinner and label, and the meter/guard are untouched. */}
-        {grading && <ApolloGradingProgress />}
+        {/* Staged progress for the 6-20s grade. Mounted only while a grade is
+            actually in flight, so its own timers start and stop with it; the
+            reveal is this unmounting when the parent swaps in the report.
+            Two mount sites, one component: the clicked-Done request (parent
+            `grading`) and an auto-done turn, whose stream announces grading
+            after it has already released Apollo's reply. Nothing below
+            changes — the Done button keeps its spinner and label, and the
+            meter/guard are untouched. */}
+        {showGradingPanel && <ApolloGradingProgress />}
 
         <div className="apollo-finish">
           <div className="apollo-finish__copy">
