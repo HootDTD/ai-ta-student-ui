@@ -2510,12 +2510,37 @@ html.dark .apollo-progress-card[data-level="5"] {
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.06);
 }
 
-.apollo-scorecard[data-tone="success"] {
-  border-left-color: var(--success-solid);
+/* Band tone (2026-08-23 band-only ruling). The accent border and the band word
+   take ONE `--grade-*` family per band — the same families ApolloBrowse tints
+   its cards with, so a result looks the same on the browse card and on the
+   report. The band → family map lives in `lib/apollo/bands.ts`
+   (`bandColorKey`); these rules only bind the emitted key to tokens, so never
+   re-spell the mapping here. Keying off the band instead of the old
+   `score >= 75` threshold is the fix: that cut fell mid-Intermediate and made
+   two Intermediate results read as a pass and a fail. No band resolves ⇒ no
+   attribute ⇒ the neutral `--accent` border above. */
+.apollo-scorecard[data-grade="a"] {
+  border-left-color: var(--grade-a-solid);
 }
 
-.apollo-scorecard[data-tone="danger"] {
-  border-left-color: var(--danger-solid);
+.apollo-scorecard[data-grade="c"] {
+  border-left-color: var(--grade-c-solid);
+}
+
+.apollo-scorecard[data-grade="d"] {
+  border-left-color: var(--grade-d-solid);
+}
+
+.apollo-scorecard[data-grade="a"] .apollo-scorecard__band {
+  color: var(--grade-a-solid);
+}
+
+.apollo-scorecard[data-grade="c"] .apollo-scorecard__band {
+  color: var(--grade-c-solid);
+}
+
+.apollo-scorecard[data-grade="d"] .apollo-scorecard__band {
+  color: var(--grade-d-solid);
 }
 
 .apollo-scorecard .prose,
@@ -2527,36 +2552,15 @@ html.dark .apollo-progress-card[data-level="5"] {
 }
 
 /* The headline grade word — "Beginner"/"Intermediate"/"Advanced" (study-prep
-   spec §A.3, replaces the single-letter chip). Same serif voice, a step down
-   in size because it is now a word rather than a glyph, and never wrapped:
-   the credit bar beside it is the flexible half of the header. */
+   spec §A.3, replaces the single-letter chip). Same serif voice at the same
+   1.5rem the letter had: with the credit bar removed (2026-08-23 band-only
+   ruling) this word is the entire verdict and now owns its own row, so it no
+   longer shares the line with anything and no longer needs `nowrap`. Its
+   colour comes from the `[data-grade]` rules above. */
 .apollo-scorecard__band {
   font-family: var(--serif);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   line-height: 1;
-  white-space: nowrap;
-}
-
-.apollo-scorecard__header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.apollo-scorecard__overall-bar-track {
-  flex: 1;
-  height: 0.5rem;
-  background: var(--accent-soft);
-  border-radius: 999px;
-  overflow: hidden;
-  box-shadow: var(--meter-groove);
-}
-
-.apollo-scorecard__overall-bar-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: inherit;
-  transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .apollo-scorecard__headline {
@@ -2583,9 +2587,12 @@ html.dark .apollo-progress-card[data-level="5"] {
   gap: 0.4rem;
 }
 
+/* Last column was a 3rem "72%" cell; it now holds the status WORD that
+   replaced the number (2026-08-23 band-only ruling), so it widens to fit
+   "Covered" in the mono face rather than leaving a hole where the figure was. */
 .apollo-topic__row {
   display: grid;
-  grid-template-columns: 1.5rem 1fr 5rem 3rem;
+  grid-template-columns: 1.5rem 1fr 5rem 4.5rem;
   align-items: center;
   gap: 0.5rem;
   font-family: var(--mono);
@@ -2736,7 +2743,9 @@ html.dark .apollo-progress-card[data-level="5"] {
   opacity: 0.65;
 }
 
-.apollo-topic__misconception-dock {
+/* "not corrected" — the qualitative counterpart to the `corrected ✓` badge.
+   Was `-dock`, the "−N pts" chip, removed with the rest of the numbers. */
+.apollo-topic__misconception-open {
   color: var(--danger-solid);
 }
 
@@ -3418,9 +3427,10 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .apollo-attempts__grade {
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
   /* Band words are longer than the letters they replaced — keep the row a
-     single line and let `.apollo-attempts__concept` absorb the width. */
+     single line and let `.apollo-attempts__concept` absorb the width. The
+     `tabular-nums` this rule used to carry went with the ` (72)` score suffix
+     (2026-08-23 band-only ruling); the cell holds no digits now. */
   white-space: nowrap;
 }
 

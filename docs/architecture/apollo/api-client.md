@@ -64,9 +64,17 @@ fields behave like null).
 decides what a student sees in place of a letter. Exports `ProficiencyBand`
 (`beginner|intermediate|advanced`, the lowercase wire tokens),
 `scoreToBand(score)` (cuts ≥85 / ≥50 / else — mirrors backend `score_to_band`,
-**frozen for the study**), `resolveBand({band?, score?})` → band or `null`, and
+**frozen for the study**; it `Math.round`s first because the backend bands an
+already-rounded int, so 84.6 must resolve `advanced` here too),
+`resolveBand({band?, score?})` → band or `null`,
 `bandLabel(band)` → "Beginner"/"Intermediate"/"Advanced" (display strings live
-here and nowhere else). Wire field is `band?: string | null` beside `letter` on
+here and nowhere else), and `bandColorKey(band)` → `BandColorKey`
+(`"a"|"c"|"d"`): the one band→`--grade-*` token family map, advanced→`a`,
+intermediate→`c`, beginner→`d` (`beginner` takes the softer `d`, not `f`).
+Every surface that tints by grade reads that map — the browse card + chip and
+the report panel's `data-grade` — so a band looks the same everywhere and no
+colour is ever re-derived from a score threshold. Wire field is
+`band?: string | null` beside `letter` on
 `Rubric.overall`, `ApolloProblemGrade` and `RecentAttempt` — typed loosely on
 purpose (untrusted network data), narrowed by `resolveBand`.
 
@@ -110,6 +118,13 @@ proxies only forward `Authorization` if present.
   UI renders `bands.ts` output only: `resolveBand` returns `null` rather than
   ever falling back to a letter, and a caller given `null` renders nothing. A
   new student-visible grade render that skips `bandLabel` is a spec violation.
+- **Neither does the numeric score** (user ruling 2026-08-23). `score`,
+  `topic.credit` and `misconception.dock_points` stay on the wire in full
+  resolution and keep feeding logging and the research corpus; on a student
+  surface the band is the entire verdict. `score` may be READ — `resolveBand`
+  derives from it when `band` is absent — but never printed, and never leaked
+  through an `aria-valuenow`/`aria-label` either. Grade quantities only; the
+  coverage counts and the XP economy are separate and unaffected.
 
 ## Related
 - [auth-client.md](../shell/auth-client.md) — token source.

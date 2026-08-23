@@ -14,7 +14,7 @@ import {
   listProblems,
   startSession,
 } from "@/lib/apollo/api";
-import { ProficiencyBand, bandLabel, resolveBand } from "@/lib/apollo/bands";
+import { bandColorKey, bandLabel, resolveBand } from "@/lib/apollo/bands";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 import ApolloSidebar from "./ApolloSidebar";
 import MathMarkdown from "@/components/MathMarkdown";
@@ -23,17 +23,6 @@ import ApolloTopBar from "./ApolloTopBar";
 
 const DIFFICULTIES: ApolloDifficulty[] = ["intro", "standard", "hard"];
 const PREVIEW_CHARS = 180;
-/** Proficiency band → the `--grade-*` color family the card and chip tint to.
- *  The design tokens keep their letter-shaped names (they are shared, and the
- *  five-step scale still exists for teacher surfaces); only the mapping INTO
- *  them changed when letters left the student UI (study-prep spec §A.3).
- *  `beginner` deliberately takes the `d` family, not `f` — the softer end of
- *  the scale for the band a student is most likely to land in first. */
-const BAND_COLOR_KEY: Record<ProficiencyBand, string> = {
-  advanced: "a",
-  intermediate: "c",
-  beginner: "d",
-};
 
 interface Props {
   classId: number;
@@ -199,7 +188,9 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                   // No band and no score ⇒ the card falls back to the neutral
                   // "Tried" state; the letter is never a fallback (spec §A.3).
                   const band = p.grade ? resolveBand(p.grade) : null;
-                  const colorKey = band ? BAND_COLOR_KEY[band] : null;
+                  // One token family per band, shared with the Done report's
+                  // accent border — the map lives in `lib/apollo/bands.ts`.
+                  const colorKey = band ? bandColorKey(band) : null;
                   const feedback = p.grade?.feedback?.trim() ? p.grade.feedback : null;
                   const feedbackOpen = openFeedbackIds.has(p.id);
                   const feedbackPanelId = `apollo-feedback-${p.id}`;

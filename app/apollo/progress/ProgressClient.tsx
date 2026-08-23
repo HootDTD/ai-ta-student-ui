@@ -92,7 +92,10 @@ export default function ProgressClient() {
           <ul className="apollo-attempts">
             {detail.recent_attempts.map((a) => {
               // Study-prep spec §A.3: attempts show the proficiency band, never
-              // the letter. An attempt with neither a band token nor a score
+              // the letter and (2026-08-23 band-only ruling) never the score.
+              // `a.score` is still read — by `resolveBand`, to derive a band on
+              // a row served before the `band` field existed — but it is not
+              // printed. An attempt with neither a band token nor a score
               // (still grading, or a soft-failed grade) shows "?" as it always
               // did — the letter is not a fallback.
               const band = resolveBand(a);
@@ -104,7 +107,6 @@ export default function ProgressClient() {
                   <span className="apollo-attempts__difficulty">{a.difficulty}</span>
                   <span className="apollo-attempts__grade">
                     {band ? bandLabel(band) : "?"}
-                    {a.score !== null ? ` (${a.score})` : ""}
                   </span>
                   <span className="apollo-attempts__date">
                     {new Date(a.created_at).toLocaleDateString()}

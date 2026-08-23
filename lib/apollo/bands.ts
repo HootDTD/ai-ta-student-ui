@@ -29,10 +29,18 @@ function isBand(value: unknown): value is ProficiencyBand {
   );
 }
 
-/** Score (0-100) → band. Mirror of the backend cut table. */
+/** Score (0-100) → band. Mirror of the backend cut table.
+ *
+ *  Rounds first, because the backend bands an ALREADY-ROUNDED integer. A
+ *  fractional score only reaches this fallback from a cached or older payload,
+ *  and comparing it raw would disagree with the server on the half-point either
+ *  side of a cut: 84.6 is `advanced` on the backend (round → 85) but would
+ *  resolve `intermediate` here. Rounding here makes the two tables identical
+ *  for every input, not just for integers. */
 export function scoreToBand(score: number): ProficiencyBand {
-  if (score >= ADVANCED_FLOOR) return "advanced";
-  if (score >= INTERMEDIATE_FLOOR) return "intermediate";
+  const rounded = Math.round(score);
+  if (rounded >= ADVANCED_FLOOR) return "advanced";
+  if (rounded >= INTERMEDIATE_FLOOR) return "intermediate";
   return "beginner";
 }
 
@@ -60,4 +68,31 @@ export function resolveBand(source: {
 /** "Beginner" / "Intermediate" / "Advanced". */
 export function bandLabel(band: ProficiencyBand): string {
   return BAND_LABEL[band];
+}
+
+/** The `--grade-*` design-token family a band tints to. The tokens keep their
+ *  letter-shaped names — they are shared, and the five-step scale still exists
+ *  for teacher surfaces — so only three of the five are reachable from a
+ *  student surface. */
+export type BandColorKey = "a" | "c" | "d";
+
+/** Band → token family. `beginner` deliberately takes `d`, not `f`: the softer
+ *  end of the scale for the band a student is most likely to land in first. */
+const BAND_COLOR_KEY: Record<ProficiencyBand, BandColorKey> = {
+  advanced: "a",
+  intermediate: "c",
+  beginner: "d",
+};
+
+/**
+ * One visual family per band, for every student surface that tints by grade
+ * (browse card + chip, the Done report's accent border and band word).
+ *
+ * Keying colour off the BAND rather than off a score threshold is the point:
+ * the report panel used to flip tone at score ≥ 75, mid-Intermediate, so two
+ * Intermediate results could look like a pass and a fail. Read this map — do
+ * not re-derive a colour from a score, and do not re-spell the mapping in CSS.
+ */
+export function bandColorKey(band: ProficiencyBand): BandColorKey {
+  return BAND_COLOR_KEY[band];
 }

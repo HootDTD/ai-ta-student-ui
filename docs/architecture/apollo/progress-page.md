@@ -25,12 +25,16 @@ to open progress from the Apollo page. With `classId`:
 `hideProgressLink`), `ApolloErrorSurface`, `ApolloProgressCard`, plus two sections
 from `data.detail`:
 - **Concept mastery** — `.apollo-mastery` rows: `display_name` + bar at
-  `mastery_avg*100%` + pct.
+  `mastery_avg*100%` + pct. This percentage is the mastery estimate, NOT an
+  attempt grade, so the band-only ruling below does not reach it.
 - **Recent attempts** — `.apollo-attempts` rows: `concept_display_name`,
-  `difficulty`, proficiency band + optional `(score)`, `toLocaleDateString`.
+  `difficulty`, proficiency band, `toLocaleDateString`.
   The band comes from `resolveBand(attempt)` (`lib/apollo/bands.ts`) — the
   served `band` token, else derived from `score`, else `"?"`. The `letter`
-  field is never rendered (study-prep spec §A.3).
+  field is never rendered (study-prep spec §A.3), and neither is `score`: the
+  ` (72)` suffix that used to trail the band was removed by the 2026-08-23
+  band-only ruling. `score` is still read — by `resolveBand`, to derive a band
+  on a row served before the `band` field existed — just never printed.
 
 Empty state when both `mastery` and `recent_attempts` are empty.
 

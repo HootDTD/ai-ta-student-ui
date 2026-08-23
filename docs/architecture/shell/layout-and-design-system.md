@@ -38,8 +38,8 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `apollo-session-shell`/`apollo-turn*`/`apollo-chat*`/`apollo-finish*`/
   `apollo-kg*`/`kg-pill*`/`apollo-progress-card*`/`apollo-mastery*`/
   `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`, plus the report
-  scorecard set `apollo-scorecard*` (card shell + header/band/headline/
-  overall-bar/recap/next-step/review — the INTERACTION3 review card +
+  scorecard set `apollo-scorecard*` (card shell + band/headline/
+  recap/next-step/review — the INTERACTION3 review card +
   `apollo-ask-hoot*` composer affordance live here too) and `apollo-topic*`
   (row/glyph/label/bar/credit/body/note/quote, status-colored via
   `data-status`) — added 2026-07-26 for the per-topic feedback scorecard
@@ -55,14 +55,31 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   families, B (olive) and D (burnt orange) sit between so the five steps read
   as a continuous scale. Consumed only by `.apollo-browse__card--grade-*` /
   `.apollo-browse__grade--*` / the `.apollo-browse__feedback--*` left rules
-  (2026-07-27 in-card feedback panel; see `apollo/browse.md`). Token names are
+  (2026-07-27 in-card feedback panel; see `apollo/browse.md`) and, since
+  2026-08-23, `.apollo-scorecard[data-grade="a|c|d"]`. Token names are
   historical: since the 2026-08-23 band swap the student UI reaches only
-  `a`/`c`/`d` via `BAND_COLOR_KEY` (advanced/intermediate/beginner) — keep all
+  `a`/`c`/`d` via `bandColorKey` (advanced/intermediate/beginner) — keep all
   five rules defined, don't prune `b`/`f`.
 - **Band swap (2026-08-23):** `.apollo-scorecard__band` replaces
-  `.apollo-scorecard__letter` — same serif at 1.25rem (down from 1.5rem: a word,
-  not a glyph) plus `white-space: nowrap`, the credit bar beside it being the
-  flexible half of the header. `.apollo-attempts__grade` gained `nowrap` too.
+  `.apollo-scorecard__letter` — same serif, same 1.5rem, no `nowrap`: it owns
+  its own row and is the whole verdict. `.apollo-attempts__grade` gained
+  `nowrap` (band words are longer than letters).
+- **Band-only grade display (2026-08-23 user ruling).** No numeric grade
+  quantity renders on a student surface, so the CSS for the ones that did is
+  gone: `.apollo-scorecard__header` (the flex row that paired the band with the
+  score bar) and `.apollo-scorecard__overall-bar-{track,fill}` were deleted
+  outright, and `.apollo-attempts__grade` dropped `tabular-nums` with the
+  ` (72)` suffix. `.apollo-topic__row`'s last column widened 3rem → 4.5rem to
+  hold the status WORD that replaced `NN%`, and
+  `.apollo-topic__misconception-dock` became `-open` ("not corrected" instead
+  of "−N pts"). The scorecard's tone moved from `[data-tone="success|danger"]`
+  (a `score >= 75` flip, deleted here) to `[data-grade]`, which tints the left
+  border AND the band word from one `--grade-*` family per band; the band →
+  family map is `bandColorKey` in `lib/apollo/bands.ts` and must not be
+  re-spelled in CSS. `.notice[data-tone]` is untouched — the Next-step callout
+  still uses it. Meters that are NOT grade quantities keep their percentages:
+  `.apollo-finish__meter*` (coverage), `.apollo-progress-card*` (XP),
+  `.apollo-mastery__pct` (mastery estimate).
 - **Staged Done wait (2026-08-23):** `.apollo-grading` (a `.notice` shell — no
   `data-tone`, this is neutral status, not a warning) + `.apollo-grading__stages`
   / `__stage[data-state="past|active|upcoming"]` / `__dot` / `__note`, plus

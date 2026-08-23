@@ -40,10 +40,14 @@ on the active one, and closes on outside-click / Escape when `open`.
   (`.apollo-browse__grade--{colorKey}`) instead of the "Tried" badge, and the
   card tints to match (`.apollo-browse__card--grade-{colorKey}`). The band comes
   from `resolveBand(p.grade)` (`lib/apollo/bands.ts`) — the served `band` token,
-  else derived from `score`; the letter is **never** rendered or used as a
-  fallback (study-prep spec §A.3). Local `BAND_COLOR_KEY` maps
-  advanced→`a`, intermediate→`c`, beginner→`d`, reusing the pre-existing
-  `--grade-*` token families (`b`/`f` are now unreachable from the student UI).
+  else derived from `score`; neither the letter nor the score is **ever**
+  rendered or used as a fallback (study-prep spec §A.3 + the 2026-08-23
+  band-only ruling — the chip has always been word-only, so nothing was
+  removed here). `bandColorKey` (`lib/apollo/bands.ts` — was a local
+  `BAND_COLOR_KEY` until 2026-08-23, when the report panel needed the same
+  map) gives advanced→`a`, intermediate→`c`, beginner→`d`, reusing the
+  pre-existing `--grade-*` token families (`b`/`f` are now unreachable from
+  the student UI).
   A `grade` that resolves to no band (absent on older backends, or no usable
   score) degrades to the plain attempted state — never an unstyled chip.
   Chip copy is best-grade-wins band vocabulary: "Your best result: Intermediate".

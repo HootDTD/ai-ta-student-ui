@@ -42,12 +42,17 @@ and this is a mirror of those cuts.
   success/danger left border (still `score >= 75`), the overall credit bar and
   its `aria-valuenow`, topic scorecard rows, coverage/reveal panel, recap,
   next-step, review chips, the three footer buttons.
+  → **SUPERSEDED BY TASK 3b** (bottom of this file): the tone flip and the
+  overall credit bar are both gone. Only coverage/reveal panel, recap,
+  next-step, review chips and the footer buttons are still "unchanged" here.
 
 ### 2. `app/apollo/progress/ProgressClient.tsx` — recent attempts list
 - Each row's grade cell shows the band word instead of `letter`.
 - `"?"` fallback preserved for an attempt with neither band nor score.
 - The optional ` (score)` suffix is **unchanged** (pre-existing behavior; the
   spec did not ask for score to be hidden — see Concerns in the task report).
+  → **SUPERSEDED BY TASK 3b**: the user ruled band-only, and the suffix was
+  removed there.
 - The `.map` callback became a block body; row markup is otherwise identical.
 
 ### 3. `components/apollo/ApolloBrowse.tsx` — problem-card grade chip
@@ -236,3 +241,142 @@ client timing, no network, no props; mount/unmount is its entire lifecycle.
 - [ ] **Session load, error path:** open a session id that 404s — the error
       surface renders as before (the extra progress request in flight must not
       change what is shown).
+
+---
+
+# Untested changes — band-only grade display (student UI)
+
+User ruling 2026-08-23 (supersedes the spec's silence), Task 3b of the
+bands+latency build. Same standing rule as above: **no test runner in this
+repo**, so every behavior changed here is enumerated with the manual QA that
+must cover it on staging. Nothing below is covered by an automated test.
+
+Automated checks that DID run: `npx tsc --noEmit` (clean), `npm run lint`
+(0 errors; the same 4 pre-existing warnings in untouched files),
+`npm run build` (clean), `python scripts/docs/check_owns_coverage.py
+--check-size` (0 errors) and the `--check-last-verified` PR-path gate vs
+`origin/staging` (0 errors).
+
+**The ruling:** a student sees the proficiency BAND and no numeric grade score
+anywhere. Full resolution keeps flowing on the wire and into logging — this is
+display-only. The 50/85 cuts are frozen and were not touched.
+
+**Out of scope, unchanged:** the XP economy (`ApolloProgressCard` — XP total,
+level, tier bar and its `aria-valuenow`), the Done coverage meter and its
+counts, the concept-mastery percentages on the progress page, the Done
+warning/guard, the reveal panel (`reference_text`), and every wire type —
+`score`, `credit` and `dock_points` all still arrive and are still logged.
+
+## Changed student-visible behavior
+
+### 1. `lib/apollo/bands.ts` — rounding + shared colour map
+- `scoreToBand` now `Math.round`s before comparing the cuts. It is only
+  reachable through the `resolveBand` fallback (a payload with no served `band`
+  token), and it changes what a fractional score resolves to: **84.5–84.99 now
+  resolves `advanced` where it resolved `intermediate`**, and 49.5–49.99 now
+  `intermediate` instead of `beginner`. That is the point — the backend bands
+  an already-rounded int, so the two tables now agree for every input.
+- New `bandColorKey(band)` → `"a" | "c" | "d"`, plus the exported
+  `BandColorKey` type. Behaviorally identical to the `BAND_COLOR_KEY` that
+  lived inside `ApolloBrowse` (advanced→a, intermediate→c, beginner→d); it
+  moved so the report panel can share one map instead of forking it.
+
+| Behavior | Expected | How to check |
+|---|---|---|
+| Rounding at the advanced cut | 84.4 → intermediate; 84.5 → advanced | Payload with `band` absent and a fractional `score` |
+| Rounding at the intermediate cut | 49.4 → beginner; 49.5 → intermediate | Same |
+| Integers unchanged | 0/29/49/50/84/85/100 band exactly as in the Task 3 table above | Regression check — rounding must not move an integer |
+| Served token still wins | A payload WITH `band` never reaches `scoreToBand` | Serve `band: "beginner", score: 99` — must show Beginner |
+| `bandColorKey` parity | Browse card tints are byte-identical to the Task 3 build | Visual A/B |
+
+### 2. `components/apollo/ApolloReportPanel.tsx` — Done report
+- **Overall credit bar REMOVED** (`.apollo-scorecard__overall-bar-track`
+  /`-fill` and the `.apollo-scorecard__header` flex row that wrapped it). It
+  published the score twice — as the fill width and as `aria-valuenow` on a
+  `role="progressbar"` labelled "Overall credit". Screen-reader users lose that
+  announcement; that is the intent, not a regression.
+- The band word is now the sole header content, on its own grid row, back at
+  the full 1.5rem the letter chip had (Task 3 had stepped it to 1.25rem to
+  share the line with the bar). When no band resolves, the eyebrow "Teaching
+  grade" is followed directly by the headline.
+- **Tone rekeyed:** `data-tone={score >= 75 ? "success" : "danger"}` became
+  `data-grade={bandColorKey(band)}` (a/c/d); the accent left border AND the
+  band word take that family. Visible consequences:
+  - Two Intermediate results now look identical. Before, a 74 was a red card
+    and a 76 a green one.
+  - **Advanced (≥85) stays green, but every Intermediate (50–84) is now amber
+    and every Beginner (<50) burnt orange — where before 75–84 was green and
+    everything under 75 was red.** Expect the average card to look "warmer"
+    than it did.
+  - `PASS_SCORE` is deleted; there is no pass/fail concept on this panel.
+  - No band ⇒ no `data-grade` ⇒ the neutral `--accent` border. Previously an
+    unresolvable band still got a success/danger border computed from `score`.
+- **Per-topic `NN%` credit cell REMOVED**, replaced by a status word:
+  covered→"Covered", partial→"Partial", missing→"Missing", unprobed→"n/a"
+  (its `<abbr title>` is unchanged). The per-row credit BAR is KEPT — it is the
+  qualitative reading and prints no number. Column widened 3rem → 4.5rem so the
+  word fits instead of leaving a hole where the figure was.
+  - a11y: the row glyph and the bar track are both `aria-hidden`, so the
+    percentage used to be the only per-row status a screen reader received.
+    The word restores it — an improvement, but it is a NEW announcement on
+    every row, so re-listen to a long report.
+- **Misconception `−N pts` dock chip REMOVED**, replaced by the qualitative
+  "not corrected" — the counterpart to the existing "corrected ✓" badge.
+  `dockToPoints()` deleted; `.apollo-topic__misconception-dock` renamed
+  `-open`. **Runtime-dead in practice:** the backend misconception detector is
+  retired, so `misconceptions` is always empty and only an old payload reaches
+  this path. It was still fixed because it is a live code path in the UI.
+
+### 3. `app/apollo/progress/ProgressClient.tsx` — recent attempts
+- The ` (72)` suffix after the band is gone; the cell is the band word only,
+  `"?"` when nothing resolves.
+- `.apollo-attempts__grade` lost `tabular-nums` (no digits left in that cell),
+  so the column may measure a hair differently.
+- Concept mastery percentages on the same page are deliberately untouched —
+  mastery is not the attempt grade (see Concerns in the task report).
+
+### 4. `components/apollo/ApolloBrowse.tsx`
+- Local `BAND_COLOR_KEY` deleted; imports `bandColorKey` instead. **No
+  behavior change** — same three mappings, and the chips were already
+  word-only.
+
+### 5. `app/globals.css`
+- Deleted: `.apollo-scorecard[data-tone="success"]` / `["danger"]`,
+  `.apollo-scorecard__header`, `.apollo-scorecard__overall-bar-track`,
+  `.apollo-scorecard__overall-bar-fill`.
+- Added: six `.apollo-scorecard[data-grade="a|c|d"]` rules — left border and
+  band-word colour.
+- Edited: `.apollo-scorecard__band` (1.25rem → 1.5rem, `white-space: nowrap`
+  dropped), `.apollo-topic__row` (last column 3rem → 4.5rem),
+  `.apollo-topic__misconception-dock` → `-open`, `.apollo-attempts__grade`
+  (`tabular-nums` dropped).
+- `.notice[data-tone=…]` is NOT touched — the Next-step callout still uses it.
+
+## Manual staging QA checklist
+
+- [ ] **No number, whole session:** run one full session per band outcome and
+      read every student surface — browse card, chat, Done report (header,
+      every topic row expanded, misconceptions, recap, next step, review
+      chips), progress page. No grade number anywhere. XP, level, coverage
+      counts and concept-mastery percentages SHOULD still be visible.
+- [ ] **Screen-reader sweep of those same surfaces** — the number must not
+      survive as an `aria-valuenow`/`aria-label` either. Specifically confirm
+      the report header no longer announces "Overall credit, NN".
+- [ ] **Tone consistency:** two attempts that both land Intermediate (e.g. ~55
+      and ~83) must render visually identical cards — same border colour, same
+      band-word colour. Repeat for two Advanced and two Beginner results.
+- [ ] **Cross-surface consistency:** for the SAME result, the browse card tint,
+      its chip, its feedback-panel left rule and the report card all agree.
+- [ ] **No band:** force `band: null, score: null` — the header shows the
+      eyebrow and no word, the border is the neutral accent, and nothing reads
+      as half-drawn.
+- [ ] **Topic rows:** a mixed report (covered + partial + missing + unprobed)
+      shows four distinct words, bars still fill proportionally, and the "n/a"
+      tooltip still explains unprobed.
+- [ ] **Dark mode** on the report card, the band word, and the browse cards.
+      The `--grade-*` families are the ones the browse chips already used, but
+      check the band word at 1.5rem specifically.
+- [ ] **Narrow viewport (≤400px):** "Intermediate" at 1.5rem must wrap rather
+      than clip now that `nowrap` is gone.
+- [ ] **Back-compat:** a pre-band cached payload still shows a band derived
+      from `score` — and still no number.
