@@ -48,7 +48,8 @@ export const GRADING_PANEL_DELAY_MS = 600;
  * timer and no stage carried into the next attempt.
  */
 export default function ApolloGradingProgress() {
-  // -1 = inside the grace delay, render nothing at all.
+  // -1 = inside the grace delay: no visible panel yet (the live region below
+  // is already mounted, but it is empty and 1x1-clipped).
   const [stage, setStage] = useState(-1);
 
   useEffect(() => {
@@ -58,37 +59,56 @@ export default function ApolloGradingProgress() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  if (stage < 0) return null;
-  const active = GRADING_STAGES[stage];
+  const active = stage < 0 ? null : GRADING_STAGES[stage];
 
   return (
-    <div
-      className="notice apollo-grading"
-      data-stage={active.id}
-      role="status"
-      aria-live="polite"
-    >
-      <span className="eyebrow">Grading in progress</span>
-      {/* Decorative for assistive tech: the whole list is repeated visual
-          context, and re-reading four rows on every advance is noise. The
-          hidden line below carries the one thing worth announcing. */}
-      <ol className="apollo-grading__stages" aria-hidden>
-        {GRADING_STAGES.map((s, i) => (
-          <li
-            key={s.id}
-            className="apollo-grading__stage"
-            data-state={i < stage ? "past" : i === stage ? "active" : "upcoming"}
-          >
-            <span className="apollo-grading__dot" />
-            {s.label}
-          </li>
-        ))}
-      </ol>
-      <p className="apollo-grading__live">{active.label}</p>
-      <p className="apollo-grading__note">
-        Usually 10–20 seconds. Your report opens on its own — no need to
-        refresh.
+    <>
+      {/*
+        The live region IS the label and contains nothing else, for two
+        reasons that both bite if you merge it back into the panel:
+
+        1. `role="status"` implies `aria-atomic="true"`, so a screen reader
+           re-reads the ENTIRE region on every mutation. With the eyebrow and
+           the "Usually 10-20 seconds" note inside, each of the three stage
+           advances would re-announce the whole box. Keeping the region down
+           to one line is what makes an advance announce one line.
+        2. It mounts at t=0 empty and is only ever MUTATED. A live region that
+           is inserted already populated is skipped by most screen readers, so
+           mounting it together with the panel at the 600ms mark would have
+           silently dropped the first stage.
+
+        It is `position: absolute` and clipped, so sitting outside the panel
+        costs no layout in the composer's grid.
+      */}
+      <p className="apollo-grading__live" role="status" aria-live="polite">
+        {active ? active.label : ""}
       </p>
-    </div>
+      {active && (
+        <div className="notice apollo-grading" data-stage={active.id}>
+          <span className="eyebrow">Grading in progress</span>
+          {/* Decorative: repeated visual context for a sighted reader. The
+              live region above carries the one thing worth announcing, so
+              this stays out of the a11y tree entirely. */}
+          <ol className="apollo-grading__stages" aria-hidden>
+            {GRADING_STAGES.map((s, i) => (
+              <li
+                key={s.id}
+                className="apollo-grading__stage"
+                data-state={
+                  i < stage ? "past" : i === stage ? "active" : "upcoming"
+                }
+              >
+                <span className="apollo-grading__dot" />
+                {s.label}
+              </li>
+            ))}
+          </ol>
+          <p className="apollo-grading__note">
+            Usually 10–20 seconds. Your report opens on its own — no need to
+            refresh.
+          </p>
+        </div>
+      )}
+    </>
   );
 }

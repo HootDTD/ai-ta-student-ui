@@ -32,11 +32,13 @@ Schedule, shaped to the measured `POST /done` spread (p50 ~8s, tail past 20s):
 6500ms "Scoring each topic…", 12000ms "Writing your feedback…" — the last is
 **terminal** and holds for however long the request takes.
 
-Markup: a `.notice.apollo-grading` shell above `.apollo-finish` with
-`role="status"`; `.eyebrow` label; an `aria-hidden`
-`<ol class="apollo-grading__stages">` whose rows carry
-`data-state="past|active|upcoming"`; a visually-hidden `.apollo-grading__live`
-line; and `.apollo-grading__note` ("Usually 10–20 seconds…").
+Markup is a fragment of two siblings. First, the visually-hidden
+`<p class="apollo-grading__live" role="status">` — mounted at t=0, holding
+**only** the active label. Second, once past the grace delay, the visible
+`.notice.apollo-grading` shell above `.apollo-finish`: `.eyebrow` label, an
+`aria-hidden` `<ol class="apollo-grading__stages">` whose rows carry
+`data-state="past|active|upcoming"`, and `.apollo-grading__note` ("Usually
+10–20 seconds…"). The panel carries no ARIA role at all.
 
 ## Invariants & gotchas
 - **Never claims completion.** Labels stay present-progressive, a passed row
@@ -48,21 +50,27 @@ line; and `.apollo-grading__note` ("Usually 10–20 seconds…").
   A response landing at 1s and one landing at 25s take the identical path, so
   "jump straight to the report whenever it lands" is structural, not timed.
 - **`GRADING_PANEL_DELAY_MS = 600` is load-bearing** for "a fast grade must not
-  flash a stage sequence": below it nothing renders and the student sees only
-  the Done button's spinner, exactly as before. Stages advance on wall-clock,
+  flash a stage sequence": below it no visible panel renders (only the empty,
+  1x1-clipped live region) and the student sees just the Done button's spinner,
+  exactly as before. Stages advance on wall-clock,
   so a <2s grade can only ever reach stage 0 — a strobe through four labels is
   unreachable by construction.
 - **Driven by `grading`, never `busy`.** `ApolloPageClient` also raises `busy`
   for "Start over"; keying this off `busy` would narrate a grade during a
   restart.
-- Only the active label is announced: the visual list is `aria-hidden` and the
-  hidden `<p>` is the live text. A four-row list re-read on every advance is
-  noise, not information. **Known limitation:** the whole `role="status"`
-  container is inserted at the 600ms mark already populated, and most screen
-  readers do not announce a live region that arrives with content — so stage 0
-  is typically silent and announcements start at 2.5s. Still strictly better
-  than the bare spinner, which announced nothing at all; don't "fix" it by
-  mounting an empty bordered box for 600ms.
+- **The live region holds the label and nothing else** — and that is a
+  correctness requirement, not tidiness. `role="status"` implies
+  `aria-atomic="true"`, so the region is re-read IN FULL on every mutation:
+  with the eyebrow and the "Usually 10–20 seconds" note inside it, all three
+  stage advances would re-announce the whole box. Never move `role="status"`
+  back onto the `.notice`, and never add content to the live `<p>`.
+- **The live `<p>` mounts at t=0, empty, and is only ever mutated.** A live
+  region inserted already populated is skipped by most screen readers, so
+  mounting it with the panel at the 600ms mark would silently drop stage 0.
+  This is why the component returns a fragment and renders something from the
+  very first frame instead of `null`.
+- The visual `<ol>` is `aria-hidden`: it is repeated context for a sighted
+  reader, and a four-row list re-read on every advance is noise.
 - Motion is already covered by the global `prefers-reduced-motion` reset in
   `globals.css` — the dot pulse needs no local guard.
 - No grading semantics live here. It cannot change, delay, or short-circuit

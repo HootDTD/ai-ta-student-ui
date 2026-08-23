@@ -136,7 +136,7 @@ client timing, no network, no props; mount/unmount is its entire lifecycle.
 | Terminal stage | "Writing your feedback…" holds indefinitely; no 5th stage, no "done" state, no percentage | Let a 20s+ grade run to completion |
 | Reveal | The panel vanishes the instant the report renders, whatever stage it was on | Slow grade AND fast grade |
 | Timer cleanup | No stage text ever appears in a later attempt | Grade → "Try again from scratch" → watch the composer |
-| Live region | Only the *current* stage label is announced, once per advance | Screen reader (NVDA/VoiceOver); the `<ol>` is `aria-hidden` |
+| Live region | Each advance announces the new stage label **and nothing else** — no eyebrow, no "Usually 10–20 seconds" note. All four stages announce, stage 0 included | Screen reader (NVDA/VoiceOver). The live `<p>` is the whole region and mounts empty at t=0; the `<ol>` is `aria-hidden` |
 | Reduced motion | The active dot does not pulse | OS "reduce motion" on — covered by the global reset, verify it actually lands |
 
 ## Changed student-visible behavior
@@ -184,7 +184,7 @@ client timing, no network, no props; mount/unmount is its entire lifecycle.
   keystroke in the composer.
 - Risk to watch: memoization means a call site that mutates a string in place
   (impossible for JS strings) or relies on a re-render for side effects would
-  break. No call site does either — all 12 pass one expression child that
+  break. No call site does either — all **13** pass one expression child that
   evaluates to a string.
 
 ### 5. `app/globals.css`
@@ -209,16 +209,22 @@ client timing, no network, no props; mount/unmount is its entire lifecycle.
       stage text anywhere.
 - [ ] **Narrow viewport (≤400px):** the panel stacks above the finish band and
       does not push the Done button off screen.
+- [ ] **Short viewport HEIGHT (e.g. 1366×640, or a phone in landscape):** the
+      panel injects into the bottom-pinned `.apollo-chat__composer`, which
+      shrinks `.apollo-chat__scroll` by roughly the panel's own height mid-
+      grade. Confirm the last turn does not slide out of view (and that the
+      transcript is still scrollable to it) at the moment the panel appears.
 - [ ] **Dark mode** on the panel.
 - [ ] **Contrast:** every stage label is readable in both themes. Not-yet-
       reached rows are deliberately NOT dimmed — an opacity ramp on this text
       measures ~2.4:1 in both themes, under AA, so recession is carried by the
       dot alone. If a future edit re-adds opacity to the label, that is the
       regression to catch.
-- [ ] **Screen reader:** stage advances announced once each, the visual list
-      silent. Expect stage 0 to be SILENT — the live region is inserted
-      already populated and most SRs skip that; announcements start at ~2.5s.
-      That is the known limitation, not a bug to file.
+- [ ] **Screen reader:** each advance announces the new stage label and
+      NOTHING else — if you hear "Grading in progress … Usually 10–20
+      seconds" repeated on every advance, the live region has been merged back
+      into the panel (`role="status"` implies `aria-atomic="true"`). All four
+      stages should announce, stage 0 included. The visual list stays silent.
 - [ ] **Reduced motion:** no dot pulse.
 - [ ] **Typing latency:** open a long, KaTeX-heavy session (20+ turns with
       equations) and type a paragraph into the composer — keystrokes should
