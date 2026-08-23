@@ -2444,10 +2444,15 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-family: var(--serif-body);
 }
 
-.apollo-scorecard__letter {
+/* The headline grade word — "Beginner"/"Intermediate"/"Advanced" (study-prep
+   spec §A.3, replaces the single-letter chip). Same serif voice, a step down
+   in size because it is now a word rather than a glyph, and never wrapped:
+   the credit bar beside it is the flexible half of the header. */
+.apollo-scorecard__band {
   font-family: var(--serif);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .apollo-scorecard__header {
@@ -3137,9 +3142,11 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-size: 0.8rem;
 }
 
-/* Graded cards: the whole box tints to the grade band (quiet wash + border),
-   and the letter chip carries the strong color. Hover still darkens the
-   border via the base :hover rule (higher specificity). */
+/* Graded cards: the whole box tints to the grade color family (quiet wash +
+   border), and the band chip carries the strong color. Hover still darkens the
+   border via the base :hover rule (higher specificity). The `--grade-{a..f}`
+   token names are historical — since the band swap (spec §A.3) the student UI
+   only reaches a/c/d, via `BAND_COLOR_KEY` in ApolloBrowse. */
 .apollo-browse__card--grade-a { border-color: var(--grade-a-border); background: var(--grade-a-bg); }
 .apollo-browse__card--grade-b { border-color: var(--grade-b-border); background: var(--grade-b-bg); }
 .apollo-browse__card--grade-c { border-color: var(--grade-c-border); background: var(--grade-c-bg); }
@@ -3330,6 +3337,9 @@ html.dark .apollo-progress-card[data-level="5"] {
 .apollo-attempts__grade {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  /* Band words are longer than the letters they replaced — keep the row a
+     single line and let `.apollo-attempts__concept` absorb the width. */
+  white-space: nowrap;
 }
 
 .apollo-attempts__date {

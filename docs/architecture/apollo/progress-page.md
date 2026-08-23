@@ -5,7 +5,7 @@ owns:
   - app/apollo/progress/page.tsx
   - app/apollo/progress/ProgressClient.tsx
 related: [apollo/api-client, apollo/top-bar, apollo/progress-card, apollo/error-surface]
-last_verified: 2026-07-25
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -27,7 +27,10 @@ from `data.detail`:
 - **Concept mastery** — `.apollo-mastery` rows: `display_name` + bar at
   `mastery_avg*100%` + pct.
 - **Recent attempts** — `.apollo-attempts` rows: `concept_display_name`,
-  `difficulty`, `letter` + optional `(score)`, `toLocaleDateString`.
+  `difficulty`, proficiency band + optional `(score)`, `toLocaleDateString`.
+  The band comes from `resolveBand(attempt)` (`lib/apollo/bands.ts`) — the
+  served `band` token, else derived from `score`, else `"?"`. The `letter`
+  field is never rendered (study-prep spec §A.3).
 
 Empty state when both `mastery` and `recent_attempts` are empty.
 

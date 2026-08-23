@@ -1,10 +1,11 @@
 ---
 doc: apollo/api-client
-description: lib/apollo/api.ts (types + fetchers hub)
+description: lib/apollo/api.ts (types + fetchers hub) + lib/apollo/bands.ts
 owns:
   - lib/apollo/api.ts
+  - lib/apollo/bands.ts
 related: [shell/auth-client, apollo/error-surface, apollo/session-proxies, apollo/practice-proxies, apollo/kg-proxies, hoot/qa-proxies, apollo/progress-card]
-last_verified: 2026-08-07
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -54,9 +55,20 @@ alongside non-empty topics and only on diagnostic-LLM success; feedback ⇒
 topics, never the reverse), `StudentProgress`(+`Detailed`),
 `ConceptMastery`/`RecentAttempt`, `Negotiate*`/`NegotiationTrace` types,
 `ApolloProblemSummary` (browse cards; `grade?: ApolloProblemGrade | null` =
-`{score, letter, feedback?}`, the student's best served grade plus that same
-attempt's Done-time narrative — both optional so older backends without the
+`{score, letter, band?, feedback?}`, the student's best served grade plus that
+same attempt's Done-time narrative — both optional so older backends without the
 fields behave like null).
+
+**Proficiency bands (`lib/apollo/bands.ts`, study-prep spec §A.1/§A.3,
+2026-08-23)** — the student-facing grade vocabulary; the only module that
+decides what a student sees in place of a letter. Exports `ProficiencyBand`
+(`beginner|intermediate|advanced`, the lowercase wire tokens),
+`scoreToBand(score)` (cuts ≥85 / ≥50 / else — mirrors backend `score_to_band`,
+**frozen for the study**), `resolveBand({band?, score?})` → band or `null`, and
+`bandLabel(band)` → "Beginner"/"Intermediate"/"Advanced" (display strings live
+here and nowhere else). Wire field is `band?: string | null` beside `letter` on
+`Rubric.overall`, `ApolloProblemGrade` and `RecentAttempt` — typed loosely on
+purpose (untrusted network data), narrowed by `resolveBand`.
 
 **Fetchers** (all same-origin `/api/apollo/*` except `listMyClasses`):
 - Session lifecycle: `startSessionFromHoot`, `getSessionState`,
@@ -93,6 +105,11 @@ proxies only forward `Authorization` if present.
   contract — the brief pinned the counts to the chat response only, so until
   the backend also serves them on the snapshot, a mid-attempt reload shows no
   meter until the next turn.
+- **Letters never reach a student surface** (spec §A.3). `letter` stays on every
+  payload (backward compat, teacher surfaces, research corpus) but the student
+  UI renders `bands.ts` output only: `resolveBand` returns `null` rather than
+  ever falling back to a letter, and a caller given `null` renders nothing. A
+  new student-visible grade render that skips `bandLabel` is a spec violation.
 
 ## Related
 - [auth-client.md](../shell/auth-client.md) — token source.

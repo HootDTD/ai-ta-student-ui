@@ -5,7 +5,7 @@ owns:
   - app/layout.tsx
   - app/globals.css
 related: [shell/session-refresh, shared-ui/math-markdown]
-last_verified: 2026-08-07
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -38,7 +38,7 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `apollo-session-shell`/`apollo-turn*`/`apollo-chat*`/`apollo-finish*`/
   `apollo-kg*`/`kg-pill*`/`apollo-progress-card*`/`apollo-mastery*`/
   `apollo-attempts*`/`apollo-coverage-*`/`apollo-topbar*`, plus the report
-  scorecard set `apollo-scorecard*` (card shell + header/letter/headline/
+  scorecard set `apollo-scorecard*` (card shell + header/band/headline/
   overall-bar/recap/next-step/review — the INTERACTION3 review card +
   `apollo-ask-hoot*` composer affordance live here too) and `apollo-topic*`
   (row/glyph/label/bar/credit/body/note/quote, status-colored via
@@ -52,10 +52,17 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `.apollo-turn--aside` wrapper were retired.
 - **Grade-band tokens (2026-07-26):** `--grade-{a,b,c,d,f}-{border,bg,solid}`
   in both `:root` and `html.dark` — A/C/F reuse the success/warning/danger
-  families, B (olive) and D (burnt orange) sit between so the letters read as
-  a continuous scale. Consumed only by `.apollo-browse__card--grade-*` /
+  families, B (olive) and D (burnt orange) sit between so the five steps read
+  as a continuous scale. Consumed only by `.apollo-browse__card--grade-*` /
   `.apollo-browse__grade--*` / the `.apollo-browse__feedback--*` left rules
-  (2026-07-27 in-card feedback panel; see `apollo/browse.md`).
+  (2026-07-27 in-card feedback panel; see `apollo/browse.md`). Token names are
+  historical: since the 2026-08-23 band swap the student UI reaches only
+  `a`/`c`/`d` via `BAND_COLOR_KEY` (advanced/intermediate/beginner) — keep all
+  five rules defined, don't prune `b`/`f`.
+- **Band swap (2026-08-23):** `.apollo-scorecard__band` replaces
+  `.apollo-scorecard__letter` — same serif at 1.25rem (down from 1.5rem: a word,
+  not a glyph) plus `white-space: nowrap`, the credit bar beside it being the
+  flexible half of the header. `.apollo-attempts__grade` gained `nowrap` too.
 - **Single label treatment:** use `.eyebrow`; do not hand-roll
   bold-UPPERCASE-gray labels (the two intentional exceptions are the mono
   `citation-chip` label voice and KG-pill card eyebrows).

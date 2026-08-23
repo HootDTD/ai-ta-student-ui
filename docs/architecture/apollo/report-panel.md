@@ -4,7 +4,7 @@ description: ApolloReportPanel
 owns:
   - components/apollo/ApolloReportPanel.tsx
 related: [shared-ui/math-markdown, shared-ui/citation-chip, apollo/api-client, apollo/session-page]
-last_verified: 2026-08-07
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -25,7 +25,10 @@ answer panel `.msg-ai` — opaque paper panel, serif prose, tone carried on the
 accent left border rather than tinting the whole card).
 Render ladder, best-available first:
 1. **Scorecard** (`report.topics` non-empty): grade header (serif
-   `.apollo-scorecard__letter` + overall credit bar), topic rows sorted by
+   `.apollo-scorecard__band` — the proficiency band word from
+   `resolveBand(rubric.overall)`/`bandLabel`, replacing the letter as of the
+   study-prep spec §A.3; omitted entirely when `resolveBand` returns `null`,
+   never letter-substituted — plus the overall credit bar), topic rows sorted by
    `weight` desc — each a `<details class="apollo-topic" data-status=…>` with
    status glyph, `display_name`, credit bar + whole-number percent; expanded
    body shows the topic's `feedback.topic_feedback[]` note (matched by

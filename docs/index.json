@@ -1,7 +1,7 @@
 {
   "$schema_version": 1,
   "generated_by": "check_owns_coverage.py --emit-index",
-  "generated_at": "2026-08-07",
+  "generated_at": "2026-08-23",
   "repo": "student-ui",
   "docs_root": "docs/architecture",
   "source_to_doc": {
@@ -67,6 +67,7 @@
     "components/apollo/echoGuard.ts": "apollo/chat",
     "eslint.config.mjs": "shell/build-config",
     "lib/apollo/api.ts": "apollo/api-client",
+    "lib/apollo/bands.ts": "apollo/api-client",
     "lib/flags.ts": "shell/feature-flags",
     "next.config.ts": "shell/build-config",
     "package.json": "shell/build-config",
@@ -89,9 +90,10 @@
     "apollo/api-client": {
       "path": "docs/architecture/apollo/api-client.md",
       "kind": "leaf",
-      "description": "lib/apollo/api.ts (types + fetchers hub)",
+      "description": "lib/apollo/api.ts (types + fetchers hub) + lib/apollo/bands.ts",
       "owns": [
-        "lib/apollo/api.ts"
+        "lib/apollo/api.ts",
+        "lib/apollo/bands.ts"
       ]
     },
     "apollo/browse": {

@@ -211,7 +211,12 @@ export interface RubricAxis {
 }
 
 export interface Rubric {
-  overall: { score: number; letter: string };
+  // `band` (study-prep spec §A.2, 2026-08-18) is the student-facing grade
+  // token; `letter` stays on the wire for backward compat, teacher surfaces
+  // and the research corpus, and is never rendered to a student. Optional so
+  // a pre-band backend/cached payload still type-checks — `resolveBand` in
+  // `lib/apollo/bands.ts` handles the fallback.
+  overall: { score: number; letter: string; band?: string | null };
   procedure: RubricAxis;
   justification: RubricAxis;
   simplification: RubricAxis;
@@ -470,6 +475,9 @@ export interface ApolloConceptSummary {
 export interface ApolloProblemGrade {
   score: number;
   letter: string;
+  /** Student-facing proficiency band (spec §A.2). Optional — absent on a
+   *  pre-band backend; `resolveBand` falls back to `score`. */
+  band?: string | null;
   /** Narrative of the SAME best-grade attempt (what the Done panel served).
    *  Absent on older backends, null when the attempt has no usable narrative
    *  — either way the chip renders without a feedback panel. */
@@ -507,6 +515,9 @@ export interface RecentAttempt {
   difficulty: string;
   score: number | null;
   letter: string | null;
+  /** Student-facing proficiency band (spec §A.2). Optional — absent on a
+   *  pre-band backend; `resolveBand` falls back to `score`. */
+  band?: string | null;
   created_at: string;
 }
 

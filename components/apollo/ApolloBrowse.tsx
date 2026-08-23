@@ -14,6 +14,7 @@ import {
   listProblems,
   startSession,
 } from "@/lib/apollo/api";
+import { ProficiencyBand, bandLabel, resolveBand } from "@/lib/apollo/bands";
 import ApolloErrorSurface from "./ApolloErrorSurface";
 import ApolloSidebar from "./ApolloSidebar";
 import MathMarkdown from "@/components/MathMarkdown";
@@ -22,15 +23,17 @@ import ApolloTopBar from "./ApolloTopBar";
 
 const DIFFICULTIES: ApolloDifficulty[] = ["intro", "standard", "hard"];
 const PREVIEW_CHARS = 180;
-const GRADE_BANDS = new Set(["a", "b", "c", "d", "f"]);
-
-/** Map a letter grade ("A-", "B+", "F") to its color band, or null when the
- *  backend sends a letter outside the known scale — the card then falls back
- *  to the neutral attempted state instead of rendering an unstyled chip. */
-function gradeBand(letter: string): string | null {
-  const band = letter.charAt(0).toLowerCase();
-  return GRADE_BANDS.has(band) ? band : null;
-}
+/** Proficiency band → the `--grade-*` color family the card and chip tint to.
+ *  The design tokens keep their letter-shaped names (they are shared, and the
+ *  five-step scale still exists for teacher surfaces); only the mapping INTO
+ *  them changed when letters left the student UI (study-prep spec §A.3).
+ *  `beginner` deliberately takes the `d` family, not `f` — the softer end of
+ *  the scale for the band a student is most likely to land in first. */
+const BAND_COLOR_KEY: Record<ProficiencyBand, string> = {
+  advanced: "a",
+  intermediate: "c",
+  beginner: "d",
+};
 
 interface Props {
   classId: number;
@@ -192,7 +195,11 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                     isLong && !isExpanded
                       ? `${p.problem_text.slice(0, PREVIEW_CHARS)}…`
                       : p.problem_text;
-                  const band = p.grade ? gradeBand(p.grade.letter) : null;
+                  // Best served result across this student's graded attempts.
+                  // No band and no score ⇒ the card falls back to the neutral
+                  // "Tried" state; the letter is never a fallback (spec §A.3).
+                  const band = p.grade ? resolveBand(p.grade) : null;
+                  const colorKey = band ? BAND_COLOR_KEY[band] : null;
                   const feedback = p.grade?.feedback?.trim() ? p.grade.feedback : null;
                   const feedbackOpen = openFeedbackIds.has(p.id);
                   const feedbackPanelId = `apollo-feedback-${p.id}`;
@@ -201,7 +208,7 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                     <li
                       key={p.id}
                       className={`apollo-browse__card${
-                        band ? ` apollo-browse__card--grade-${band}` : ""
+                        colorKey ? ` apollo-browse__card--grade-${colorKey}` : ""
                       }`}
                     >
                       {isLong ? (
@@ -226,38 +233,42 @@ export default function ApolloBrowse({ classId, onStarted }: Props) {
                       ) : (
                         <p className="apollo-browse__card-text">{problemText}</p>
                       )}
-                      {band && feedback && feedbackOpen && (
+                      {colorKey && feedback && feedbackOpen && (
                         <div
                           id={feedbackPanelId}
-                          className={`apollo-browse__feedback apollo-browse__feedback--${band}`}
+                          className={`apollo-browse__feedback apollo-browse__feedback--${colorKey}`}
                         >
                           <span className="eyebrow">Your feedback</span>
                           <MathMarkdown>{feedback}</MathMarkdown>
                         </div>
                       )}
                       <div className="apollo-browse__card-footer">
-                        {p.grade && band ? (
+                        {band && colorKey ? (
                           feedback ? (
                             <button
                               type="button"
-                              className={`apollo-browse__grade apollo-browse__grade--${band} apollo-browse__grade--clickable`}
+                              className={`apollo-browse__grade apollo-browse__grade--${colorKey} apollo-browse__grade--clickable`}
                               aria-expanded={feedbackOpen}
                               aria-controls={feedbackPanelId}
-                              aria-label={`Your grade for this problem: ${p.grade.letter}. ${
-                                feedbackOpen ? "Hide" : "Show"
-                              } your feedback.`}
-                              title={`Your grade: ${p.grade.letter} — click for feedback`}
+                              aria-label={`Your best result for this problem: ${bandLabel(
+                                band,
+                              )}. ${feedbackOpen ? "Hide" : "Show"} your feedback.`}
+                              title={`Your best result: ${bandLabel(
+                                band,
+                              )} — click for feedback`}
                               onClick={() => toggleFeedback(p.id)}
                             >
-                              {p.grade.letter}
+                              {bandLabel(band)}
                             </button>
                           ) : (
                             <span
-                              className={`apollo-browse__grade apollo-browse__grade--${band}`}
-                              aria-label={`Your grade for this problem: ${p.grade.letter}`}
-                              title={`Your grade: ${p.grade.letter}`}
+                              className={`apollo-browse__grade apollo-browse__grade--${colorKey}`}
+                              aria-label={`Your best result for this problem: ${bandLabel(
+                                band,
+                              )}`}
+                              title={`Your best result: ${bandLabel(band)}`}
                             >
-                              {p.grade.letter}
+                              {bandLabel(band)}
                             </span>
                           )
                         ) : (

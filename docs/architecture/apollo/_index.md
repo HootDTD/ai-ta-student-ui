@@ -17,7 +17,7 @@ every component.
 |---|---|
 | [session-page.md](session-page.md) | `/apollo` orchestrator (page.tsx + ApolloPageClient) |
 | [progress-page.md](progress-page.md) | `/apollo/progress` (page.tsx + ProgressClient) |
-| [api-client.md](api-client.md) | `lib/apollo/api.ts` — types + fetchers hub |
+| [api-client.md](api-client.md) | `lib/apollo/api.ts` — types + fetchers hub; `lib/apollo/bands.ts` — proficiency bands |
 | [top-bar.md](top-bar.md) | ApolloTopBar chrome + class switcher |
 | [browse.md](browse.md) | ApolloBrowse + ApolloSidebar picker |
 | [chat.md](chat.md) | ApolloChat conversation + composer |

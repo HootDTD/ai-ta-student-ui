@@ -9,6 +9,7 @@ import type {
   TopicFeedbackItem,
   TopicReviewPointer,
 } from "@/lib/apollo/api";
+import { bandLabel, resolveBand } from "@/lib/apollo/bands";
 
 interface Props {
   report: DoneResponse;
@@ -250,8 +251,13 @@ export default function ApolloReportPanel({
   const { rubric, diagnostic_narrative } = report;
   const tone = rubric.overall.score >= PASS_SCORE ? "success" : "danger";
 
+  // Study-prep spec §A.3: the header shows the proficiency band, never the
+  // letter. `null` (neither a band token nor a usable score) renders nothing
+  // — an empty header beats leaking a letter.
+  const band = resolveBand(rubric.overall);
+
   // Non-empty `topics` ⇒ scorecard rendering; absent/empty ⇒ today's
-  // letter + narrative rendering (older backend, or a soft-failed topic
+  // band + narrative rendering (older backend, or a soft-failed topic
   // score on this attempt) — zero regression for that path.
   const topics = report.topics;
   const hasTopics = Array.isArray(topics) && topics.length > 0;
@@ -280,7 +286,9 @@ export default function ApolloReportPanel({
       <div className="eyebrow">Teaching grade</div>
 
       <div className="apollo-scorecard__header">
-        <strong className="apollo-scorecard__letter">{rubric.overall.letter}</strong>
+        {band && (
+          <strong className="apollo-scorecard__band">{bandLabel(band)}</strong>
+        )}
         {hasTopics && (
           <div
             className="apollo-scorecard__overall-bar-track"
