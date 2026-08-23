@@ -215,7 +215,10 @@ client timing, no network, no props; mount/unmount is its entire lifecycle.
       measures ~2.4:1 in both themes, under AA, so recession is carried by the
       dot alone. If a future edit re-adds opacity to the label, that is the
       regression to catch.
-- [ ] **Screen reader:** each stage announced once; the visual list silent.
+- [ ] **Screen reader:** stage advances announced once each, the visual list
+      silent. Expect stage 0 to be SILENT — the live region is inserted
+      already populated and most SRs skip that; announcements start at ~2.5s.
+      That is the known limitation, not a bug to file.
 - [ ] **Reduced motion:** no dot pulse.
 - [ ] **Typing latency:** open a long, KaTeX-heavy session (20+ turns with
       equations) and type a paragraph into the composer — keystrokes should

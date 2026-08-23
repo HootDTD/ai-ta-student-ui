@@ -57,7 +57,12 @@ line; and `.apollo-grading__note` ("Usually 10–20 seconds…").
   restart.
 - Only the active label is announced: the visual list is `aria-hidden` and the
   hidden `<p>` is the live text. A four-row list re-read on every advance is
-  noise, not information.
+  noise, not information. **Known limitation:** the whole `role="status"`
+  container is inserted at the 600ms mark already populated, and most screen
+  readers do not announce a live region that arrives with content — so stage 0
+  is typically silent and announcements start at 2.5s. Still strictly better
+  than the bare spinner, which announced nothing at all; don't "fix" it by
+  mounting an empty bordered box for 600ms.
 - Motion is already covered by the global `prefers-reduced-motion` reset in
   `globals.css` — the dot pulse needs no local guard.
 - No grading semantics live here. It cannot change, delay, or short-circuit
