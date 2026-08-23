@@ -1149,24 +1149,23 @@ button:disabled {
   list-style: none;
 }
 
+/* Same rule the coverage meter follows: state never rides on a dimmed label.
+   An opacity ramp on this text measured 2.4:1 (light) / 2.4:1 (dark) against
+   the notice surface — well under AA — so the labels stay --muted at full
+   strength and the ACTIVE row is promoted to --text + 600 instead. Recession
+   for not-yet-reached stages is carried entirely by the dot. */
 .apollo-grading__stage {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: var(--muted);
   font-size: 0.86rem;
-  opacity: 0.5;
-  transition: opacity 300ms ease;
-}
-
-.apollo-grading__stage[data-state="past"] {
-  opacity: 0.62;
+  transition: color 300ms ease;
 }
 
 .apollo-grading__stage[data-state="active"] {
   color: var(--text);
   font-weight: 600;
-  opacity: 1;
 }
 
 .apollo-grading__dot {
@@ -1175,15 +1174,18 @@ button:disabled {
   height: 0.45rem;
   border: 1px solid var(--muted);
   border-radius: 50%;
+  opacity: 0.5;
 }
 
 .apollo-grading__stage[data-state="past"] .apollo-grading__dot {
   background: var(--muted);
+  opacity: 1;
 }
 
 .apollo-grading__stage[data-state="active"] .apollo-grading__dot {
   border-color: var(--success-solid);
   background: var(--success-solid);
+  opacity: 1;
   animation: apolloGradingPulse 1.4s ease-in-out infinite;
 }
 

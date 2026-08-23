@@ -210,6 +210,11 @@ client timing, no network, no props; mount/unmount is its entire lifecycle.
 - [ ] **Narrow viewport (≤400px):** the panel stacks above the finish band and
       does not push the Done button off screen.
 - [ ] **Dark mode** on the panel.
+- [ ] **Contrast:** every stage label is readable in both themes. Not-yet-
+      reached rows are deliberately NOT dimmed — an opacity ramp on this text
+      measures ~2.4:1 in both themes, under AA, so recession is carried by the
+      dot alone. If a future edit re-adds opacity to the label, that is the
+      regression to catch.
 - [ ] **Screen reader:** each stage announced once; the visual list silent.
 - [ ] **Reduced motion:** no dot pulse.
 - [ ] **Typing latency:** open a long, KaTeX-heavy session (20+ turns with

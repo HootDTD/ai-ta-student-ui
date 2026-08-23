@@ -67,9 +67,12 @@ Dark mode = a `dark` class on `<html>` + `localStorage.theme`, toggled inside
   `data-tone`, this is neutral status, not a warning) + `.apollo-grading__stages`
   / `__stage[data-state="past|active|upcoming"]` / `__dot` / `__note`, plus
   `.apollo-grading__live`, the repo's one visually-hidden-text rule (clip-path
-  inset, not `display:none` — it must stay in the a11y tree). State is carried
-  by the dot and by opacity/weight; there is deliberately **no** checkmark and
-  no determinate bar, because the stages are client-timed guesses (see
+  inset, not `display:none` — it must stay in the a11y tree). Same contrast
+  rule as the coverage meter: labels stay `--muted` at full strength and the
+  active row is promoted to `--text` + 600 — an opacity ramp on that text
+  measures ~2.4:1 in **both** themes, far under AA, so recession lives on the
+  dot only. There is deliberately **no** checkmark and no determinate bar,
+  because the stages are client-timed guesses (see
   `apollo/grading-progress.md`). The active dot's `apolloGradingPulse` needs no
   reduced-motion guard — the global `prefers-reduced-motion` block already
   neutralizes every animation.

@@ -39,10 +39,10 @@ Markup: a `.notice.apollo-grading` shell above `.apollo-finish` with
 line; and `.apollo-grading__note` ("Usually 10–20 seconds…").
 
 ## Invariants & gotchas
-- **Never claims completion.** Labels stay present-progressive, past rows are
-  dimmed with a filled dot rather than check-marked, and there is no
-  percentage or determinate bar. Only the arriving response ends the wait —
-  a client clock must never imply the grade itself is finished.
+- **Never claims completion.** Labels stay present-progressive, a passed row
+  gains a filled dot rather than a checkmark, and there is no percentage or
+  determinate bar. Only the arriving response ends the wait — a client clock
+  must never imply the grade itself is finished.
 - **The reveal is the parent's.** This component has no completion branch at
   all: `setReport` swaps the chat for `ApolloReportPanel`, which unmounts it.
   A response landing at 1s and one landing at 25s take the identical path, so
