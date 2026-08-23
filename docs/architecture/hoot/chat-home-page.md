@@ -3,8 +3,8 @@ doc: hoot/chat-home-page
 description: app/page.tsx (~1420 lines)
 owns:
   - app/page.tsx
-related: [shared-ui/math-markdown, shared-ui/citation-chip, shared-ui/special-chars-palette, shared-ui/entry-chrome, hoot/qa-proxies, apollo/api-client, shell/feature-flags]
-last_verified: 2026-07-25
+related: [shared-ui/math-markdown, shared-ui/citation-chip, shared-ui/special-chars-palette, shared-ui/entry-chrome, hoot/qa-proxies, apollo/api-client, shell/feature-flags, shell/sse-reader]
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -27,10 +27,14 @@ Default `Page()` — self-contained; no exported symbols. Consumes shell auth,
 3. **Streaming Q&A** — client-generated `chat_id` (`chat-`+8 hex); `send()` POSTs
    `/api/ask/stream` with `{chat_id, search_space_id, question, attachments:
    [{name, mime, data_url}]}` (images = base64 data URLs, max 6 ~5MB, dropzone or
-   paste). The browser parses SSE frames split on `\n\n`, dispatching on
-   `event:` — `status` (updates the thinking line over `/thinking.mp4`),
-   `reasoning` (deliberately **not** surfaced), `token` (streamed answer deltas),
-   `answer` (`{answer, citations}`), `error`. Assistant text renders through
+   paste). Frames come from the shared `readSseFrames` reader
+   ([sse-reader.md](../shell/sse-reader.md), extracted from this file
+   2026-08-23 so the Apollo turn stream shares one parser); this page owns only
+   the dispatch on `frame.event` — `status` (updates the thinking line over
+   `/thinking.mp4`), `reasoning` (deliberately **not** surfaced), `token`
+   (streamed answer deltas), `answer` (`{answer, citations}`), `error` (its
+   `message` replaces the answer text). A frame whose `data` won't parse is
+   skipped. Assistant text renders through
    `MathMarkdown` over `parseAnswer()` (strips trailing `Citations:`/`Results:`
    blocks); `CitationChip`s show when `NEXT_PUBLIC_SHOW_CITATION_PREVIEWS=1`.
 4. **Chat sidebar** — GET `/api/chats?search_space_id` after send; GET
@@ -66,3 +70,4 @@ Default `Page()` — self-contained; no exported symbols. Consumes shell auth,
 - [qa-proxies.md](qa-proxies.md) — the transport.
 - [api-client.md](../apollo/api-client.md) — `startSessionFromHoot`.
 - [feature-flags.md](../shell/feature-flags.md) — APOLLO_ONLY.
+- [sse-reader.md](../shell/sse-reader.md) — the SSE framing this page's reader uses.

@@ -3,7 +3,7 @@ doc: shell/_index
 description: Shell/build/auth/flags router
 owns: []
 related: []
-last_verified: 2026-07-25
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -15,7 +15,8 @@ stub: false
 | [layout-and-design-system.md](layout-and-design-system.md) | Root layout + hand-rolled CSS design system | `app/layout.tsx`, `app/globals.css` |
 | [auth-client.md](auth-client.md) | Supabase GoTrue REST client + localStorage session | `app/lib/auth.ts` |
 | [session-refresh.md](session-refresh.md) | Invisible proactive-refresh driver | `components/SessionRefresher.tsx` |
-| [feature-flags.md](feature-flags.md) | `APOLLO_ONLY` build-time flag | `lib/flags.ts` |
+| [feature-flags.md](feature-flags.md) | `APOLLO_ONLY` + the Apollo turn-streaming kill switch | `lib/flags.ts` |
+| [sse-reader.md](sse-reader.md) | Shared SSE frame reader (Hoot Q&A + Apollo turn) | `lib/sse.ts` |
 
 ## Cross-cutting invariants
 - `app/layout.tsx` is the single mount point for global fonts (Fraunces +

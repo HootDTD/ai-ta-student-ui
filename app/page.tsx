@@ -24,6 +24,7 @@ import BootScreen from '@/components/BootScreen';
 import OwlVideo from '@/components/OwlVideo';
 import { startSessionFromHoot, listMyClasses, ApolloApiError } from '@/lib/apollo/api';
 import { APOLLO_ONLY } from '@/lib/flags';
+import { readSseFrames } from '@/lib/sse';
 
 type Attachment = { name: string; type: string; dataUrl: string; size: number };
 type Message = {
@@ -694,59 +695,40 @@ export default function Page() {
         return;
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) {
+      if (!res.body) {
         setMessages((prev) =>
           prev.map((m, idx) => (idx === aiIndex ? { ...m, content: '[error] No response stream' } : m)),
         );
         return;
       }
 
-      const decoder = new TextDecoder();
-      let buffer = '';
       let answerText = '';
       let citations: CitationMeta[] = [];
       let streamedAnswer = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() ?? '';
-
-        for (const part of parts) {
-          const lines = part.split('\n');
-          let eventType = '';
-          const dataLines: string[] = [];
-          for (const line of lines) {
-            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-            else if (line.startsWith('data: ')) dataLines.push(line.slice(6));
+      // Framing (buffer, `\n\n` split, `event:`/`data:` lines) lives in
+      // `lib/sse.ts`, shared with the Apollo turn stream. This loop owns only
+      // Hoot's event vocabulary; the dispatch below is unchanged.
+      for await (const frame of readSseFrames(res.body)) {
+        try {
+          const payload = JSON.parse(frame.data);
+          if (frame.event === 'status') {
+            setLoadingStatus(payload.message || '');
+          } else if (frame.event === 'reasoning') {
+            // Reasoning deltas are intentionally not surfaced to students.
+          } else if (frame.event === 'token') {
+            streamedAnswer += typeof payload.text === 'string' ? payload.text : '';
+            setMessages((prev) =>
+              prev.map((m, idx) => (idx === aiIndex ? { ...m, content: streamedAnswer } : m)),
+            );
+          } else if (frame.event === 'answer') {
+            answerText = typeof payload.answer === 'string' ? payload.answer : '';
+            citations = Array.isArray(payload.citations) ? payload.citations : [];
+          } else if (frame.event === 'error') {
+            answerText = payload.message || '[error] Unknown error';
           }
-          const eventData = dataLines.join('\n');
-          if (!eventType || !eventData) continue;
-
-          try {
-            const payload = JSON.parse(eventData);
-            if (eventType === 'status') {
-              setLoadingStatus(payload.message || '');
-            } else if (eventType === 'reasoning') {
-              // Reasoning deltas are intentionally not surfaced to students.
-            } else if (eventType === 'token') {
-              streamedAnswer += typeof payload.text === 'string' ? payload.text : '';
-              setMessages((prev) =>
-                prev.map((m, idx) => (idx === aiIndex ? { ...m, content: streamedAnswer } : m)),
-              );
-            } else if (eventType === 'answer') {
-              answerText = typeof payload.answer === 'string' ? payload.answer : '';
-              citations = Array.isArray(payload.citations) ? payload.citations : [];
-            } else if (eventType === 'error') {
-              answerText = payload.message || '[error] Unknown error';
-            }
-          } catch {
-            // Ignore malformed SSE data
-          }
+        } catch {
+          // Ignore malformed SSE data
         }
       }
 
