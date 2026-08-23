@@ -3237,7 +3237,8 @@ html.dark .apollo-progress-card[data-level="5"] {
    border), and the band chip carries the strong color. Hover still darkens the
    border via the base :hover rule (higher specificity). The `--grade-{a..f}`
    token names are historical — since the band swap (spec §A.3) the student UI
-   only reaches a/c/d, via `BAND_COLOR_KEY` in ApolloBrowse. */
+   only reaches a/c/d, via `bandColorKey` in `lib/apollo/bands.ts` (the report
+   card's `[data-grade]` rules read the same map). */
 .apollo-browse__card--grade-a { border-color: var(--grade-a-border); background: var(--grade-a-bg); }
 .apollo-browse__card--grade-b { border-color: var(--grade-b-border); background: var(--grade-b-bg); }
 .apollo-browse__card--grade-c { border-color: var(--grade-c-border); background: var(--grade-c-bg); }
