@@ -3,7 +3,7 @@ doc: apollo/_index
 description: Apollo student session UI router
 owns: []
 related: []
-last_verified: 2026-07-25
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -17,10 +17,12 @@ every component.
 |---|---|
 | [session-page.md](session-page.md) | `/apollo` orchestrator (page.tsx + ApolloPageClient) |
 | [progress-page.md](progress-page.md) | `/apollo/progress` (page.tsx + ProgressClient) |
-| [api-client.md](api-client.md) | `lib/apollo/api.ts` — types + fetchers hub |
+| [api-client.md](api-client.md) | `lib/apollo/api.ts` — types + fetchers hub; `bands.ts` — proficiency bands; `chatStream.ts` — SSE turn transport |
 | [top-bar.md](top-bar.md) | ApolloTopBar chrome + class switcher |
 | [browse.md](browse.md) | ApolloBrowse + ApolloSidebar picker |
 | [chat.md](chat.md) | ApolloChat conversation + composer |
+| [echo-guard.md](echo-guard.md) | echoGuard.ts copied-reply detector |
+| [grading-progress.md](grading-progress.md) | ApolloGradingProgress staged Done wait |
 | [kg-panel.md](kg-panel.md) | ApolloKGPanel open-learner-model |
 | [kg-entry-pill.md](kg-entry-pill.md) | KGEntryPill P3 negotiation wrapper |
 | [kg-entry-cards.md](kg-entry-cards.md) | Dispute + Paraphrase + Trace cards |
@@ -29,7 +31,7 @@ every component.
 | [report-panel.md](report-panel.md) | ApolloReportPanel post-Done report |
 | [coverage-celebrations.md](coverage-celebrations.md) | ApolloCoverageCelebrations |
 | [error-surface.md](error-surface.md) | ApolloErrorSurface error-code copy |
-| [session-proxies.md](session-proxies.md) | 7 session-lifecycle proxies |
+| [session-proxies.md](session-proxies.md) | 8 session-lifecycle proxies (incl. the SSE turn stream) |
 | [practice-proxies.md](practice-proxies.md) | 5 browse/practice proxies |
 | [kg-proxies.md](kg-proxies.md) | 4 P3 negotiation proxies |
 
@@ -38,6 +40,11 @@ ApolloPageClient (session-page) owns session/report/KG/drawer/dedup/reset state
 and wires nearly every component; `lib/apollo/api.ts` is imported by all of them.
 
 ## Cross-cutting invariants
+- **Two turn transports, one seam.** The Apollo teaching turn is served both
+  streaming (SSE, default) and blocking; a UI kill switch picks per send and
+  the streamed terminal payload IS the blocking body, so all turn-state
+  handling downstream is shared. See [chat.md](chat.md) +
+  [feature-flags.md](../shell/feature-flags.md).
 - **NO FALLBACKS:** each `ApolloApiError.errorCode` gets explicit copy in
   ApolloErrorSurface; the errorCode union mirrors backend `error_code` strings
   (change both sides together).

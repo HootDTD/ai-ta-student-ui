@@ -211,7 +211,12 @@ export interface RubricAxis {
 }
 
 export interface Rubric {
-  overall: { score: number; letter: string };
+  // `band` (study-prep spec §A.2, 2026-08-18) is the student-facing grade
+  // token; `letter` stays on the wire for backward compat, teacher surfaces
+  // and the research corpus, and is never rendered to a student. Optional so
+  // a pre-band backend/cached payload still type-checks — `resolveBand` in
+  // `lib/apollo/bands.ts` handles the fallback.
+  overall: { score: number; letter: string; band?: string | null };
   procedure: RubricAxis;
   justification: RubricAxis;
   simplification: RubricAxis;
@@ -340,17 +345,34 @@ export interface StudentProgress {
   next_tier_threshold: number | null;
 }
 
+// The one place a backend error body becomes an ApolloApiError. Exported
+// because the streaming turn transport (`chatStream.ts`) receives the SAME
+// body shape *in-band* (an SSE `error` frame carries the status the blocking
+// route would have returned plus that route's exact error JSON), and must not
+// grow a second, drifting copy of this mapping.
+export function apolloErrorFromBody(
+  body: Record<string, unknown>,
+  status: number,
+  statusText = "",
+): ApolloApiError {
+  const code = (body["error_code"] as ApolloErrorCode) ?? "unknown";
+  const message = (body["message"] as string) ?? `${status} ${statusText}`.trim();
+  return new ApolloApiError(message, code, status, body);
+}
+
 async function _handle(res: Response): Promise<unknown> {
   if (res.ok) return res.json();
-  let body: Record<string, unknown> = {};
+  throw apolloErrorFromBody(await readErrorBody(res), res.status, res.statusText);
+}
+
+// A non-2xx body that isn't JSON (a proxy 500, an HTML error page) reads as an
+// empty body — the caller still gets a typed error with the HTTP status.
+export async function readErrorBody(res: Response): Promise<Record<string, unknown>> {
   try {
-    body = await res.json();
+    return (await res.json()) as Record<string, unknown>;
   } catch {
-    /* empty */
+    return {};
   }
-  const code = (body["error_code"] as ApolloErrorCode) ?? "unknown";
-  const message = (body["message"] as string) ?? `${res.status} ${res.statusText}`;
-  throw new ApolloApiError(message, code, res.status, body);
 }
 
 export async function startSessionFromHoot(
@@ -424,7 +446,9 @@ export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
 // session's bearer token (the backend requires one on every new endpoint;
 // the proxy routes only forward an incoming Authorization header). POST
 // calls (pass `true`) also set Content-Type: application/json.
-function apolloHeaders(withBody = false): Record<string, string> {
+// Exported for `chatStream.ts`, which is the same client split out by file
+// size only — every Apollo request must be authenticated the same way.
+export function apolloHeaders(withBody = false): Record<string, string> {
   const session = loadStoredSession();
   return authHeaders(session?.access_token, withBody) as Record<string, string>;
 }
@@ -470,6 +494,9 @@ export interface ApolloConceptSummary {
 export interface ApolloProblemGrade {
   score: number;
   letter: string;
+  /** Student-facing proficiency band (spec §A.2). Optional — absent on a
+   *  pre-band backend; `resolveBand` falls back to `score`. */
+  band?: string | null;
   /** Narrative of the SAME best-grade attempt (what the Done panel served).
    *  Absent on older backends, null when the attempt has no usable narrative
    *  — either way the chip renders without a feedback panel. */
@@ -507,6 +534,9 @@ export interface RecentAttempt {
   difficulty: string;
   score: number | null;
   letter: string | null;
+  /** Student-facing proficiency band (spec §A.2). Optional — absent on a
+   *  pre-band backend; `resolveBand` falls back to `score`. */
+  band?: string | null;
   created_at: string;
 }
 

@@ -8,6 +8,7 @@ import {
   StudentProgressDetailed,
   getStudentProgressDetailed,
 } from "@/lib/apollo/api";
+import { bandLabel, resolveBand } from "@/lib/apollo/bands";
 import ApolloProgressCard from "@/components/apollo/ApolloProgressCard";
 import ApolloErrorSurface from "@/components/apollo/ApolloErrorSurface";
 import ApolloTopBar from "@/components/apollo/ApolloTopBar";
@@ -89,21 +90,30 @@ export default function ProgressClient() {
         <section className="apollo-progress-page__section">
           <h2>Recent attempts</h2>
           <ul className="apollo-attempts">
-            {detail.recent_attempts.map((a) => (
-              <li key={a.attempt_id} className="apollo-attempts__row">
-                <span className="apollo-attempts__concept">
-                  {a.concept_display_name ?? "—"}
-                </span>
-                <span className="apollo-attempts__difficulty">{a.difficulty}</span>
-                <span className="apollo-attempts__grade">
-                  {a.letter ?? "?"}
-                  {a.score !== null ? ` (${a.score})` : ""}
-                </span>
-                <span className="apollo-attempts__date">
-                  {new Date(a.created_at).toLocaleDateString()}
-                </span>
-              </li>
-            ))}
+            {detail.recent_attempts.map((a) => {
+              // Study-prep spec §A.3: attempts show the proficiency band, never
+              // the letter and (2026-08-23 band-only ruling) never the score.
+              // `a.score` is still read — by `resolveBand`, to derive a band on
+              // a row served before the `band` field existed — but it is not
+              // printed. An attempt with neither a band token nor a score
+              // (still grading, or a soft-failed grade) shows "?" as it always
+              // did — the letter is not a fallback.
+              const band = resolveBand(a);
+              return (
+                <li key={a.attempt_id} className="apollo-attempts__row">
+                  <span className="apollo-attempts__concept">
+                    {a.concept_display_name ?? "—"}
+                  </span>
+                  <span className="apollo-attempts__difficulty">{a.difficulty}</span>
+                  <span className="apollo-attempts__grade">
+                    {band ? bandLabel(band) : "?"}
+                  </span>
+                  <span className="apollo-attempts__date">
+                    {new Date(a.created_at).toLocaleDateString()}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
