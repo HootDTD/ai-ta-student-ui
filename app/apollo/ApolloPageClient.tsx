@@ -20,7 +20,7 @@ import {
   type StudentProgress,
 } from "@/lib/apollo/api";
 import ApolloBrowse from "@/components/apollo/ApolloBrowse";
-import ApolloChat from "@/components/apollo/ApolloChat";
+import ApolloChat, { readGradedCoverage } from "@/components/apollo/ApolloChat";
 import ApolloCoverageCelebrations, {
   type CoverageCelebration,
 } from "@/components/apollo/ApolloCoverageCelebrations";
@@ -44,10 +44,20 @@ export default function ApolloPageClient() {
   const [progress, setProgress] = useState<StudentProgress | null>(null);
   const [error, setError] = useState<ApolloApiError | Error | null>(null);
   const [busy, setBusy] = useState(false);
+  // Narrower than `busy`: true only while a Done grade is in flight. `busy` is
+  // also raised by "Start over" (reachable with the chat on screen), and the
+  // chat's staged grading panel must not appear for that.
+  const [grading, setGrading] = useState(false);
   const [celebrations, setCelebrations] = useState<CoverageCelebration[]>([]);
   // The lasting checklist: every covered topic stays here for the whole
   // attempt, one row per concept. `celebrations` is only the transient pop.
   const [coveredTopics, setCoveredTopics] = useState<CoverageCelebration[]>([]);
+  // Remount key for ApolloChat. Retry/next/restart all start a fresh attempt
+  // server-side, but "Start over" is reachable without a report on screen, so
+  // the chat element keeps its position and React preserves its internal state
+  // (transcript, P2.2 coverage meter) across the swap. Bumping this on every
+  // fresh-attempt path forces the chat to re-seed from the reloaded session.
+  const [attemptNonce, setAttemptNonce] = useState(0);
   const seenCoveredRef = useRef(new Set<string>());
   const seenCoveredNamesRef = useRef(new Set<string>());
   const celebrationIdRef = useRef(0);
@@ -97,6 +107,7 @@ export default function ApolloPageClient() {
     setProgress(null);
     setError(null);
     setBusy(false);
+    setGrading(false);
     setKgOpen(false);
     setCelebrations([]);
     setCoveredTopics([]);
@@ -105,26 +116,37 @@ export default function ApolloPageClient() {
     celebrationTimersRef.current.forEach(clearTimeout);
     celebrationTimersRef.current = [];
 
-    getSessionState(sessionId)
+    // Both requests are fired here, in PARALLEL. They used to be a waterfall
+    // (progress was requested inside the session-state `.then`), which cost a
+    // full extra round-trip of session-open latency for no reason: the two
+    // endpoints are independent and neither reads the other's result.
+    //
+    // Deliberately NOT `Promise.all`: each request keeps its own handler, so
+    // one failing can never mask or short-circuit the other's handling — the
+    // session state still surfaces its error, and progress still fails silent.
+    const sessionRequest = getSessionState(sessionId);
+    // Progress feeds the greeting + avatar level. Non-blocking; errors fall
+    // back silently (greeting renders level 1 defaults). Course-scoped
+    // endpoint — skipped entirely without a class id, as before.
+    const progressRequest = classId ? getStudentProgressDetailed(classId) : null;
+
+    sessionRequest
       .then((s) => {
         if (cancelled) return;
         setState(s);
         setLoadedSessionId(sessionId);
         setKg(s.kg);
-        // Fetch progress for the greeting + avatar level. Non-blocking;
-        // errors fall back silently (greeting renders level 1 defaults).
-        // Course-scoped endpoint — skip entirely without a class id.
-        if (!classId) return;
-        getStudentProgressDetailed(classId)
-          .then((nextProgress) => {
-            if (!cancelled) setProgress(nextProgress);
-          })
-          .catch(() => {
-            if (!cancelled) setProgress(null);
-          });
       })
       .catch((e) => {
         if (!cancelled) setError(e as Error);
+      });
+
+    progressRequest
+      ?.then((nextProgress) => {
+        if (!cancelled) setProgress(nextProgress);
+      })
+      .catch(() => {
+        if (!cancelled) setProgress(null);
       });
 
     return () => {
@@ -154,6 +176,7 @@ export default function ApolloPageClient() {
   async function handleDone() {
     if (!sessionId) return;
     setBusy(true);
+    setGrading(true);
     setError(null);
     try {
       const r = await finishTeaching(sessionId);
@@ -162,6 +185,7 @@ export default function ApolloPageClient() {
       setError(e as Error);
     } finally {
       setBusy(false);
+      setGrading(false);
     }
   }
 
@@ -179,7 +203,10 @@ export default function ApolloPageClient() {
       setReport(null);
       setKgOpen(false);
       setCelebrations([]);
+      setCoveredTopics([]);
+      setAttemptNonce((n) => n + 1);
       seenCoveredRef.current.clear();
+      seenCoveredNamesRef.current.clear();
       celebrationTimersRef.current.forEach(clearTimeout);
       celebrationTimersRef.current = [];
     } catch (e) {
@@ -203,7 +230,10 @@ export default function ApolloPageClient() {
       setReport(null);
       setKgOpen(false);
       setCelebrations([]);
+      setCoveredTopics([]);
+      setAttemptNonce((n) => n + 1);
       seenCoveredRef.current.clear();
+      seenCoveredNamesRef.current.clear();
       celebrationTimersRef.current.forEach(clearTimeout);
       celebrationTimersRef.current = [];
     } catch (e) {
@@ -232,7 +262,10 @@ export default function ApolloPageClient() {
       setReport(null);
       setKgOpen(false);
       setCelebrations([]);
+      setCoveredTopics([]);
+      setAttemptNonce((n) => n + 1);
       seenCoveredRef.current.clear();
+      seenCoveredNamesRef.current.clear();
       celebrationTimersRef.current.forEach(clearTimeout);
       celebrationTimersRef.current = [];
     } catch (e) {
@@ -412,6 +445,7 @@ export default function ApolloPageClient() {
           />
         ) : (
           <ApolloChat
+            key={attemptNonce}
             sessionId={sessionId}
             askHootAvailable={state.ask_hoot_available ?? false}
             initialMessages={state.messages.map((m) => ({
@@ -422,10 +456,15 @@ export default function ApolloPageClient() {
             }))}
             onKgUpdate={(newKg) => setKg(newKg)}
             onCoverageSnapshot={handleCoverageSnapshot}
+            // P2.2: seed the coverage meter / Done guard from the session
+            // snapshot so a reload or a resume mid-attempt doesn't quietly
+            // un-guard Done. Same acceptance rules as the chat response; a
+            // snapshot without the counts reads as "no meter yet".
+            initialCoverage={readGradedCoverage(state)}
             onDoneClicked={handleDone}
             onDoneFromChat={(result) => setReport(result)}
             disabled={busy}
-            busy={busy}
+            grading={grading}
           />
         )}
       </main>

@@ -9,6 +9,7 @@ import type {
   TopicFeedbackItem,
   TopicReviewPointer,
 } from "@/lib/apollo/api";
+import { bandColorKey, bandLabel, resolveBand } from "@/lib/apollo/bands";
 
 interface Props {
   report: DoneResponse;
@@ -18,20 +19,26 @@ interface Props {
   busy?: boolean;
 }
 
-const PASS_SCORE = 75;
-
 const STATUS_GLYPH: Record<TopicCredit["status"], string> = {
   covered: "✓",
   partial: "◐",
   missing: "✗",
+  // P1.2b: never asked this attempt — an empty circle, not a cross. It is
+  // excluded from the denominator, so it must not read as a failure.
+  unprobed: "○",
 };
 
-// dock_points is stored as a fraction of the 0.30 severity clamp (design
-// spec §2); the report renders it as "points out of 100" the way the
-// overall score is expressed, so round(dock_points * 100).
-function dockToPoints(dockPoints: number): number {
-  return Math.round(dockPoints * 100);
-}
+// The word in the credit column, replacing the "72%" the column used to show
+// (band-only ruling 2026-08-23: no numeric grade quantity on a student
+// surface). It is not just cosmetic cover for the removed number — the glyph
+// beside it is `aria-hidden`, so before this the percentage was the ONLY
+// status signal a screen reader got from a summary row.
+const STATUS_LABEL: Record<TopicCredit["status"], string> = {
+  covered: "Covered",
+  partial: "Partial",
+  missing: "Missing",
+  unprobed: "n/a",
+};
 
 // Resolves the quote to show for one topic's expanded row. Structured
 // feedback (when present) already gated its own quote against the topic's
@@ -81,13 +88,23 @@ function TopicRow({
   hasFeedback: boolean;
 }) {
   const label = topic.display_name ?? topic.canonical_key;
-  const percent = Math.round(topic.credit * 100);
+  const unprobed = topic.status === "unprobed";
+  // Drives the bar's width only. The proportion is a qualitative reading of
+  // the row; the number itself is never printed (see STATUS_LABEL).
+  const percent = unprobed ? 0 : Math.round(topic.credit * 100);
   // Network data: guard the nested array so a mid-deploy payload without
   // `misconceptions` degrades to "no findings" instead of a crash.
   const misconceptions = topic.misconceptions ?? [];
   const note = feedbackItem?.note;
   const quote = resolveQuote(topic, feedbackItem, hasFeedback);
-  const hasBody = Boolean(note) || Boolean(quote) || misconceptions.length > 0;
+  // D2 / P2.3: the reference statement for a topic that missed full credit.
+  const referenceText = topic.reference_text ?? null;
+  const hasBody =
+    Boolean(note) ||
+    Boolean(quote) ||
+    Boolean(referenceText) ||
+    unprobed ||
+    misconceptions.length > 0;
 
   const summary = (
     <div className="apollo-topic__row">
@@ -101,7 +118,15 @@ function TopicRow({
           style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
         />
       </div>
-      <span className="apollo-topic__credit">{percent}%</span>
+      <span className="apollo-topic__credit">
+        {unprobed ? (
+          <abbr title="Apollo never asked about this topic — it isn't counted in your grade.">
+            {STATUS_LABEL.unprobed}
+          </abbr>
+        ) : (
+          STATUS_LABEL[topic.status]
+        )}
+      </span>
     </div>
   );
 
@@ -116,14 +141,25 @@ function TopicRow({
   return (
     // Weak topics open pre-expanded: their note + Review pointers are the
     // actionable part of the grade, not something to hide behind a click.
+    // `unprobed` rows are the exception — there can be several of them
+    // (P1.2b probes only a subset per attempt) and their body is a single
+    // "not counted" line, so auto-expanding them would bury the actionable
+    // feedback under a wall of non-findings. The summary row already says it
+    // with the ○ glyph and the "n/a" abbr tooltip.
     <details
       className="apollo-topic"
       data-status={topic.status}
-      open={topic.status !== "covered"}
+      open={topic.status !== "covered" && !unprobed}
     >
       <summary className="apollo-topic__summary">{summary}</summary>
 
       <div className="apollo-topic__body">
+        {unprobed && (
+          <p className="apollo-topic__unprobed">
+            Apollo never asked you about this one, so it isn&apos;t counted in
+            your grade.
+          </p>
+        )}
         {note && (
           <div className="apollo-topic__note prose md-body">
             <MathMarkdown>{note}</MathMarkdown>
@@ -133,6 +169,20 @@ function TopicRow({
           <p className="apollo-topic__quote">
             You said: &ldquo;<MathMarkdown>{quote}</MathMarkdown>&rdquo;
           </p>
+        )}
+        {referenceText && (
+          // D2 (2026-08-07): the ONE sanctioned reveal — the reference
+          // statement for a topic that missed credit, collapsed by default so
+          // the student's own work stays the headline. Never the full worked
+          // solution, and only after grading.
+          <details className="apollo-topic__model">
+            <summary className="apollo-topic__model-summary">
+              What full credit looks like
+            </summary>
+            <div className="apollo-topic__model-body prose md-body">
+              <MathMarkdown>{referenceText}</MathMarkdown>
+            </div>
+          </details>
         )}
 
         {misconceptions.length > 0 && (
@@ -147,8 +197,13 @@ function TopicRow({
                   {m.canonical_key}
                 </span>
                 {!m.resolved && (
-                  <span className="apollo-topic__misconception-dock">
-                    −{dockToPoints(m.dock_points)} pts
+                  // Was "−N pts", the dock rendered as points out of 100 — a
+                  // numeric grade quantity, so it is gone (band-only ruling
+                  // 2026-08-23). The qualitative half is what mattered anyway:
+                  // this is the counterpart to the "corrected ✓" badge below,
+                  // and `dock_points` still travels on the wire for logging.
+                  <span className="apollo-topic__misconception-open">
+                    not corrected
                   </span>
                 )}
                 {m.evidence_span && (
@@ -204,10 +259,21 @@ export default function ApolloReportPanel({
   busy,
 }: Props) {
   const { rubric, diagnostic_narrative } = report;
-  const tone = rubric.overall.score >= PASS_SCORE ? "success" : "danger";
+
+  // Study-prep spec §A.3 + the 2026-08-23 band-only ruling: the band IS the
+  // grade a student sees — no letter, and no number beside it. `null` (neither
+  // a band token nor a usable score) renders nothing; an empty header beats
+  // leaking a letter. `rubric.overall.score` is still read here, but only to
+  // derive that band on a payload that predates the `band` field.
+  const band = resolveBand(rubric.overall);
+
+  // The card's whole visual tone follows the band, so one band always looks
+  // like itself. It used to flip success/danger at score ≥ 75 — mid-
+  // Intermediate — which showed two Intermediate results as a pass and a fail.
+  const colorKey = band ? bandColorKey(band) : null;
 
   // Non-empty `topics` ⇒ scorecard rendering; absent/empty ⇒ today's
-  // letter + narrative rendering (older backend, or a soft-failed topic
+  // band + narrative rendering (older backend, or a soft-failed topic
   // score on this attempt) — zero regression for that path.
   const topics = report.topics;
   const hasTopics = Array.isArray(topics) && topics.length > 0;
@@ -232,29 +298,16 @@ export default function ApolloReportPanel({
       : [];
 
   return (
-    <section className="apollo-scorecard" data-tone={tone}>
+    <section className="apollo-scorecard" data-grade={colorKey ?? undefined}>
       <div className="eyebrow">Teaching grade</div>
 
-      <div className="apollo-scorecard__header">
-        <strong className="apollo-scorecard__letter">{rubric.overall.letter}</strong>
-        {hasTopics && (
-          <div
-            className="apollo-scorecard__overall-bar-track"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(rubric.overall.score)}
-            aria-label="Overall credit"
-          >
-            <div
-              className="apollo-scorecard__overall-bar-fill"
-              style={{
-                width: `${Math.max(0, Math.min(100, rubric.overall.score))}%`,
-              }}
-            />
-          </div>
-        )}
-      </div>
+      {/* The band alone. The overall credit bar that used to sit beside it was
+          the score in another costume — its width and its `aria-valuenow` both
+          published the number — so it is gone rather than de-labelled, and the
+          band takes back the full headline size. */}
+      {band && (
+        <strong className="apollo-scorecard__band">{bandLabel(band)}</strong>
+      )}
 
       {hasTopics && feedback && (
         <p className="apollo-scorecard__headline prose md-body">

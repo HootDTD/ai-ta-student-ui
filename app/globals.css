@@ -1070,6 +1070,151 @@ button:disabled {
   flex-shrink: 0;
 }
 
+/* P2.2 pre-Done coverage meter: how many graded topics Apollo still has open,
+   sitting right next to the Done button so the count is read at the moment it
+   matters. Reuses the progress-track vocabulary (pill track, groove shadow). */
+.apollo-finish__meter {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+
+.apollo-finish__meter-track {
+  flex: 0 0 6rem;
+  height: 0.35rem;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: var(--meter-groove);
+}
+
+.apollo-finish__meter-fill {
+  height: 100%;
+  background: var(--success-solid);
+  border-radius: inherit;
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.apollo-finish__meter-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.apollo-finish__meter[data-open="true"] .apollo-finish__meter-fill {
+  background: var(--warning-solid);
+}
+
+/* The open-topics state is carried by the FILL colour, not the label colour:
+   --warning-solid over the finish band's tinted surface measures ~3.1:1 in
+   light theme, below WCAG AA for 0.82rem text (and worse than the --muted it
+   would replace, ~9:1). The label keeps --muted and takes weight instead —
+   this one sentence is the whole point of the feature, so it has to be
+   readable in exactly the state where it matters. */
+.apollo-finish__meter[data-open="true"] .apollo-finish__meter-label {
+  font-weight: 600;
+}
+
+/* The Done guard: shown above the finish band when the student clicks Done
+   with graded topics still open. Never blocks — "Grade anyway" is one click. */
+.apollo-finish-confirm {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.apollo-finish-confirm__text {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.apollo-finish-confirm__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Done -> grade staged progress (2026-08-23). Grading blocks for 6-20s; the
+   stages are client-timed narration of what the backend is doing, so nothing
+   here is ever marked "complete" — the last stage just holds. Rows carry
+   state in the DOT, not in a checkmark, for exactly that reason. */
+.apollo-grading {
+  gap: 0.5rem;
+}
+
+.apollo-grading__stages {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Same rule the coverage meter follows: state never rides on a dimmed label.
+   An opacity ramp on this text measured 2.4:1 (light) / 2.4:1 (dark) against
+   the notice surface — well under AA — so the labels stay --muted at full
+   strength and the ACTIVE row is promoted to --text + 600 instead. Recession
+   for not-yet-reached stages is carried entirely by the dot. */
+.apollo-grading__stage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  transition: color 300ms ease;
+}
+
+.apollo-grading__stage[data-state="active"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.apollo-grading__dot {
+  flex: 0 0 auto;
+  width: 0.45rem;
+  height: 0.45rem;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.apollo-grading__stage[data-state="past"] .apollo-grading__dot {
+  background: var(--muted);
+  opacity: 1;
+}
+
+.apollo-grading__stage[data-state="active"] .apollo-grading__dot {
+  border-color: var(--success-solid);
+  background: var(--success-solid);
+  opacity: 1;
+  animation: apolloGradingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes apolloGradingPulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.apollo-grading__note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* The one line assistive tech should hear on each advance. The visual list is
+   aria-hidden, so this is not duplicate announcement — it is the only one. */
+.apollo-grading__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .apollo-scrollback {
   display: grid;
   gap: 0.9rem;
@@ -2365,12 +2510,37 @@ html.dark .apollo-progress-card[data-level="5"] {
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.06);
 }
 
-.apollo-scorecard[data-tone="success"] {
-  border-left-color: var(--success-solid);
+/* Band tone (2026-08-23 band-only ruling). The accent border and the band word
+   take ONE `--grade-*` family per band — the same families ApolloBrowse tints
+   its cards with, so a result looks the same on the browse card and on the
+   report. The band → family map lives in `lib/apollo/bands.ts`
+   (`bandColorKey`); these rules only bind the emitted key to tokens, so never
+   re-spell the mapping here. Keying off the band instead of the old
+   `score >= 75` threshold is the fix: that cut fell mid-Intermediate and made
+   two Intermediate results read as a pass and a fail. No band resolves ⇒ no
+   attribute ⇒ the neutral `--accent` border above. */
+.apollo-scorecard[data-grade="a"] {
+  border-left-color: var(--grade-a-solid);
 }
 
-.apollo-scorecard[data-tone="danger"] {
-  border-left-color: var(--danger-solid);
+.apollo-scorecard[data-grade="c"] {
+  border-left-color: var(--grade-c-solid);
+}
+
+.apollo-scorecard[data-grade="d"] {
+  border-left-color: var(--grade-d-solid);
+}
+
+.apollo-scorecard[data-grade="a"] .apollo-scorecard__band {
+  color: var(--grade-a-solid);
+}
+
+.apollo-scorecard[data-grade="c"] .apollo-scorecard__band {
+  color: var(--grade-c-solid);
+}
+
+.apollo-scorecard[data-grade="d"] .apollo-scorecard__band {
+  color: var(--grade-d-solid);
 }
 
 .apollo-scorecard .prose,
@@ -2381,32 +2551,16 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-family: var(--serif-body);
 }
 
-.apollo-scorecard__letter {
+/* The headline grade word — "Beginner"/"Intermediate"/"Advanced" (study-prep
+   spec §A.3, replaces the single-letter chip). Same serif voice at the same
+   1.5rem the letter had: with the credit bar removed (2026-08-23 band-only
+   ruling) this word is the entire verdict and now owns its own row, so it no
+   longer shares the line with anything and no longer needs `nowrap`. Its
+   colour comes from the `[data-grade]` rules above. */
+.apollo-scorecard__band {
   font-family: var(--serif);
   font-size: 1.5rem;
   line-height: 1;
-}
-
-.apollo-scorecard__header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.apollo-scorecard__overall-bar-track {
-  flex: 1;
-  height: 0.5rem;
-  background: var(--accent-soft);
-  border-radius: 999px;
-  overflow: hidden;
-  box-shadow: var(--meter-groove);
-}
-
-.apollo-scorecard__overall-bar-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: inherit;
-  transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .apollo-scorecard__headline {
@@ -2433,9 +2587,12 @@ html.dark .apollo-progress-card[data-level="5"] {
   gap: 0.4rem;
 }
 
+/* Last column was a 3rem "72%" cell; it now holds the status WORD that
+   replaced the number (2026-08-23 band-only ruling), so it widens to fit
+   "Covered" in the mono face rather than leaving a hole where the figure was. */
 .apollo-topic__row {
   display: grid;
-  grid-template-columns: 1.5rem 1fr 5rem 3rem;
+  grid-template-columns: 1.5rem 1fr 5rem 4.5rem;
   align-items: center;
   gap: 0.5rem;
   font-family: var(--mono);
@@ -2465,6 +2622,16 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .apollo-topic[data-status="covered"] .apollo-topic__glyph {
   color: var(--success-solid);
+}
+
+/* P1.2b never-asked topic: muted throughout — it carries no credit and no
+   blame, so it must not read as either a pass or a failure. */
+.apollo-topic[data-status="unprobed"] {
+  opacity: 0.72;
+}
+
+.apollo-topic[data-status="unprobed"] .apollo-topic__glyph {
+  color: var(--muted);
 }
 
 .apollo-topic__bar-track {
@@ -2518,6 +2685,32 @@ html.dark .apollo-progress-card[data-level="5"] {
   color: var(--muted);
 }
 
+.apollo-topic__unprobed {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* P2.3 / D2: "What full credit looks like" — the reference statement for a
+   topic that missed credit. Collapsed by default (the student's own work is
+   the headline); accent left rule marks it as course-authored, not feedback. */
+.apollo-topic__model {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.6rem;
+}
+
+.apollo-topic__model-summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.apollo-topic__model-body {
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+}
+
 /* MathMarkdown wraps single-line text in a block <p>; flatten the inline
    call sites here or the surrounding text and quote marks split lines. */
 .apollo-topic__note p,
@@ -2550,7 +2743,9 @@ html.dark .apollo-progress-card[data-level="5"] {
   opacity: 0.65;
 }
 
-.apollo-topic__misconception-dock {
+/* "not corrected" — the qualitative counterpart to the `corrected ✓` badge.
+   Was `-dock`, the "−N pts" chip, removed with the rest of the numbers. */
+.apollo-topic__misconception-open {
   color: var(--danger-solid);
 }
 
@@ -3038,9 +3233,12 @@ html.dark .apollo-progress-card[data-level="5"] {
   font-size: 0.8rem;
 }
 
-/* Graded cards: the whole box tints to the grade band (quiet wash + border),
-   and the letter chip carries the strong color. Hover still darkens the
-   border via the base :hover rule (higher specificity). */
+/* Graded cards: the whole box tints to the grade color family (quiet wash +
+   border), and the band chip carries the strong color. Hover still darkens the
+   border via the base :hover rule (higher specificity). The `--grade-{a..f}`
+   token names are historical — since the band swap (spec §A.3) the student UI
+   only reaches a/c/d, via `bandColorKey` in `lib/apollo/bands.ts` (the report
+   card's `[data-grade]` rules read the same map). */
 .apollo-browse__card--grade-a { border-color: var(--grade-a-border); background: var(--grade-a-bg); }
 .apollo-browse__card--grade-b { border-color: var(--grade-b-border); background: var(--grade-b-bg); }
 .apollo-browse__card--grade-c { border-color: var(--grade-c-border); background: var(--grade-c-bg); }
@@ -3230,7 +3428,11 @@ html.dark .apollo-progress-card[data-level="5"] {
 
 .apollo-attempts__grade {
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  /* Band words are longer than the letters they replaced — keep the row a
+     single line and let `.apollo-attempts__concept` absorb the width. The
+     `tabular-nums` this rule used to carry went with the ` (72)` score suffix
+     (2026-08-23 band-only ruling); the cell holds no digits now. */
+  white-space: nowrap;
 }
 
 .apollo-attempts__date {

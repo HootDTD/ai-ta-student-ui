@@ -5,7 +5,7 @@ owns:
   - components/apollo/ApolloBrowse.tsx
   - components/apollo/ApolloSidebar.tsx
 related: [apollo/api-client, apollo/top-bar, shared-ui/entry-chrome, shell/layout-and-design-system]
-last_verified: 2026-07-27
+last_verified: 2026-08-23
 stub: false
 ---
 
@@ -34,12 +34,23 @@ on the active one, and closes on outside-click / Escape when `open`.
 - Problem statements >180 chars start as previews with an accessible "Show full
   problem"/"Show less" toggle (reset when concept/difficulty changes); the toggle
   is independent of starting a session.
-- **Grade display (2026-07-26):** a problem with `grade` ({score, letter} = the
-  student's best served grade, from `ApolloProblemSummary`) renders a letter
-  chip (`.apollo-browse__grade--{band}`) instead of the "Tried" badge, and the
-  card tints to the band (`.apollo-browse__card--grade-{band}`). `gradeBand()`
-  maps `letter[0]` → a|b|c|d|f; an unknown letter (or `grade` absent on older
-  backends) degrades to the plain attempted state — never an unstyled chip.
+- **Grade display (2026-07-26; band swap 2026-08-23):** a problem with `grade`
+  ({score, letter, band?} = the student's best served result, from
+  `ApolloProblemSummary`) renders a **proficiency band** chip
+  (`.apollo-browse__grade--{colorKey}`) instead of the "Tried" badge, and the
+  card tints to match (`.apollo-browse__card--grade-{colorKey}`). The band comes
+  from `resolveBand(p.grade)` (`lib/apollo/bands.ts`) — the served `band` token,
+  else derived from `score`; neither the letter nor the score is **ever**
+  rendered or used as a fallback (study-prep spec §A.3 + the 2026-08-23
+  band-only ruling — the chip has always been word-only, so nothing was
+  removed here). `bandColorKey` (`lib/apollo/bands.ts` — was a local
+  `BAND_COLOR_KEY` until 2026-08-23, when the report panel needed the same
+  map) gives advanced→`a`, intermediate→`c`, beginner→`d`, reusing the
+  pre-existing `--grade-*` token families (`b`/`f` are now unreachable from
+  the student UI).
+  A `grade` that resolves to no band (absent on older backends, or no usable
+  score) degrades to the plain attempted state — never an unstyled chip.
+  Chip copy is best-grade-wins band vocabulary: "Your best result: Intermediate".
 - **Feedback on chip click (2026-07-27):** when `grade.feedback` is a non-empty
   string, the chip renders as a `<button>` (`.apollo-browse__grade--clickable`,
   `aria-expanded`/`aria-controls`) toggling an in-card `.apollo-browse__feedback`

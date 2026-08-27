@@ -130,6 +130,14 @@ export interface ApolloSessionState {
   // allowlist, computed by the backend aside gate). Optional so an older
   // backend payload without the field reads as hidden.
   ask_hoot_available?: boolean;
+  // P2.2 rehydration (2026-08-07): the same graded-topic counts the chat
+  // response carries, so a reload / resume mid-attempt restores the coverage
+  // meter and the Done guard instead of dropping both until the next turn.
+  // Optional and read through the same `readGradedCoverage` acceptance rules —
+  // a backend that only serves them on the chat response is fine, the meter
+  // just stays hidden until the student's next turn.
+  graded_topic_total?: number;
+  open_graded_topics?: number;
   // `intent` tags a stored turn's kind on reload; INTERACTION4 reference
   // asides come back as `intent: "reference_aside"` apollo-role turns with
   // an `aside` payload rebuilt from the stored row metadata, so the reloaded
@@ -168,6 +176,13 @@ export interface ChatResponse {
   // Current covered-node snapshot from the active reference-driven Q&A path.
   // The chat compares node IDs across turns and celebrates only new coverage.
   covered_topics?: CoveredTopic[];
+  // P2.2 pre-Done coverage meter (2026-08-07). `graded_topic_total` = graded
+  // nodes in the reference graph; `open_graded_topics` = graded nodes the
+  // tally has not marked understood yet. Both optional: a backend without
+  // them leaves the meter hidden and the Done button unguarded (fail closed,
+  // same convention as `ask_hoot_available`).
+  graded_topic_total?: number;
+  open_graded_topics?: number;
   // Item #5: when the chat handler classifies a non-teaching intent
   // above the confidence threshold, it stashes a pending intent and
   // replies with a confirmation prompt. The student's next turn either
@@ -196,7 +211,12 @@ export interface RubricAxis {
 }
 
 export interface Rubric {
-  overall: { score: number; letter: string };
+  // `band` (study-prep spec §A.2, 2026-08-18) is the student-facing grade
+  // token; `letter` stays on the wire for backward compat, teacher surfaces
+  // and the research corpus, and is never rendered to a student. Optional so
+  // a pre-band backend/cached payload still type-checks — `resolveBand` in
+  // `lib/apollo/bands.ts` handles the fallback.
+  overall: { score: number; letter: string; band?: string | null };
   procedure: RubricAxis;
   justification: RubricAxis;
   simplification: RubricAxis;
@@ -234,13 +254,20 @@ export interface TopicMisconception {
 export interface TopicCredit {
   canonical_key: string;
   display_name?: string | null;
-  status: "covered" | "partial" | "missing";
+  // `unprobed` (P1.2b, 2026-08-07): a graded node Apollo never asked about
+  // this attempt. The backend gives it weight 0 and leaves it out of the
+  // denominator, so the row renders as "not counted" rather than a zero.
+  status: "covered" | "partial" | "missing" | "unprobed";
   credit: number;
   weight: number;
   // Verbatim gated student quote for this topic (scorecard PR1, backend PR
   // #200); null when no evidence span was gated. Absent on backends
   // predating PR #200 — treat as null.
   evidence_span?: string | null;
+  // P2.3 / decision D2 (2026-08-07): the reference statement for this graded
+  // node, served ONLY when the topic scored credit < 0.6 — never the full
+  // worked solution, never before grading. null/absent ⇒ render nothing.
+  reference_text?: string | null;
   misconceptions: TopicMisconception[];
 }
 
@@ -318,17 +345,34 @@ export interface StudentProgress {
   next_tier_threshold: number | null;
 }
 
+// The one place a backend error body becomes an ApolloApiError. Exported
+// because the streaming turn transport (`chatStream.ts`) receives the SAME
+// body shape *in-band* (an SSE `error` frame carries the status the blocking
+// route would have returned plus that route's exact error JSON), and must not
+// grow a second, drifting copy of this mapping.
+export function apolloErrorFromBody(
+  body: Record<string, unknown>,
+  status: number,
+  statusText = "",
+): ApolloApiError {
+  const code = (body["error_code"] as ApolloErrorCode) ?? "unknown";
+  const message = (body["message"] as string) ?? `${status} ${statusText}`.trim();
+  return new ApolloApiError(message, code, status, body);
+}
+
 async function _handle(res: Response): Promise<unknown> {
   if (res.ok) return res.json();
-  let body: Record<string, unknown> = {};
+  throw apolloErrorFromBody(await readErrorBody(res), res.status, res.statusText);
+}
+
+// A non-2xx body that isn't JSON (a proxy 500, an HTML error page) reads as an
+// empty body — the caller still gets a typed error with the HTTP status.
+export async function readErrorBody(res: Response): Promise<Record<string, unknown>> {
   try {
-    body = await res.json();
+    return (await res.json()) as Record<string, unknown>;
   } catch {
-    /* empty */
+    return {};
   }
-  const code = (body["error_code"] as ApolloErrorCode) ?? "unknown";
-  const message = (body["message"] as string) ?? `${res.status} ${res.statusText}`;
-  throw new ApolloApiError(message, code, res.status, body);
 }
 
 export async function startSessionFromHoot(
@@ -402,7 +446,9 @@ export async function endSession(sessionId: number): Promise<{ ok: boolean }> {
 // session's bearer token (the backend requires one on every new endpoint;
 // the proxy routes only forward an incoming Authorization header). POST
 // calls (pass `true`) also set Content-Type: application/json.
-function apolloHeaders(withBody = false): Record<string, string> {
+// Exported for `chatStream.ts`, which is the same client split out by file
+// size only — every Apollo request must be authenticated the same way.
+export function apolloHeaders(withBody = false): Record<string, string> {
   const session = loadStoredSession();
   return authHeaders(session?.access_token, withBody) as Record<string, string>;
 }
@@ -448,6 +494,9 @@ export interface ApolloConceptSummary {
 export interface ApolloProblemGrade {
   score: number;
   letter: string;
+  /** Student-facing proficiency band (spec §A.2). Optional — absent on a
+   *  pre-band backend; `resolveBand` falls back to `score`. */
+  band?: string | null;
   /** Narrative of the SAME best-grade attempt (what the Done panel served).
    *  Absent on older backends, null when the attempt has no usable narrative
    *  — either way the chip renders without a feedback panel. */
@@ -485,6 +534,9 @@ export interface RecentAttempt {
   difficulty: string;
   score: number | null;
   letter: string | null;
+  /** Student-facing proficiency band (spec §A.2). Optional — absent on a
+   *  pre-band backend; `resolveBand` falls back to `score`. */
+  band?: string | null;
   created_at: string;
 }
 
